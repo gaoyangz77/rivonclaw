@@ -194,6 +194,31 @@ describe("AffiliateTeamLeadEditor", () => {
     });
   });
 
+  it("fills the display name from the picked member until the admin types one", async () => {
+    render(
+      <AffiliateTeamLeadEditor
+        structure={structure({
+          eligibleTeamLeadMembers: [
+            { ...member("u-ann", "ann@x.com"), name: "Ann" },
+            { ...member("u-bo", "bo@x.com"), name: "Bo" },
+          ],
+        })}
+        leadId={null}
+        saving={false}
+        onClose={noop}
+        onSave={vi.fn()}
+      />,
+    );
+    const name = screen.getByLabelText("Display name") as HTMLInputElement;
+    await choose("Member", "Ann (ann@x.com)");
+    expect(name.value).toBe("Ann");
+    await choose("Member", "Bo (bo@x.com)");
+    expect(name.value).toBe("Bo");
+    fireEvent.change(name, { target: { value: "Head of US" } });
+    await choose("Member", "Ann (ann@x.com)");
+    expect(name.value).toBe("Head of US");
+  });
+
   it("only offers members without a live profile", () => {
     render(
       <AffiliateTeamLeadEditor

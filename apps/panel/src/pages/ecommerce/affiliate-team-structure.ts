@@ -162,6 +162,25 @@ export function unboundEligibleMembers(members: readonly EligibleMember[]): Elig
   return members.filter((member) => !member.profileId);
 }
 
+/**
+ * The display name a new profile's draft holds after a member is picked.
+ *
+ * The member's own name fills the field while the admin has not typed one of
+ * their own: an empty draft, or the name the previous pick filled in. A name
+ * the admin typed is never overwritten, and a member without a name leaves the
+ * draft as it was.
+ */
+export function displayNameAfterMemberPick(
+  draft: string,
+  previous: Pick<EligibleMember, "name"> | undefined,
+  next: Pick<EligibleMember, "name"> | undefined,
+): string {
+  const suggested = next?.name?.trim();
+  if (!suggested) return draft;
+  const untouched = draft.trim() === "" || draft === (previous?.name?.trim() ?? "");
+  return untouched ? suggested : draft;
+}
+
 export function memberLabel(member: Pick<EligibleMember, "email" | "name">): string {
   return member.name ? `${member.name} (${member.email})` : member.email;
 }

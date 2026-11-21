@@ -11,6 +11,7 @@ import {
 import { Select } from "../../../components/inputs/Select.js";
 import { openPanelRoute } from "../../../lib/open-route.js";
 import {
+  displayNameAfterMemberPick,
   liveParentLeadId,
   memberLabel,
   parentLeadCandidates,
@@ -54,6 +55,12 @@ export function AffiliateTeamLeadEditor({
   const [parentLeadId, setParentLeadId] = useState<string>(storedParentId ?? "");
 
   const members = unboundEligibleMembers(structure.eligibleTeamLeadMembers);
+
+  function pickMember(userId: string) {
+    const byId = (id: string) => members.find((member) => member.userId === id);
+    setDisplayName((draft) => displayNameAfterMemberPick(draft, byId(memberUserId), byId(userId)));
+    setMemberUserId(userId);
+  }
   const boundMember = lead
     ? structure.eligibleTeamLeadMembers.find((member) => member.userId === lead.memberUserId)
     : null;
@@ -122,7 +129,7 @@ export function AffiliateTeamLeadEditor({
               <span>{t("ecommerce.affiliateTeam.teamStructureMember")}</span>
               <Select
                 value={memberUserId}
-                onChange={setMemberUserId}
+                onChange={pickMember}
                 searchable
                 searchPlaceholder={t("ecommerce.affiliateTeam.teamStructureMemberSearch")}
                 placeholder={t("ecommerce.affiliateTeam.teamStructureMemberPlaceholder")}

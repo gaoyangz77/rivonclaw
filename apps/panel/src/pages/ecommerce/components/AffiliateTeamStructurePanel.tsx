@@ -73,7 +73,7 @@ export const AffiliateTeamStructurePanel = observer(function AffiliateTeamStruct
     try {
       await write();
       onSaved();
-      showToast(t("ecommerce.affiliateTeam.saved"), "success");
+      showToast(t("ecommerce.affiliateTeam.teamStructureSaved"), "success");
     } catch (error) {
       reportFailure(error);
     } finally {
@@ -105,7 +105,7 @@ export const AffiliateTeamStructurePanel = observer(function AffiliateTeamStruct
         subject.id,
         parentLeadId,
       );
-      showToast(t("ecommerce.affiliateTeam.saved"), "success");
+      showToast(t("ecommerce.affiliateTeam.teamStructureSaved"), "success");
     } catch (error) {
       reportFailure(error);
     } finally {
@@ -119,7 +119,14 @@ export const AffiliateTeamStructurePanel = observer(function AffiliateTeamStruct
     try {
       if (pending.kind === "TEAM_LEAD") await team.archiveTeamLead(pending.id);
       else await team.archiveRegionAdmin(pending.id);
-      showToast(t("ecommerce.affiliateTeam.archived"), "success");
+      showToast(
+        t(
+          pending.kind === "TEAM_LEAD"
+            ? "ecommerce.affiliateTeam.teamLeadArchived"
+            : "ecommerce.affiliateTeam.regionAdminArchived",
+        ),
+        "success",
+      );
     } catch (error) {
       reportFailure(error);
     } finally {

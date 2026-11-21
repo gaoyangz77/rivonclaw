@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildTeamTree,
   descendantLeadIds,
+  displayNameAfterMemberPick,
   memberLabel,
   parentLeadCandidates,
   teamStructureErrorKey,
@@ -120,5 +121,29 @@ describe("eligible members and errors", () => {
       teamStructureErrorKey({ graphQLErrors: [{ extensions: { code: "OTHER" } }] }),
     ).toBeNull();
     expect(teamStructureErrorKey(new Error("x"))).toBeNull();
+  });
+});
+
+describe("displayNameAfterMemberPick", () => {
+  const ann = { name: "Ann" };
+  const bo = { name: "Bo" };
+
+  it("fills an empty draft with the picked member's name", () => {
+    expect(displayNameAfterMemberPick("", undefined, ann)).toBe("Ann");
+    expect(displayNameAfterMemberPick("  ", undefined, ann)).toBe("Ann");
+  });
+
+  it("replaces the name the previous pick filled in", () => {
+    expect(displayNameAfterMemberPick("Ann", ann, bo)).toBe("Bo");
+  });
+
+  it("never overwrites a name the admin typed", () => {
+    expect(displayNameAfterMemberPick("Head of US", ann, bo)).toBe("Head of US");
+    expect(displayNameAfterMemberPick("Head of US", undefined, ann)).toBe("Head of US");
+  });
+
+  it("leaves the draft alone for a member without a name", () => {
+    expect(displayNameAfterMemberPick("", undefined, { name: null })).toBe("");
+    expect(displayNameAfterMemberPick("Ann", ann, { name: null })).toBe("Ann");
   });
 });

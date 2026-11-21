@@ -21,6 +21,7 @@ import {
 } from "../../../lib/affiliate-bd-shop-scope.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import {
+  displayNameAfterMemberPick,
   memberLabel,
   unboundEligibleMembers,
   type TeamStructure,
@@ -74,6 +75,12 @@ export const AffiliateRegionAdminEditor = observer(function AffiliateRegionAdmin
   );
 
   const members = unboundEligibleMembers(structure.eligibleRegionAdminMembers);
+
+  function pickMember(userId: string) {
+    const byId = (id: string) => members.find((member) => member.userId === id);
+    setDisplayName((draft) => displayNameAfterMemberPick(draft, byId(memberUserId), byId(userId)));
+    setMemberUserId(userId);
+  }
   const boundMember = admin
     ? structure.eligibleRegionAdminMembers.find((member) => member.userId === admin.memberUserId)
     : null;
@@ -139,7 +146,7 @@ export const AffiliateRegionAdminEditor = observer(function AffiliateRegionAdmin
               <span>{t("ecommerce.affiliateTeam.teamStructureMember")}</span>
               <Select
                 value={memberUserId}
-                onChange={setMemberUserId}
+                onChange={pickMember}
                 searchable
                 searchPlaceholder={t("ecommerce.affiliateTeam.teamStructureMemberSearch")}
                 placeholder={t("ecommerce.affiliateTeam.teamStructureMemberPlaceholder")}
