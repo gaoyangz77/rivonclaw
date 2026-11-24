@@ -24,6 +24,7 @@ const log = createLogger("boot-migrations");
  * │ 4  │ migrateLegacyOpenClawConfig   │ postConfig   │ v1.8.10    │ v2.0.0       │
  * │ 5  │ migrateOpenAIProviderRefs      │ postConfig   │ v1.8.81    │ v2.0.0       │
  * │ 6  │ migrateMainAgentWorkspace      │ postConfig   │ v1.8.112   │ v2.0.0       │
+ * │ 7  │ migrateRetiredMobileChat       │ postConfig   │ v1.9.61    │ v2.0.0       │
  *
  * When removing a migration:
  *   1. Delete the corresponding entry from the phase body below.
@@ -87,6 +88,16 @@ export async function runPostConfigMigrations(configPath: string, stateDir: stri
   // workspace-local skills created by older single-workspace RivonClaw builds.
   const { migrateLegacyMainAgentWorkspace } = await import("./legacy-openclaw-config-migration.js");
   migrateLegacyMainAgentWorkspace(stateDir);
+
+  // [7] v1.9.61 - remove after v2.0.0
+  // The 爪聊 mobile chat channel and its `rivonclaw-mobile-chat-channel`
+  // extension were retired. Strip `channels.mobile`, its bindings, plugin
+  // entries and owner entries, clear OpenClaw's `mobile` allowlist rows, and
+  // delete the extension's leftover state files so OpenClaw does not reject the
+  // config as an unknown channel id. Must precede the first gateway config write.
+  const { migrateRetiredMobileChat } =
+    await import("../gateway/mobile-chat-retirement-migration.js");
+  migrateRetiredMobileChat(configPath, stateDir);
 
   log.debug("post-config migrations complete");
 }

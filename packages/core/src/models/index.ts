@@ -45,8 +45,6 @@ export {
 export type { ProviderKey, ProviderKeyUsage, ProviderKeyUsageWindow } from "./ProviderKey.js";
 export { ChannelAccountModel } from "./ChannelAccount.js";
 export type { ChannelAccount } from "./ChannelAccount.js";
-export { MobilePairingModel } from "./MobilePairing.js";
-export type { MobilePairing } from "./MobilePairing.js";
 export { ToolCapabilityModel, toolIdMatch } from "./ToolCapability.js";
 export type {
   ToolCapability,

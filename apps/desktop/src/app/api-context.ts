@@ -2,7 +2,6 @@ import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
 import type { UsageSnapshotEngine } from "../usage/usage-snapshot-engine.js";
 import type { UsageQueryService } from "../usage/usage-query-service.js";
-import type { MobileManagerInstance } from "../mobile/mobile-manager.js";
 import type { AuthSessionManager } from "../auth/session.js";
 import type { CloudClient } from "../cloud/cloud-client.js";
 import type { ChannelManagerInstance } from "../channels/channel-manager.js";
@@ -89,7 +88,6 @@ export interface ApiContext {
   getPanelUrl?: () => string;
   snapshotEngine?: UsageSnapshotEngine;
   queryService?: UsageQueryService;
-  mobileManager?: MobileManagerInstance;
   authSession?: AuthSessionManager;
   googleAuthCoordinator?: DesktopGoogleAuthCoordinator;
   browserLoginCoordinator?: DesktopBrowserLoginCoordinator;

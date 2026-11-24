@@ -35,7 +35,7 @@ export const RunEntryModel = types.model("RunEntry", {
   startedAt: types.number,
   /**
    * True for runs whose terminal event arrives via mirror SSE (non-webchat
-   * channels like Telegram, Feishu, Mobile).  The controller should NOT
+   * channels like Telegram, Feishu).  The controller should NOT
    * start a FINAL_FALLBACK timer for these runs — their lifecycle.end is
    * converted into a synthetic chat.final by the mirror handler.
    */

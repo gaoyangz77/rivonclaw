@@ -75,7 +75,7 @@ export function resolveUserSkillsDir(
   return join(resolveOpenClawStateDir(env), "skills");
 }
 
-/** Resolve the credentials directory (channel pairing, mobile allow-lists). */
+/** Resolve the credentials directory (channel pairing allow-lists). */
 export function resolveCredentialsDir(
   env: Record<string, string | undefined> = process.env,
 ): string {

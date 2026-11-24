@@ -14,7 +14,6 @@ from the private merchant extensions repository in CI/dev environments.
 | `channel-weixin`                    | `openclaw-weixin`                   | Channel plugin          | Wrapper around the Tencent Weixin channel with RivonClaw compatibility fixes.                     |
 | `rivonclaw-capability-manager`      | `rivonclaw-capability-manager`      | Hook/enforcement plugin | Enforces effective tool availability from entitlement, surface, run profile, and session context. |
 | `rivonclaw-event-bridge`            | `rivonclaw-event-bridge`            | Hook/event plugin       | Mirrors selected OpenClaw agent events into the panel event stream.                               |
-| `rivonclaw-mobile-chat-channel`     | `rivonclaw-mobile-chat-channel`     | Channel plugin          | Mobile chat channel and relay synchronization.                                                    |
 | `rivonclaw-search-browser-fallback` | `rivonclaw-search-browser-fallback` | Hook plugin             | Guides fallback to browser search when direct web-search credentials are unavailable.             |
 
 ## Merchant Extension Inventory

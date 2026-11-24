@@ -5,7 +5,6 @@ import { registerSettingsHandlers } from "../settings/api.js";
 import { registerProviderHandlers } from "../providers/api.js";
 import { registerChannelsHandlers } from "../channels/api.js";
 import { registerCsBridgeHandlers } from "../cs-bridge/api.js";
-import { registerMobileChatHandlers } from "../mobile/api.js";
 import { registerChatSessionsHandlers } from "../chat/api.js";
 import { registerSkillsHandlers } from "../skills/api.js";
 import { registerUsageHandlers } from "../usage/api.js";
@@ -24,7 +23,6 @@ export function registerAllHandlers(registry: RouteRegistry): void {
   registerProviderHandlers(registry);
   registerChannelsHandlers(registry);
   registerCsBridgeHandlers(registry);
-  registerMobileChatHandlers(registry);
   registerChatSessionsHandlers(registry);
   registerSkillsHandlers(registry);
   registerUsageHandlers(registry);

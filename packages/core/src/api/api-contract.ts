@@ -565,38 +565,6 @@ export const API = {
     desc: "Save web search/embedding credentials",
   },
 
-  // ── Mobile Chat ──
-  "mobile.graphql": {
-    method: "POST",
-    path: "/api/graphql/mobile",
-    desc: "Mobile GraphQL endpoint",
-  },
-  "mobile.pairingCode": {
-    method: "POST",
-    path: "/api/mobile/pairing-code/generate",
-    desc: "Generate mobile pairing code",
-  },
-  "mobile.installUrl": {
-    method: "GET",
-    path: "/api/mobile/install-url",
-    desc: "Get PWA install URL",
-  },
-  "mobile.status": {
-    method: "GET",
-    path: "/api/mobile/status",
-    desc: "Get pairing status and pairings",
-  },
-  "mobile.deviceStatus": {
-    method: "GET",
-    path: "/api/mobile/device-status",
-    desc: "Get device presence status",
-  },
-  "mobile.disconnect": {
-    method: "DELETE",
-    path: "/api/mobile/disconnect",
-    desc: "Disconnect mobile pairing",
-  },
-
   // ── CS Bridge ──
   "csBridge.sync": {
     method: "POST",

@@ -243,7 +243,7 @@
   font-size: 13px;
 }
 
-/* Non-mobile: 4 cols — User ID, Alias, Role, Action */
+/* 4 cols — User ID, Alias, Role, Action */
 .recipients-table th:nth-child(1) {
   width: 15%;
 }
@@ -258,33 +258,6 @@
 
 .recipients-table th:nth-child(4) {
   width: 27%;
-}
-
-/* Mobile: 6 cols — presence, User ID, Pairing ID, Alias, Role, Action */
-.recipients-table th.presence-col {
-  width: 24px !important;
-  min-width: 24px;
-  max-width: 24px;
-}
-
-.recipients-table th.presence-col ~ th:nth-child(2) {
-  width: 13%;
-}
-
-.recipients-table th.presence-col ~ th:nth-child(3) {
-  width: 13%;
-}
-
-.recipients-table th.presence-col ~ th:nth-child(4) {
-  width: 30%;
-}
-
-.recipients-table th.presence-col ~ th:nth-child(5) {
-  width: 18%;
-}
-
-.recipients-table th.presence-col ~ th:nth-child(6) {
-  width: 22%;
 }
 
 .recipients-table th {
@@ -390,41 +363,6 @@
   border-color: var(--color-primary);
 }
 
-.presence-col {
-  width: 24px !important;
-  min-width: 24px;
-  max-width: 24px;
-  text-align: center;
-  padding: 0 4px !important;
-}
-
-.presence-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: var(--color-text-muted);
-}
-
-.presence-online {
-  background-color: var(--color-success, #22c55e);
-}
-
-.presence-offline {
-  background-color: var(--color-text-muted);
-}
-
-.presence-stale {
-  background-color: var(--color-warning, #f59e0b);
-}
-
-.stale-hint {
-  display: block;
-  font-size: 11px;
-  color: var(--color-warning, #f59e0b);
-  margin-top: 2px;
-}
-
 .recipients-empty {
   padding: 12px 0;
   color: var(--color-text-muted);
@@ -435,26 +373,6 @@
   padding: 12px 0;
   color: var(--color-text-muted);
   font-size: 13px;
-}
-
-/* Mobile Pairing Modal */
-.mobile-pairing-modal-body {
-  padding: 1rem 0;
-}
-
-.mobile-pairing-view {
-  text-align: center;
-}
-
-.mobile-existing-hint {
-  font-size: 13px;
-  color: var(--color-text-muted);
-  margin-bottom: 0.75rem;
-}
-
-.mobile-scan-hint {
-  margin-top: 1rem;
-  margin-bottom: 2rem;
 }
 
 .mobile-qr-container {
@@ -468,67 +386,6 @@
 
 .mobile-qr-container img {
   display: block;
-}
-
-.qr-privacy-blur {
-  position: relative;
-  cursor: pointer;
-}
-
-.qr-privacy-blur img {
-  filter: blur(16px);
-  transition: filter 0.3s;
-}
-
-.qr-privacy-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.qr-expired {
-  position: relative;
-  cursor: pointer;
-}
-
-.qr-expired img {
-  filter: blur(6px) grayscale(0.5);
-  opacity: 0.4;
-  transition:
-    filter 0.3s,
-    opacity 0.3s;
-}
-
-.qr-expired-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--color-text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.qr-expired-overlay svg {
-  color: var(--color-primary);
-}
-
-.qr-expired:hover .qr-expired-overlay svg {
-  color: var(--color-primary-hover);
-}
-
-.mobile-countdown {
-  margin-top: 12px;
-  font-size: 13px;
-  color: var(--color-text-muted);
 }
 
 /* QR Login Modal (WeChat) */

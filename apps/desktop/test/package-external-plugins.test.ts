@@ -90,14 +90,6 @@ describe("packaged external plugin manifests", () => {
     expect(() => preparePluginManifest(source, dest, {})).toThrow("pdfjs/pdf.worker.mjs");
   });
 
-  it("allows ws accelerators only inside an actual catch fallback", () => {
-    const { source, dest } = fixture("@rivonclaw/rivonclaw-mobile-chat-channel", { ws: "8.18.0" });
-    write(path.join(dest, "dist/index.mjs"), 'try { __require("bufferutil"); } catch {}');
-    expect(preparePluginManifest(source, dest, {}).manifest.dependencies).toEqual({});
-    write(path.join(dest, "dist/index.mjs"), '__require("bufferutil");');
-    expect(() => preparePluginManifest(source, dest, {})).toThrow("Undeclared packaged external");
-  });
-
   it("ships real dynamic imports and their complete closure in packaged-only node_modules", () => {
     const { root, source, dest } = fixture("openclaw-weixin", {
       "@tencent-weixin/openclaw-weixin": "^2.4.1",

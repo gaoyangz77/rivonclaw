@@ -131,7 +131,6 @@ import { catchUpAffiliateEscalationNotifications } from "../affiliate/affiliate-
 import { bootstrapDesktopAuthState } from "./bootstrap-auth-state.js";
 import { fetchTelegramDebugOperatorUserIds } from "../channels/telegram-debug-relay.js";
 import { configureFeishuCsCallbackRuntime } from "../channels/feishu-cs-callback-config.js";
-import { isLegacyZhuaZhuaRelayUrl } from "../mobile/mobile-manager.js";
 import { detectAndApplyFirstPartyDomainRoute } from "../infra/network/first-party-domain-route.js";
 import {
   computeToolSpecsDigest,
@@ -2090,55 +2089,12 @@ app.whenReady().then(async () => {
     resetAgentToolingReadiness("gateway rpc connected");
     rootStore.llmManager.clearAppliedSessionModelState();
 
-    // 1. Start Mobile Sync engines for all active pairings (skip stale)
-    const allPairings = storage.mobilePairings.getAllPairings();
-    const stalePairings: Array<{
-      pairingId: string | undefined;
-      mobileDeviceId: string | undefined;
-    }> = [];
-    for (const pairing of allPairings) {
-      if (pairing.status === "stale") {
-        stalePairings.push({
-          pairingId: pairing.pairingId || pairing.id,
-          mobileDeviceId: pairing.mobileDeviceId,
-        });
-        continue;
-      }
-      if (isLegacyZhuaZhuaRelayUrl(pairing.relayUrl)) {
-        log.info(
-          `Skipping legacy mobile relay sync for ${pairing.pairingId || pairing.mobileDeviceId || pairing.id}; service is disabled`,
-        );
-        continue;
-      }
-      rpc
-        .request("mobile_chat_start_sync", {
-          pairingId: pairing.pairingId,
-          accessToken: pairing.accessToken,
-          relayUrl: pairing.relayUrl,
-          desktopDeviceId: pairing.deviceId,
-          mobileDeviceId: pairing.mobileDeviceId || pairing.id,
-        })
-        .catch((e: unknown) =>
-          log.error(
-            `Failed to start Mobile Sync for ${pairing.pairingId || pairing.mobileDeviceId || pairing.id}:`,
-            e,
-          ),
-        );
-    }
-
-    // Register stale pairings so the mobile channel stays visible in Panel
-    if (stalePairings.length > 0) {
-      rpc
-        .request("mobile_chat_register_stale", { pairings: stalePairings })
-        .catch((e: unknown) => log.error("Failed to register stale mobile pairings:", e));
-    }
-
-    // 2. Initialize event bridge plugin so it captures the gateway broadcast function
+    // 1. Initialize event bridge plugin so it captures the gateway broadcast function
     rpc
       .request("event_bridge_init", {})
       .catch((e: unknown) => log.debug("Event bridge init (may not be loaded):", e));
 
-    // 3. Initialize gateway-dependent Desktop state. Agent-related business
+    // 2. Initialize gateway-dependent Desktop state. Agent-related business
     // services go through the shared agent tooling readiness gate.
     void (async () => {
       try {

@@ -96,7 +96,6 @@ export default {
     providers: "Models",
     channels: "Channels",
     usage: "Usage",
-    mobile: "ChatClaw",
     extras: "Extensions",
     plugins: "Plugins",
     skills: "Skills",
@@ -867,8 +866,6 @@ export default {
     failedToRemove: "Failed to remove:",
     removeConfirmTitle: "Remove {{entry}} from allowlist?",
     removeConfirmMessage: "They will no longer be able to send messages.",
-    staleTooltip: "Unpaired by remote device",
-    staleHint: "Unpaired by remote",
     timeJustNow: "just now",
     timeMinutesAgo: "{{count}}m ago",
     timeHoursAgo: "{{count}}h ago",
@@ -881,7 +878,6 @@ export default {
     ownerBadge: "Owner",
     nonOwnerBadge: "User",
     noRecipients: "No recipients in allowlist.",
-    pairingIdColumn: "Pairing ID",
     copied: "Copied!",
     expand: "Recipients",
   },
@@ -904,27 +900,6 @@ export default {
       "WeChat is bound. Please send one message to the bot in WeChat to confirm activation; otherwise proactive outbound messages may not be delivered.",
     weixinAlreadyConnectedHint:
       "This WeChat account was already connected. Its login state has been refreshed.",
-  },
-  mobile: {
-    description:
-      "Scan to connect your phone — zero config, zero hassle. Chat with your AI agent anytime, anywhere.",
-    statusTitle: "ChatClaw Connection",
-    generationFailed: "Failed to generate pairing code: {{error}}",
-    disconnectConfirm: "Are you sure you want to disconnect the current mobile device?",
-    disconnectFailed: "Failed to disconnect: {{error}}",
-    connectedDesc: "Your mobile device ({{device}}) is successfully connected.",
-    disconnect: "Disconnect Device",
-    waitingForConnection: "Scan to Connect",
-    scanHint: "Scan the QR code with your phone camera to connect.",
-    codeExpired: "QR Code Expired",
-    codeExpiredHint: "Click the QR code to generate a new pairing code.",
-    clickToRefresh: "Click to refresh",
-    expiresIn: "Expires in {{seconds}}s",
-    existingPairings: "{{count}} device(s) already paired.",
-    pairTitle: "Pair Device",
-    installHint:
-      "First time? Scan the QR code on the right to install ChatClaw on your phone. Already installed? Click the Connect button, then scan the popup QR code using ChatClaw's built-in scanner to pair.",
-    pairHint: "Open the ChatClaw app and use its built-in scanner to scan this QR code.",
   },
   stt: {
     title: "Speech-to-Text",
@@ -2422,7 +2397,7 @@ export default {
         "Choose which messaging platform to connect. Options include Telegram, WeChat, Feishu/Lark, Discord, Slack, WhatsApp, and more. Each platform requires different configuration.",
       connectBtnTitle: "Connect Button",
       connectBtnBody:
-        "After selecting a channel type, click Connect to open the configuration dialog. For Mobile Chat, this opens a QR code pairing flow instead.",
+        "After selecting a channel type, click Connect to open the configuration dialog.",
       infoBoxTitle: "Channel Info",
       infoBoxBody:
         "When you select a channel, this area shows helpful setup instructions and may include a link to a step-by-step tutorial for that platform.",
@@ -2437,7 +2412,7 @@ export default {
         "Click anywhere on a row to expand it and see the recipient allowlist — the users who are authorized to interact with your bot on that channel.",
       rowActionsTitle: "Account Actions",
       rowActionsBody:
-        "Edit opens the configuration dialog to change credentials or settings. Delete permanently removes the channel connection. Mobile Chat accounts can only be deleted, not edited.",
+        "Edit opens the configuration dialog to change credentials or settings. Delete permanently removes the channel connection.",
       expandArrowTitle: "Expand Details",
       expandArrowBody:
         "The arrow on the left of each row toggles the expanded view, which shows the pairing requests and authorized recipients for that channel.",

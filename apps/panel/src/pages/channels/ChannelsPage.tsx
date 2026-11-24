@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import {
@@ -9,8 +9,6 @@ import {
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { pollGatewayReady } from "./poll-gateway.js";
 import { AddChannelAccountModal } from "../../components/modals/AddChannelAccountModal.js";
-import { MobileBindingModal } from "../../components/modals/MobileBindingModal.js";
-import { MobileQrInlineFlow } from "../../components/MobileQrInlineFlow.js";
 import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
 import { Select } from "../../components/inputs/Select.js";
 import { KNOWN_CHANNELS, QR_LOGIN_CHANNELS } from "../../lib/channel-defs.js";
@@ -54,9 +52,6 @@ export const ChannelsPage = observer(function ChannelsPage() {
   } | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
 
-  // Mobile binding modal
-  const [mobileModalOpen, setMobileModalOpen] = useState(false);
-
   // QR login modal (WeChat)
   const [qrLoginChannelId, setQrLoginChannelId] = useState<string | null>(null);
   const [feishuSetupOpen, setFeishuSetupOpen] = useState(false);
@@ -82,21 +77,8 @@ export const ChannelsPage = observer(function ChannelsPage() {
     });
   }, [loadChannelStatus]);
 
-  const handleMobileModalClose = useCallback(() => setMobileModalOpen(false), []);
-  const handleMobileBindingSuccess = useCallback(() => {
-    loadChannelStatus();
-    setMobileModalOpen(false);
-    setSelectedDropdownChannel("");
-  }, []);
-
   function handleAddAccountFromDropdown() {
     if (!selectedDropdownChannel) return;
-
-    // Mobile Chat uses its own binding modal (QR code flow)
-    if (selectedDropdownChannel === "mobile") {
-      setMobileModalOpen(true);
-      return;
-    }
 
     if (selectedDropdownChannel === "feishu") {
       setFeishuSetupOpen(true);
@@ -166,12 +148,8 @@ export const ChannelsPage = observer(function ChannelsPage() {
 
   function handleDeleteAccount(channelId: string, accountId: string) {
     let label = channelId;
-    if (channelId === "mobile") {
-      label = t("nav.mobile");
-    } else {
-      const known = KNOWN_CHANNELS.find((c) => c.id === channelId);
-      if (known) label = t(known.labelKey);
-    }
+    const known = KNOWN_CHANNELS.find((c) => c.id === channelId);
+    if (known) label = t(known.labelKey);
     setDeleteConfirm({ channelId, accountId, label });
   }
 
@@ -186,14 +164,8 @@ export const ChannelsPage = observer(function ChannelsPage() {
     try {
       setDeleteError(null);
 
-      if (channelId === "mobile") {
-        // Disconnect all mobile pairings
-        await entityStore.mobileManager.disconnectAll();
-        await pollGatewayReady(() => loadChannelStatus(true, { probe: false }));
-      } else {
-        await entityStore.channelManager.deleteAccount(channelId, accountId);
-        await pollGatewayReady(() => loadChannelStatus(true, { probe: false }));
-      }
+      await entityStore.channelManager.deleteAccount(channelId, accountId);
+      await pollGatewayReady(() => loadChannelStatus(true, { probe: false }));
     } catch (err) {
       setDeleteError(`${t("channels.failedToDelete")} ${String(err)}`);
     } finally {
@@ -302,9 +274,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
         data-tutorial-id="channels-add-account"
       >
         <h3>{t("channels.addAccount")}</h3>
-        <div
-          className={`channel-selector-col${selectedDropdownChannel === "mobile" ? " channel-selector-col--mobile" : ""}`}
-        >
+        <div className="channel-selector-col">
           {/* Left column: selector row + tooltip */}
           <div className="channel-selector-right">
             <div className="channel-selector-row" data-tutorial-id="channels-selector">
@@ -328,14 +298,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
               </button>
             </div>
 
-            {/* Tooltip for mobile or other channels */}
-            {selectedDropdownChannel === "mobile" && (
-              <div className="channel-info-box" data-tutorial-id="channels-guidance">
-                <div className="channel-info-title">{t("mobile.installHint")}</div>
-              </div>
-            )}
             {selectedDropdownChannel &&
-              selectedDropdownChannel !== "mobile" &&
               (() => {
                 const selected = KNOWN_CHANNELS.find((ch) => ch.id === selectedDropdownChannel);
                 if (!selected) return null;
@@ -379,9 +342,6 @@ export const ChannelsPage = observer(function ChannelsPage() {
                 );
               })()}
           </div>
-
-          {/* QR code (right side, only when mobile is selected) */}
-          {selectedDropdownChannel === "mobile" && <MobileQrInlineFlow />}
         </div>
       </TkPanel>
 
@@ -408,13 +368,6 @@ export const ChannelsPage = observer(function ChannelsPage() {
         channelLabel={selectedChannelLabel}
         existingAccount={editingAccount}
         onSuccess={handleModalSuccess}
-      />
-
-      {/* Mobile Binding Modal */}
-      <MobileBindingModal
-        isOpen={mobileModalOpen}
-        onClose={handleMobileModalClose}
-        onBindingSuccess={handleMobileBindingSuccess}
       />
 
       <FeishuSetupModal

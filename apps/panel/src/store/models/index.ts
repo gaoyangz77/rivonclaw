@@ -12,5 +12,3 @@ export { LLMProviderModel } from "./LLMProviderModel.js";
 export type { SwitchModelResult, SessionModelInfo } from "./LLMProviderModel.js";
 export { ChannelAccountModel } from "./ChannelAccountModel.js";
 export { ChannelManagerModel } from "./ChannelManagerModel.js";
-export { MobilePairingModel } from "./MobilePairingModel.js";
-export { MobileManagerModel } from "./MobileManagerModel.js";

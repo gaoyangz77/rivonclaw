@@ -62,7 +62,6 @@ function filterActiveOwnerRecipients(
   const activeChannelIds = new Set(
     storage.channelAccounts.list().map((account) => account.channelId),
   );
-  activeChannelIds.add("mobile");
 
   return storage.channelRecipients
     .getOwners()

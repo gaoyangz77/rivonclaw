@@ -46,27 +46,11 @@ export type {
   CSEscalateParams,
 } from "./types/index.js";
 
-export type {
-  PairingRequest,
-  PairingResponse,
-  RelayAuthRequest,
-  RelayAuthResponse,
-  WsEnvelope,
-} from "./types/index.js";
-
 export {
   rivonClawConfigSchema,
   DEFAULT_STT_SETTINGS,
   STT_SETTINGS_KEYS,
   STT_SECRET_KEYS,
-} from "./types/index.js";
-
-export type {
-  MobileGraphQLError,
-  MobileGraphQLRequest,
-  MobileGraphQLResponse,
-  RegisterPairingInput,
-  RegisterPairingResult,
 } from "./types/index.js";
 
 export type {
@@ -221,12 +205,6 @@ export {
   resolvePanelPort,
   resolveProxyRouterPort,
 } from "./node-utils/ports.js";
-
-export {
-  RELAY_MAX_CLIENT_BYTES,
-  RELAY_MAX_CLIENT_MB,
-  RELAY_MAX_PAYLOAD_BYTES,
-} from "./network/relay.js";
 
 export { DEFAULTS } from "./defaults.js";
 

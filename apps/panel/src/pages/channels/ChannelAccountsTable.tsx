@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { retryFeishuCallbackSetup, type ChannelAccountSnapshot } from "../../api/index.js";
 import { ChevronRightIcon } from "../../components/icons.js";
-import type { MobileDeviceStatusResponse, MobilePairingInfo } from "../../api/mobile-chat.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useWorkspaceTab } from "../../lib/workspace-tab-context.js";
 import {
@@ -104,10 +103,6 @@ export function ChannelAccountsTable({
     accountId?: string;
     entry: string;
   } | null>(null);
-  const [mobileDeviceStatus, setMobileDeviceStatus] = useState<
-    MobileDeviceStatusResponse["devices"]
-  >({});
-  const [mobilePairings, setMobilePairings] = useState<MobilePairingInfo[]>([]);
 
   // Track in-flight label saves to show subtle feedback
   const savingLabelsRef = useRef<Set<string>>(new Set());
@@ -122,41 +117,8 @@ export function ChannelAccountsTable({
     };
   }
 
-  function emptyRecipients(): RecipientSnapshot {
-    return { allowlist: [], labels: {}, owners: {}, pairingRequests: [] };
-  }
-
-  // Poll mobile device status and fetch pairings while any mobile account is expanded
-  const hasMobileExpanded = Array.from(expandedAccounts).some((key) => key.startsWith("mobile:"));
-  useEffect(() => {
-    if (!workspaceTab.active || !hasMobileExpanded) return;
-
-    let cancelled = false;
-    async function poll() {
-      try {
-        const [statusResult, pairingResult] = await Promise.all([
-          entityStore.mobileManager.getDeviceStatus(),
-          entityStore.mobileManager.getStatus(),
-        ]);
-        if (!cancelled) {
-          setMobileDeviceStatus(statusResult.devices);
-          if (pairingResult.pairings) setMobilePairings(pairingResult.pairings);
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-    poll();
-    const timer = setInterval(poll, 10_000);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [hasMobileExpanded, workspaceTab.active]);
-
   // Background refresh: Desktop channelManager updates account.recipients in MST;
-  // Panel only keeps loading/error state. Mobile remains local because mobile
-  // accounts are intentionally not stored in channelAccounts MST.
+  // Panel only keeps loading/error state.
   async function refreshRecipientData(channelId: string, accountId: string) {
     const compositeKey = `${channelId}:${accountId}`;
     try {
@@ -184,16 +146,13 @@ export function ChannelAccountsTable({
   //   1. pairing-notifier (Telegram/Feishu pairing file watcher)
   //   2. gateway event-dispatcher (rivonclaw.recipient-seen — WeChat etc.)
   useEffect(() => {
-    const nonMobileExpanded = Array.from(expandedAccounts).filter(
-      (key) => !key.startsWith("mobile:"),
-    );
-    if (!workspaceTab.active || nonMobileExpanded.length === 0) return;
+    if (!workspaceTab.active || expandedAccounts.size === 0) return;
 
     const unsubscribe = panelEventBus.subscribe("recipient-added", (raw) => {
       const { channelId, accountId } = raw as { channelId: string; accountId?: string };
       // Find expanded composite keys matching this channelId/accountId and refresh each.
       // Older events do not carry accountId, so fall back to channel-wide refresh.
-      for (const key of nonMobileExpanded) {
+      for (const key of expandedAccounts) {
         const [keyChannelId, keyAccountId] = key.split(":", 2);
         if (keyChannelId === channelId && (!accountId || keyAccountId === accountId)) {
           refreshRecipientData(channelId, keyAccountId);
@@ -205,14 +164,11 @@ export function ChannelAccountsTable({
   }, [expandedAccounts, workspaceTab.active]);
 
   useEffect(() => {
-    const nonMobileExpanded = Array.from(expandedAccounts).filter(
-      (key) => !key.startsWith("mobile:"),
-    );
-    if (!workspaceTab.active || nonMobileExpanded.length === 0) return;
+    if (!workspaceTab.active || expandedAccounts.size === 0) return;
 
     let cancelled = false;
     async function poll() {
-      for (const key of nonMobileExpanded) {
+      for (const key of expandedAccounts) {
         if (cancelled) return;
         const [channelId, accountId] = key.split(":", 2);
         if (channelId && accountId) {
@@ -231,7 +187,7 @@ export function ChannelAccountsTable({
   async function loadRecipientData(channelId: string, account: ChannelAccountSnapshot) {
     const accountId = account.accountId;
     const compositeKey = `${channelId}:${accountId}`;
-    const hasMstRecipients = channelId !== "mobile" && Boolean(account.recipients);
+    const hasMstRecipients = Boolean(account.recipients);
     setRecipientUiState((prev) => ({
       ...prev,
       [compositeKey]: { loading: !hasMstRecipients, error: null },
@@ -311,38 +267,7 @@ export function ChannelAccountsTable({
     setProcessing(entry);
 
     try {
-      if (channelId === "mobile") {
-        // Mobile channel: use full disconnect (DB + allowlist + engine cleanup)
-        // Find the pairing DB id by mobileDeviceId
-        const statusResp = await entityStore.mobileManager.getStatus();
-        const pairing = statusResp.pairings?.find((p) => p.pairingId === entry || p.id === entry);
-        if (pairing?.id) {
-          await entityStore.mobileManager.disconnectOne(pairing.id);
-        }
-      } else {
-        await entityStore.channelManager.removeFromAllowlist(channelId, entry, accountId);
-      }
-      if (channelId === "mobile") {
-        setRecipientData((prev) => {
-          const data = prev[compositeKey];
-          if (!data) return prev;
-          return {
-            ...prev,
-            [compositeKey]: {
-              ...data,
-              allowlist: data.allowlist.filter((e) => e !== entry),
-            },
-          };
-        });
-      }
-      // Clear stale status from local state
-      if (channelId === "mobile") {
-        setMobileDeviceStatus((prev) => {
-          const next = { ...prev };
-          delete next[entry];
-          return next;
-        });
-      }
+      await entityStore.channelManager.removeFromAllowlist(channelId, entry, accountId);
     } catch (err) {
       setRecipientUiState((prev) => ({
         ...prev,
@@ -367,19 +292,6 @@ export function ChannelAccountsTable({
         newValue,
         accountId,
       );
-      if (channelId === "mobile") {
-        setRecipientData((prev) => {
-          const data = prev[compositeKey];
-          if (!data) return prev;
-          return {
-            ...prev,
-            [compositeKey]: {
-              ...data,
-              owners: { ...data.owners, [recipientId]: newValue },
-            },
-          };
-        });
-      }
     } catch (err) {
       setRecipientUiState((prev) => ({
         ...prev,
@@ -408,19 +320,6 @@ export function ChannelAccountsTable({
         newLabel,
         accountId,
       );
-      if (channelId === "mobile") {
-        setRecipientData((prev) => {
-          const data = prev[compositeKey];
-          if (!data) return prev;
-          return {
-            ...prev,
-            [compositeKey]: {
-              ...data,
-              labels: { ...data.labels, [recipientId]: newLabel },
-            },
-          };
-        });
-      }
     } catch (err) {
       setRecipientUiState((prev) => ({
         ...prev,
@@ -454,10 +353,7 @@ export function ChannelAccountsTable({
   ) {
     const accountId = account.accountId;
     const state = recipientUiState[compositeKey] ?? { loading: false, error: null };
-    const data =
-      channelId === "mobile"
-        ? (recipientData[compositeKey] ?? emptyRecipients())
-        : (recipientData[compositeKey] ?? normalizeRecipients(account));
+    const data = recipientData[compositeKey] ?? normalizeRecipients(account);
 
     if (state.loading) {
       return (
@@ -545,9 +441,7 @@ export function ChannelAccountsTable({
                   <table className="recipients-table">
                     <thead>
                       <tr>
-                        {channelId === "mobile" && <th className="presence-col"></th>}
                         <th>{t("pairing.userId")}</th>
-                        {channelId === "mobile" && <th>{t("pairing.pairingIdColumn")}</th>}
                         <th>{t("pairing.aliasColumn")}</th>
                         <th>{t("pairing.roleColumn")}</th>
                         <th className="text-right">{t("pairing.action")}</th>
@@ -556,46 +450,11 @@ export function ChannelAccountsTable({
                     <tbody>
                       {data.allowlist.map((entry) => {
                         const isOwner = data.owners[entry] ?? false;
-                        const deviceStatus =
-                          channelId === "mobile" ? mobileDeviceStatus[entry] : undefined;
-                        const pairingInfo =
-                          channelId === "mobile"
-                            ? mobilePairings.find((p) => p.pairingId === entry || p.id === entry)
-                            : undefined;
                         return (
                           <tr key={entry}>
-                            {channelId === "mobile" && (
-                              <td className="presence-col">
-                                <span
-                                  className={`presence-dot ${deviceStatus?.stale ? "presence-stale" : deviceStatus?.mobileOnline ? "presence-online" : "presence-offline"}`}
-                                  title={
-                                    deviceStatus?.stale
-                                      ? t("pairing.staleTooltip")
-                                      : deviceStatus?.mobileOnline
-                                        ? "Online"
-                                        : "Offline"
-                                  }
-                                />
-                              </td>
-                            )}
                             <td>
-                              <TruncatedId
-                                value={
-                                  channelId === "mobile"
-                                    ? pairingInfo?.mobileDeviceId || entry
-                                    : entry
-                                }
-                                t={t}
-                              />
-                              {deviceStatus?.stale && (
-                                <span className="stale-hint">{t("pairing.staleHint")}</span>
-                              )}
+                              <TruncatedId value={entry} t={t} />
                             </td>
-                            {channelId === "mobile" && (
-                              <td>
-                                <TruncatedId value={entry} t={t} />
-                              </td>
-                            )}
                             <td>
                               <input
                                 key={`${entry}:${data.labels[entry] || ""}`}
@@ -703,7 +562,6 @@ export function ChannelAccountsTable({
                 const isDeleting = deletingKey === rowKey;
                 const isExpanded = expandedAccounts.has(compositeKey);
                 const canExpand = true;
-                const canEdit = channelId !== "mobile";
                 const needsWeixinActivation =
                   channelId === "openclaw-weixin" &&
                   (account.contextTokenReady === false ||
@@ -833,23 +691,13 @@ export function ChannelAccountsTable({
                                     })}
                             </button>
                           )}
-                          {canEdit ? (
-                            <button
-                              className="btn btn-secondary"
-                              onClick={() => onEdit(channelId, account)}
-                              disabled={isDeleting}
-                            >
-                              {t("common.edit")}
-                            </button>
-                          ) : (
-                            <button
-                              className="btn btn-secondary btn-invisible"
-                              disabled
-                              aria-hidden="true"
-                            >
-                              {t("common.edit")}
-                            </button>
-                          )}
+                          <button
+                            className="btn btn-secondary"
+                            onClick={() => onEdit(channelId, account)}
+                            disabled={isDeleting}
+                          >
+                            {t("common.edit")}
+                          </button>
                           <button
                             className="btn btn-danger"
                             onClick={() => onDelete(channelId, account.accountId)}

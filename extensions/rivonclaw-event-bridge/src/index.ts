@@ -3,7 +3,7 @@
  *
  * Mirrors agent events for ALL channels to the Chat Page by working around
  * the vendor's `isControlUiVisible` gate in server-chat.ts. External channel
- * runs (Telegram, Feishu, Mobile, etc.) normally have their sessionKey stripped
+ * runs (Telegram, Feishu, etc.) normally have their sessionKey stripped
  * from enriched events, so server-chat never broadcasts them. This plugin:
  *
  * 1. Builds a runId -> sessionKey map via the `llm_input` hook.
@@ -81,7 +81,7 @@ export function createRunSessionTracker(cleanupDelayMs = RUN_SESSION_CLEANUP_DEL
   };
 }
 
-const CHANNEL_INBOUND_SKIP = new Set(["mobile", "webchat", "openclaw-weixin"]);
+const CHANNEL_INBOUND_SKIP = new Set(["webchat", "openclaw-weixin"]);
 
 function resolveChannelIdFromSessionKey(sessionKey?: string): string | null {
   if (!sessionKey) return null;
@@ -328,7 +328,6 @@ export default defineRivonClawPlugin({
     // Page by the vendor's server-chat.ts (i.e. NOT suppressed by the
     // `isControlUiVisible` gate). Broadcasting them again here would cause
     // duplicates — the agent sees the same message twice and replies twice.
-    //   - "mobile"          — has a dedicated mobile.inbound pathway
     //   - "webchat"         — browser-based chat, natively visible in the UI
     //   - "openclaw-weixin" — vendor broadcasts natively (confirmed: messages
     //                         still appear on Chat Page with this skip active)
@@ -365,11 +364,10 @@ export default defineRivonClawPlugin({
     // the allowlist; pairing-flow channels (Telegram/Feishu) still populate
     // the same table via `approvePairing`, so everything converges.
     //
-    // Skip list: `mobile` and `webchat` only. Unlike the `channel-inbound`
-    // handler above, we DO include `openclaw-weixin` here — that is precisely
-    // the channel this signal was added for. Mobile has its own pairing
-    // plumbing via `mobile_pairings`; webchat is ephemeral and has no
-    // recipient to persist.
+    // Skip list: `webchat` only. Unlike the `channel-inbound` handler above,
+    // we DO include `openclaw-weixin` here — that is precisely the channel
+    // this signal was added for. Webchat is ephemeral and has no recipient to
+    // persist.
     //
     // This event does NOT touch the Chat Page — it is a pure persistence
     // signal consumed only by Desktop's gateway event dispatcher.
@@ -377,7 +375,7 @@ export default defineRivonClawPlugin({
       "message_received",
       (evt: { from?: string }, ctx: { channelId?: string; accountId?: string }) => {
         if (!gatewayBroadcast || !ctx?.channelId) return;
-        if (ctx.channelId === "mobile" || ctx.channelId === "webchat") return;
+        if (ctx.channelId === "webchat") return;
         const recipientId = evt?.from;
         if (!recipientId) return;
 

@@ -447,7 +447,7 @@ describe("config-writer", () => {
                 "current-account-im-bot": { name: "stale", userId: "stale-user@im.wechat" },
               },
             },
-            mobile: { managed: true },
+            feishu: { managed: true },
           },
         }),
       );
@@ -468,7 +468,7 @@ describe("config-writer", () => {
         "current-account-im-bot": { name: "fresh", userId: "fresh-user@im.wechat" },
       });
       expect(config.channels["openclaw-weixin"].managed).toBe(true);
-      expect(config.channels.mobile).toEqual({ managed: true });
+      expect(config.channels.feishu).toEqual({ managed: true });
     });
 
     it("sets a non-support Telegram account as default in multi-account snapshots", () => {
@@ -2303,9 +2303,21 @@ describe("config-writer", () => {
     });
   });
 
-  describe("writeGatewayConfig - mobile plugin activation", () => {
-    it("writes a mobile channel presence marker when the mobile plugin is enabled", () => {
+  describe("writeGatewayConfig - retired mobile chat plugin", () => {
+    it("strips retired mobile plugin entries and allow ids and writes no mobile channel marker", () => {
       const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          plugins: {
+            allow: ["rivonclaw-mobile-chat-channel", "mobile-chat-channel", "rivonclaw-event-bridge"],
+            entries: {
+              "rivonclaw-mobile-chat-channel": { enabled: true },
+              "mobile-chat-channel": { enabled: true },
+            },
+          },
+        }),
+      );
 
       writeGatewayConfig({
         configPath,
@@ -2318,24 +2330,10 @@ describe("config-writer", () => {
       });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.plugins.entries["rivonclaw-mobile-chat-channel"]).toEqual({ enabled: true });
-      expect(config.channels.mobile).toEqual({ managed: true });
-    });
-
-    it("does not write the mobile channel marker when the plugin is not enabled", () => {
-      const configPath = join(tmpDir, "openclaw.json");
-
-      writeGatewayConfig({
-        configPath,
-        gatewayPort: 18789,
-        plugins: {
-          entries: {
-            "rivonclaw-mobile-chat-channel": { enabled: false },
-          },
-        },
-      });
-
-      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.plugins.entries["rivonclaw-mobile-chat-channel"]).toBeUndefined();
+      expect(config.plugins.entries["mobile-chat-channel"]).toBeUndefined();
+      expect(config.plugins.allow).not.toContain("rivonclaw-mobile-chat-channel");
+      expect(config.plugins.allow).not.toContain("mobile-chat-channel");
       expect(config.channels.mobile).toBeUndefined();
     });
   });

@@ -66,23 +66,6 @@ export type {
 } from "./capability-context.js";
 
 export type {
-  PairingRequest,
-  PairingResponse,
-  RelayAuthRequest,
-  RelayAuthResponse,
-} from "./mobile-chat.js";
-
-export type { WsEnvelope } from "./mobile-ws.js";
-
-export type {
-  MobileGraphQLError,
-  MobileGraphQLRequest,
-  MobileGraphQLResponse,
-  RegisterPairingInput,
-  RegisterPairingResult,
-} from "./mobile-chat-graphql.js";
-
-export type {
   ToolScopeType,
   ToolSelection,
   ToolSelectionScope,

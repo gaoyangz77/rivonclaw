@@ -8,7 +8,6 @@ import {
   formatError,
   IMAGE_EXT_TO_MIME,
   resolvePanelPort,
-  getApiBaseUrl,
   getFirstPartyDomainRoute,
 } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
@@ -17,7 +16,6 @@ import type { SecretStore } from "@rivonclaw/secrets";
 import { resolveOpenClawStateDir } from "@rivonclaw/gateway";
 import { resolveMediaBase } from "../utils/media-paths.js";
 import { createUsageRuntime } from "../usage/runtime.js";
-import { initMobileManagerEnv } from "./store/desktop-store.js";
 import { rootStore, subscribeToPatch } from "./store/desktop-store.js";
 import { runtimeStatusStore, subscribeToRuntimeStatusPatch } from "./store/runtime-status-store.js";
 import { openClawConnector } from "../openclaw/index.js";
@@ -267,20 +265,6 @@ export async function startPanelServer(
     openClawConnector.request(method, params),
   );
 
-  // Mobile Chat Pairing Manager (MST model on desktop store)
-  initMobileManagerEnv({
-    storage,
-    controlPlaneUrl: getApiBaseUrl(getSystemLocale()),
-    stateDir: resolveOpenClawStateDir(),
-    getRpcClient: () => {
-      try {
-        return openClawConnector.ensureRpcReady();
-      } catch {
-        return null;
-      }
-    },
-  });
-
   // Hydrate runtime-status AppSettings from persisted storage
   runtimeStatusStore.loadAppSettings(storage.settings.getAll());
 
@@ -337,7 +321,6 @@ export async function startPanelServer(
     getPanelUrl,
     snapshotEngine,
     queryService,
-    mobileManager: rootStore.mobileManager,
     authSession,
     openExternal: options.onOpenExternal,
     cloudClient: authSession

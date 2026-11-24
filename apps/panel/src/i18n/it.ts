@@ -94,7 +94,6 @@ export default {
     providers: "Modelli",
     channels: "Messaggistica",
     usage: "Utilizzo",
-    mobile: "ChatClaw",
     extras: "Funzionalità aggiuntive",
     plugins: "Plugin",
     skills: "Abilità",
@@ -885,8 +884,6 @@ export default {
     failedToRemove: "Impossibile rimuovere:",
     removeConfirmTitle: "Rimuovere {{entry}} dalla lista consentita?",
     removeConfirmMessage: "Non potranno più inviare messaggi.",
-    staleTooltip: "Non accoppiato dal dispositivo remoto",
-    staleHint: "Non accoppiato dal telecomando",
     timeJustNow: "proprio adesso",
     timeMinutesAgo: "{{count}}m fa",
     timeHoursAgo: "{{count}}h fa",
@@ -899,7 +896,6 @@ export default {
     ownerBadge: "Proprietario",
     nonOwnerBadge: "Utente",
     noRecipients: "Nessun destinatario nella lista consentita.",
-    pairingIdColumn: "Associazione ID",
     copied: "Copiato!",
     expand: "Destinatari",
   },
@@ -922,28 +918,6 @@ export default {
       "WeChat è legato. Invia un messaggio al bot in WeChat per confermare l'attivazione; in caso contrario i messaggi in uscita proattivi potrebbero non essere recapitati.",
     weixinAlreadyConnectedHint:
       "Questo account WeChat era già connesso. Il suo stato di accesso è stato aggiornato.",
-  },
-  mobile: {
-    description:
-      "Scansione per connettere il tuo telefono: zero configurazioni, zero problemi. Chatta con il tuo agente AI sempre e ovunque.",
-    statusTitle: "Collegamento ChatClaw",
-    generationFailed: "Impossibile generare il codice di accoppiamento: {{error}}",
-    disconnectConfirm: "Sei sicuro di voler disconnettere il dispositivo mobile corrente?",
-    disconnectFailed: "Impossibile disconnettersi: {{error}}",
-    connectedDesc: "Il tuo dispositivo mobile ({{device}}) è connesso correttamente.",
-    disconnect: "Disconnetti dispositivo",
-    waitingForConnection: "Scansione per connessione",
-    scanHint: "Scansiona il codice QR con la fotocamera del tuo telefono per connetterti.",
-    codeExpired: "Codice QR scaduto",
-    codeExpiredHint: "Fare clic sul codice QR per generare un nuovo codice di abbinamento.",
-    clickToRefresh: "Fare clic per aggiornare",
-    expiresIn: "Scade tra {{seconds}}s",
-    existingPairings: "Dispositivi {{count}} già associati.",
-    pairTitle: "Accoppia dispositivo",
-    installHint:
-      "Prima volta? Scansiona il codice QR a destra per installare ChatClaw sul tuo telefono. Già installato? Fare clic sul pulsante Connetti, quindi scansionare il codice QR popup utilizzando lo scanner integrato di ChatClaw per associarlo.",
-    pairHint:
-      "Apri l'app ChatClaw e utilizza lo scanner integrato per scansionare questo codice QR.",
   },
   stt: {
     title: "Discorso in testo",
@@ -2394,7 +2368,7 @@ export default {
         "Scegli a quale piattaforma di messaggistica connetterti. Le opzioni includono Telegram, WeChat, Feishu/Lark, Discord, Slack, WhatsApp e altro ancora. Ogni piattaforma richiede una configurazione diversa.",
       connectBtnTitle: "Pulsante Connetti",
       connectBtnBody:
-        "Dopo aver selezionato un tipo di canale, fare clic su Connetti per aprire la finestra di dialogo di configurazione. Per la chat mobile, si apre invece un flusso di abbinamento del codice QR.",
+        "Dopo aver selezionato un tipo di canale, fare clic su Connetti per aprire la finestra di dialogo di configurazione.",
       infoBoxTitle: "Informazioni sul canale",
       infoBoxBody:
         "Quando selezioni un canale, quest'area mostra utili istruzioni di configurazione e potrebbe includere un collegamento a un tutorial passo passo per quella piattaforma.",
@@ -2409,7 +2383,7 @@ export default {
         "Fai clic in un punto qualsiasi di una riga per espanderla e visualizzare la lista consentita dei destinatari: gli utenti autorizzati a interagire con il tuo bot su quel canale.",
       rowActionsTitle: "Azioni dell'account",
       rowActionsBody:
-        "Modifica apre la finestra di dialogo di configurazione per modificare le credenziali o le impostazioni. Elimina rimuove permanentemente la connessione al canale. Gli account di chat mobile possono solo essere eliminati, non modificati.",
+        "Modifica apre la finestra di dialogo di configurazione per modificare le credenziali o le impostazioni. Elimina rimuove permanentemente la connessione al canale.",
       expandArrowTitle: "Espandi Dettagli",
       expandArrowBody:
         "La freccia a sinistra di ciascuna riga attiva/disattiva la visualizzazione espansa, che mostra le richieste di abbinamento e i destinatari autorizzati per quel canale.",

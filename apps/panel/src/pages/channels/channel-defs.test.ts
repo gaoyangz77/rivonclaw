@@ -369,29 +369,7 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     expect(result[0]!.account.enabled).toBe(false);
   });
 
-  it("returns mobile entries from snapshot when MST is empty (mobile exception)", () => {
-    const result = buildAccountsList(
-      [],
-      snapshot({
-        mobile: [
-          {
-            accountId: "pair-123",
-            name: "iPhone 15",
-            configured: true,
-            running: true,
-          },
-        ],
-      }),
-      t,
-    );
-
-    expect(result).toHaveLength(1);
-    expect(result[0]!.channelId).toBe("mobile");
-    expect(result[0]!.account.accountId).toBe("pair-123");
-    expect(result[0]!.account.running).toBe(true);
-  });
-
-  it("does NOT return non-mobile snapshot entries when MST is empty (key bug fix)", () => {
+  it("does NOT return snapshot-only entries when MST is empty (key bug fix)", () => {
     // The original bug: WeChat ghost accounts showed up when gateway had them
     // but Desktop SQLite/MST did not. With MST as source of truth, those must
     // be filtered out entirely.
@@ -420,32 +398,6 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     expect(result).toHaveLength(0);
   });
 
-  it("filters out synthetic-default mobile entries", () => {
-    const result = buildAccountsList(
-      [],
-      snapshot({
-        mobile: [
-          {
-            accountId: "default",
-            name: null,
-            configured: false,
-            tokenSource: "none",
-          },
-          {
-            accountId: "real-pair",
-            name: "Real Device",
-            configured: true,
-            running: true,
-          },
-        ],
-      }),
-      t,
-    );
-
-    expect(result).toHaveLength(1);
-    expect(result[0]!.account.accountId).toBe("real-pair");
-  });
-
   it("surfaces multiple MST accounts across different channels", () => {
     const result = buildAccountsList(
       [
@@ -468,21 +420,6 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     expect(byAccount.get("tg-1")?.account.running).toBe(true);
     expect(byAccount.get("tg-2")?.account.running).toBe(false);
     expect(byAccount.get("fs-1")?.account.running).toBe(true);
-  });
-
-  it("combines MST accounts and mobile snapshot entries in one list", () => {
-    const result = buildAccountsList(
-      [mst({ channelId: "telegram", accountId: "tg-1" })],
-      snapshot({
-        telegram: [{ accountId: "tg-1", running: true }],
-        mobile: [{ accountId: "pair-1", running: true }],
-      }),
-      t,
-    );
-
-    expect(result).toHaveLength(2);
-    const channels = result.map((r) => r.channelId).sort();
-    expect(channels).toEqual(["mobile", "telegram"]);
   });
 
   it("falls back to snapshot.channelLabels for unknown channels", () => {

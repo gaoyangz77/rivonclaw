@@ -560,7 +560,6 @@ function packagedPluginInventory(resourcesDir) {
     "openclaw-weixin",
     "rivonclaw-event-bridge",
     "rivonclaw-capability-manager",
-    "rivonclaw-mobile-chat-channel",
     "rivonclaw-search-browser-fallback",
   ]) {
     if (!ids.includes(id)) throw new Error(`Missing packaged external plugin ${id}`);

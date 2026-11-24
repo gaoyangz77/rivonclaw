@@ -765,11 +765,6 @@
   font-size: 12px;
 }
 
-.btn-invisible {
-  visibility: hidden;
-  pointer-events: none;
-}
-
 .td-date {
   font-size: 12px;
   color: var(--color-text-muted);

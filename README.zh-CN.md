@@ -10,7 +10,7 @@
 
 [OpenClaw](https://github.com/openclaw/openclaw) 是一个强大的 Agent 运行时，
 但直接使用它需要管理配置文件、本地进程、服务商凭据、通道插件和更新流程。
-RivonClaw 把这套运行时包装成桌面应用，并在本地面板、服务商管理、移动端/通道集成、
+RivonClaw 把这套运行时包装成桌面应用，并在本地面板、服务商管理、通道集成、
 电商业务流程和发布基础设施上提供产品层能力。
 
 OpenClaw 是引擎；RivonClaw 是桌面驾驶舱和业务层。
@@ -23,7 +23,7 @@ OpenClaw 是引擎；RivonClaw 是桌面驾驶舱和业务层。
   设置、账号/计费，以及受权限控制的电商模块。
 - **LLM 服务商管理**：支持 API Key、OAuth、自定义 OpenAI-compatible、本地 Ollama、
   订阅/编程计划、代理、模型目录、重新授权和用量查询。
-- **通道集成**：支持 OpenClaw 通道配置，以及 RivonClaw 自有的移动聊天、微信包装、
+- **通道集成**：支持 OpenClaw 通道配置，以及 RivonClaw 自有的微信包装、
   事件桥接和能力约束插件。
 - **云端业务模块**：认证后的云端 GraphQL 代理、账号与计费状态、TikTok/电商界面、
   客服桥接和 Affiliate 工作流。
@@ -87,7 +87,6 @@ rivonclaw/
 │   ├── channel-weixin/
 │   ├── rivonclaw-capability-manager/
 │   ├── rivonclaw-event-bridge/
-│   ├── rivonclaw-mobile-chat-channel/
 │   └── rivonclaw-search-browser-fallback/
 ├── extensions-merchant/      # CI/dev 中签出的私有商家插件
 ├── server/                   # Backend、relay、website、telemetry、部署脚本
@@ -103,10 +102,10 @@ Monorepo 使用 pnpm workspaces（`apps/*`、`packages/*`、`extensions/*`、
 
 ### 应用
 
-| 包                   | 说明                                                                                                               |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `@rivonclaw/desktop` | Electron 40 桌面应用。负责应用生命周期、本地 API、网关启动、配置写入、存储、更新、遥测，以及云端/客服/移动端桥接。 |
-| `@rivonclaw/panel`   | React 19 + Vite 6 SPA。实现聊天、服务商配置、通道、扩展能力、技能、定时任务、用量、设置、账号、计费和电商界面。    |
+| 包                   | 说明                                                                                                            |
+| -------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `@rivonclaw/desktop` | Electron 40 桌面应用。负责应用生命周期、本地 API、网关启动、配置写入、存储、更新、遥测，以及云端/客服桥接。     |
+| `@rivonclaw/panel`   | React 19 + Vite 6 SPA。实现聊天、服务商配置、通道、扩展能力、技能、定时任务、用量、设置、账号、计费和电商界面。 |
 
 ### 包
 
@@ -114,7 +113,7 @@ Monorepo 使用 pnpm workspaces（`apps/*`、`packages/*`、`extensions/*`、
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@rivonclaw/core`         | 共享默认值、类型、API 路由契约、服务商目录、MST 模型、生成的 GraphQL 类型和工具函数。                                                               |
 | `@rivonclaw/gateway`      | OpenClaw 配置写入、启动器、OAuth profile 同步、通道配置写入、模型目录读取、技能刷新 helper 和 vendor helper。                                       |
-| `@rivonclaw/storage`      | SQLite repositories：settings、provider keys、usage、chat sessions、channel accounts/recipients、mobile pairings、tool selections、CS escalations。 |
+| `@rivonclaw/storage`      | SQLite repositories：settings、provider keys、usage、chat sessions、channel accounts/recipients、tool selections、CS escalations。 |
 | `@rivonclaw/secrets`      | 面向 API Key 和 OAuth 凭据的平台密钥存储。                                                                                                          |
 | `@rivonclaw/proxy-router` | 面向服务商和一方域名网络路径的本地 HTTP 代理路由。                                                                                                  |
 | `@rivonclaw/stt`          | STT 服务商工具。                                                                                                                                    |
@@ -131,7 +130,6 @@ Monorepo 使用 pnpm workspaces（`apps/*`、`packages/*`、`extensions/*`、
 | `openclaw-weixin`                              | Tencent Weixin OpenClaw 通道包装层，包含 RivonClaw 兼容性修复。 |
 | `@rivonclaw/rivonclaw-capability-manager`      | 针对当前运行上下文约束有效工具可见性。                          |
 | `@rivonclaw/rivonclaw-event-bridge`            | 将部分 OpenClaw agent 事件镜像到面板事件流。                    |
-| `@rivonclaw/rivonclaw-mobile-chat-channel`     | 移动聊天通道插件和 relay 同步逻辑。                             |
 | `@rivonclaw/rivonclaw-search-browser-fallback` | 当缺少直接搜索凭据时，引导搜索 fallback 行为。                  |
 
 商家专用插件位于 `extensions-merchant/*`，CI 会从私有 merchant extensions 仓库签出。
@@ -170,7 +168,7 @@ Electron Desktop
   ├─ OpenClaw config writer 和 launcher
   ├─ 支持代理的一方/云端 GraphQL/REST client
   ├─ Backend subscription client
-  ├─ Channel / mobile / CS / ecommerce bridges
+  ├─ Channel / CS / ecommerce bridges
   └─ Auto-updater
 
 React Panel
@@ -194,16 +192,16 @@ OpenClaw Gateway
 
 默认路径由 [`packages/core/src/node-utils/paths.ts`](packages/core/src/node-utils/paths.ts) 解析。
 
-| 路径                                               | 用途                      |
-| -------------------------------------------------- | ------------------------- |
-| `~/.rivonclaw/db.sqlite`                           | Desktop SQLite 数据库     |
-| `~/.rivonclaw/logs/`                               | 应用日志                  |
-| `~/.rivonclaw/secrets/`                            | 文件密钥存储回退          |
-| `~/.rivonclaw/openclaw/`                           | OpenClaw 状态目录         |
-| `~/.rivonclaw/openclaw/openclaw.json`              | 生成的网关配置            |
-| `~/.rivonclaw/openclaw/agents/<agentId>/sessions/` | OpenClaw 会话             |
-| `~/.rivonclaw/openclaw/skills/`                    | 用户安装的技能            |
-| `~/.rivonclaw/openclaw/credentials/`               | OAuth / 通道 / 移动端凭据 |
+| 路径                                               | 用途                  |
+| -------------------------------------------------- | --------------------- |
+| `~/.rivonclaw/db.sqlite`                           | Desktop SQLite 数据库 |
+| `~/.rivonclaw/logs/`                               | 应用日志              |
+| `~/.rivonclaw/secrets/`                            | 文件密钥存储回退      |
+| `~/.rivonclaw/openclaw/`                           | OpenClaw 状态目录     |
+| `~/.rivonclaw/openclaw/openclaw.json`              | 生成的网关配置        |
+| `~/.rivonclaw/openclaw/agents/<agentId>/sessions/` | OpenClaw 会话         |
+| `~/.rivonclaw/openclaw/skills/`                    | 用户安装的技能        |
+| `~/.rivonclaw/openclaw/credentials/`               | OAuth / 通道凭据      |
 
 ## 发布
 

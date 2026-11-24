@@ -181,7 +181,7 @@ export class OpenClawConnector {
 
   /**
    * Register a callback that fires every time the RPC client connects.
-   * Business code (mobile sync, tool catalog, CS bridge) uses this to
+   * Business code (tool catalog, CS bridge) uses this to
    * perform post-connect initialization without the connector knowing
    * about their semantics.
    */
@@ -323,7 +323,7 @@ export class OpenClawConnector {
           log.error("Sidecar probe failed:", err);
         });
 
-        // Fire registered callbacks (mobile sync, tool catalog, CS bridge, etc.)
+        // Fire registered callbacks (tool catalog, CS bridge, etc.)
         for (const cb of this.rpcConnectedCallbacks) {
           try {
             const result = cb();

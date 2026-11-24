@@ -30,7 +30,7 @@ export interface InboundSSEPayload {
   timestamp: number;
 }
 
-/** Mirrors agent events for non-webchat channels (Telegram, Feishu, Mobile, etc.) */
+/** Mirrors agent events for non-webchat channels (Telegram, Feishu, etc.) */
 export interface ChatMirrorSSEPayload {
   runId: string;
   sessionKey: string;

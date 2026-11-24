@@ -502,4 +502,13 @@ export const migrations: Migration[] = [
       DELETE FROM provider_metadata WHERE product_provider = 'gemini';
     `,
   },
+  {
+    id: 35,
+    name: "retire_mobile_chat",
+    sql: `
+      DELETE FROM channel_recipients WHERE channel_id = 'mobile';
+      DELETE FROM channel_accounts WHERE channel_id = 'mobile';
+      DROP TABLE IF EXISTS mobile_pairings;
+    `,
+  },
 ];

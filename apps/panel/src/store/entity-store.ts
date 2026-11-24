@@ -31,8 +31,6 @@ import {
   LLMProviderModel,
   ChannelAccountModel,
   ChannelManagerModel,
-  MobilePairingModel,
-  MobileManagerModel,
 } from "./models/index.js";
 import { PaymentModel } from "@rivonclaw/core/models";
 import { EcommerceInventoryModel } from "./models/EcommerceInventoryModel.js";
@@ -60,11 +58,6 @@ import {
   READ_WAREHOUSES_QUERY,
   READ_INVENTORY_GOODS_QUERY,
 } from "../api/inventory-queries.js";
-import {
-  GENERATE_PAIRING_CODE,
-  WAIT_FOR_PAIRING,
-  GET_INSTALL_URL,
-} from "../api/pairing-queries.js";
 import {
   ACCOUNT_LLM_BILLING_QUERY,
   BILLING_OVERVIEW_QUERY,
@@ -224,10 +217,8 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
   inventoryGoods: types.optional(types.array(InventoryGoodModel), []),
   providerKeys: types.optional(types.array(ProviderKeyModel), []),
   channelAccounts: types.optional(types.array(ChannelAccountModel), []),
-  mobilePairings: types.optional(types.array(MobilePairingModel), []),
   llmManager: types.optional(LLMProviderModel, {}),
   channelManager: types.optional(ChannelManagerModel, {}),
-  mobileManager: types.optional(MobileManagerModel, {}),
   ecommerceInventory: types.optional(EcommerceInventoryModel, {}),
   ecommerceAfterSale: types.optional(EcommerceAfterSaleModel, {}),
   ecommerceBadReview: types.optional(EcommerceBadReviewModel, {}),
@@ -878,73 +869,6 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
         if (!raw) return null;
         return JSON.parse(raw) as Record<string, string>;
       }),
-
-      // ── Mobile pairing mutations (temporary data, not stored in MST) ──
-
-      generateMobilePairingCode: flow(function* (desktopDeviceId: string) {
-        const result = yield client().mutate({
-          mutation: GENERATE_PAIRING_CODE,
-          variables: { desktopDeviceId },
-        });
-        const data = result.data?.generatePairingCode;
-        return { code: data?.code, qrUrl: data?.qrUrl } as { code?: string; qrUrl?: string };
-      }),
-
-      waitForPairing: flow(function* (code: string) {
-        const result = yield client().query({
-          query: WAIT_FOR_PAIRING,
-          variables: { code },
-          fetchPolicy: "network-only",
-        });
-        return (result.data?.waitForPairing ?? { paired: false }) as {
-          paired: boolean;
-          pairingId?: string;
-          accessToken?: string;
-          relayUrl?: string;
-          desktopDeviceId?: string;
-          mobileDeviceId?: string;
-          reason?: string;
-        };
-      }),
-
-      getInstallUrl: flow(function* () {
-        const result = yield client().query({
-          query: GET_INSTALL_URL,
-          fetchPolicy: "network-only",
-        });
-        return { installUrl: result.data?.mobileInstallUrl } as { installUrl?: string };
-      }),
-
-      registerMobilePairing: flow(function* (body: {
-        pairingId?: string;
-        desktopDeviceId: string;
-        accessToken: string;
-        relayUrl: string;
-        mobileDeviceId?: string;
-      }) {
-        const response: {
-          data?: { registerPairing: { success: boolean; pairingId: string } } | null;
-          errors?: Array<{ message: string }>;
-        } = yield fetchJson(clientPath(API["mobile.graphql"]), {
-          method: "POST",
-          body: JSON.stringify({
-            query: `mutation RegisterPairing($input: RegisterPairingInput!) {
-              registerPairing(input: $input) {
-                success
-                pairingId
-              }
-            }`,
-            variables: { input: body },
-          }),
-        });
-        if (response.errors?.length) {
-          return { error: response.errors[0]!.message } as { success?: boolean; error?: string };
-        }
-        return { success: response.data?.registerPairing?.success } as {
-          success?: boolean;
-          error?: string;
-        };
-      }),
     };
   });
 
@@ -963,10 +887,8 @@ interface PanelEntityOverrides {
   readonly inventoryGoods: Instance<typeof InventoryGoodModel>[];
   readonly providerKeys: Instance<typeof ProviderKeyModel>[];
   readonly channelAccounts: Instance<typeof ChannelAccountModel>[];
-  readonly mobilePairings: Instance<typeof MobilePairingModel>[];
   readonly channelManager: Instance<typeof ChannelManagerModel>;
   readonly llmManager: Instance<typeof LLMProviderModel>;
-  readonly mobileManager: Instance<typeof MobileManagerModel>;
   readonly ecommerceInventory: Instance<typeof EcommerceInventoryModel>;
   readonly ecommerceAfterSale: Instance<typeof EcommerceAfterSaleModel>;
   readonly ecommerceBadReview: Instance<typeof EcommerceBadReviewModel>;
@@ -1046,10 +968,6 @@ interface PanelRootActions {
   saveOAuthFlow(...args: any[]): Promise<any>;
   initiateTikTokOAuth(input?: any): Promise<any>;
   initiateTikTokAdsOAuth(input?: unknown): Promise<{ authUrl: string; state: string }>;
-  generateMobilePairingCode(input?: any): Promise<any>;
-  waitForPairing(input: any): Promise<any>;
-  registerMobilePairing(input: any): Promise<any>;
-  getInstallUrl(input?: any): Promise<any>;
   refreshBilling(): Promise<void>;
   refreshAccountLlmBilling(): Promise<void>;
   refreshPlanDefinitions(): Promise<void>;

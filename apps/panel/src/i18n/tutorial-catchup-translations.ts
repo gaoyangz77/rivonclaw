@@ -282,9 +282,9 @@ export const TUTORIAL_CATCHUP_EN = {
     channels: {
       ...TUTORIAL_NEW_KEYS_EN.tutorial.channels,
       welcomeBody:
-        "Connect mobile chat and supported messaging platforms, then monitor each account's configuration, runtime, pairing, and outbound-send health.",
+        "Connect supported messaging platforms, then monitor each account's configuration, runtime, pairing, and outbound-send health.",
       channelDropdownBody:
-        "Choose Mobile Chat, Telegram, Discord, Slack, Google Chat, Signal, iMessage, Feishu/Lark, LINE, Matrix, Mattermost, Teams, or WeChat. Setup may use credentials, QR authorization, or device pairing.",
+        "Choose WeChat, Feishu/Lark, Telegram, Discord, Slack, Google Chat, Signal, iMessage, LINE, Matrix, Mattermost, or Teams. Setup may use credentials, QR authorization, or device pairing.",
     },
     account: {
       ...TUTORIAL_NEW_KEYS_EN.tutorial.account,
@@ -470,9 +470,9 @@ export const TUTORIAL_CATCHUP_ZH = {
       healthStatusTitle: "连接健康",
       healthStatusBody:
         "“已配置”和“运行中”是不同信号。微信即使进程运行，也可能需要激活、重新授权或恢复发送能力。",
-      welcomeBody: "连接移动聊天和支持的消息平台，并监控各账号的配置、运行、配对和发送健康。",
+      welcomeBody: "连接支持的消息平台，并监控各账号的配置、运行、配对和发送健康。",
       channelDropdownBody:
-        "可选择移动聊天、Telegram、Discord、Slack、Google Chat、Signal、iMessage、飞书/Lark、LINE、Matrix、Mattermost、Teams 或微信；设置方式可能是凭据、扫码授权或设备配对。",
+        "可选择微信、飞书/Lark、Telegram、Discord、Slack、Google Chat、Signal、iMessage、LINE、Matrix、Mattermost 或 Teams；设置方式可能是凭据、扫码授权或设备配对。",
     },
     ecommerce: {
       shopCollectionsTitle: "卖家店铺集合",

@@ -823,7 +823,6 @@ export const ChannelManagerModel = types
   .views((self) => ({
     /**
      * Build plugin entries for all channels that have at least one account.
-     * Also includes mobile if any active pairing exists.
      * Returns Record<string, { enabled: boolean }> for gateway config plugins.entries.
      */
     buildPluginEntries(): Record<string, { enabled: boolean }> {
@@ -862,18 +861,11 @@ export const ChannelManagerModel = types
         }
       }
 
-      // Mobile channel uses a separate pairing system (mobile_pairings table)
-      const pairings = env.storage.mobilePairings.getAllPairings();
-      if (pairings.length > 0) {
-        entries["rivonclaw-mobile-chat-channel"] = { enabled: true };
-      }
-
       return entries;
     },
 
     /**
      * Build channel account configs for gateway config write-back.
-     * Does NOT include mobile accounts (mobile plugin manages its own config).
      */
     buildConfigAccounts(): Array<{
       channelId: string;
@@ -881,15 +873,13 @@ export const ChannelManagerModel = types
       config: Record<string, unknown>;
     }> {
       const env = self._env;
-      return self.root.channelAccounts
-        .filter((a: any) => a.channelId !== "mobile")
-        .map((a: any) => ({
-          channelId: a.channelId,
-          accountId: a.accountId,
-          config: env
-            ? mergeProviderOwnedChannelConfig(a.channelId, a.accountId, a.config, env.stateDir)
-            : sanitizeChannelAccountConfig(a.channelId, a.config),
-        }));
+      return self.root.channelAccounts.map((a: any) => ({
+        channelId: a.channelId,
+        accountId: a.accountId,
+        config: env
+          ? mergeProviderOwnedChannelConfig(a.channelId, a.accountId, a.config, env.stateDir)
+          : sanitizeChannelAccountConfig(a.channelId, a.config),
+      }));
     },
   }))
   .actions((self) => {
@@ -931,7 +921,6 @@ export const ChannelManagerModel = types
       const sqliteMap = new Map(existingAccounts.map((a) => [`${a.channelId}:${a.accountId}`, a]));
 
       for (const [channelId, channelData] of Object.entries(channels as Record<string, unknown>)) {
-        if (channelId === "mobile") continue; // mobile uses mobile_pairings
         if (!channelData || typeof channelData !== "object") continue;
         const accounts = (channelData as Record<string, unknown>).accounts;
         if (!accounts || typeof accounts !== "object") continue;
@@ -1852,7 +1841,7 @@ export const ChannelManagerModel = types
       getPairingRequests: flow(function* (channelId: string, accountId?: string) {
         const requests = (yield readPairingRequests(channelId)) as PairingRequest[];
         const filtered = requests.filter((request) => requestMatchesAccountId(request, accountId));
-        if (accountId && channelId !== "mobile") {
+        if (accountId) {
           updateChannelAccountRecipients(channelId, accountId);
         }
         return filtered;
@@ -1937,7 +1926,7 @@ export const ChannelManagerModel = types
       getAllowlist: flow(function* (channelId: string, accountId?: string) {
         const { storage, stateDir } = getEnv();
 
-        if (accountId && channelId !== "mobile") {
+        if (accountId) {
           return updateChannelAccountRecipients(channelId, accountId);
         }
 
@@ -1992,26 +1981,10 @@ export const ChannelManagerModel = types
 
       /**
        * Remove an entry from a channel's allowlist.
-       * For mobile channel, delegates to MobileManager.
        * Returns whether the allowlist was changed.
        */
       removeFromAllowlist: flow(function* (channelId: string, entry: string, accountId?: string) {
         const { storage, configPath, stateDir } = getEnv();
-
-        // Mobile channel: delegate full cleanup to MobileManager
-        if (channelId === "mobile") {
-          const mobileManager = self.root.mobileManager;
-          if (mobileManager?.initialized) {
-            const match = (self.root.mobilePairings as any[]).find(
-              (p: any) => p.pairingId === entry || p.id === entry,
-            );
-            if (match) {
-              mobileManager.removePairing(match.id);
-              return { changed: true };
-            }
-          }
-          return { changed: false };
-        }
 
         // Feishu pairing state is authoritative in OpenClaw's shared SQLite.
         let changed =

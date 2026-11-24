@@ -88,26 +88,6 @@ export function buildAccountsList(
     allAccounts.push({ channelId, channelLabel, account });
   }
 
-  const mobileAccounts = snapshot?.channelAccounts["mobile"] ?? [];
-  if (mobileAccounts.length > 0) {
-    const mobileChannel = KNOWN_CHANNELS.find((channel) => channel.id === "mobile");
-    const channelLabel = mobileChannel
-      ? t(mobileChannel.labelKey)
-      : snapshot?.channelLabels["mobile"] || "mobile";
-
-    for (const account of mobileAccounts) {
-      const isSyntheticDefault =
-        account.accountId === "default" &&
-        account.configured === false &&
-        !account.name &&
-        (account as { tokenSource?: string | null }).tokenSource === "none";
-
-      if (isSyntheticDefault) continue;
-
-      allAccounts.push({ channelId: "mobile", channelLabel, account });
-    }
-  }
-
   return allAccounts;
 }
 

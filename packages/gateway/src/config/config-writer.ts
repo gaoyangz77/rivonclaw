@@ -607,6 +607,9 @@ const REMOVED_PLUGIN_IDS = new Set([
   // v1.9.0: Browser Profiles and the CDP/session-state plugin were removed.
   "browser-profiles-tools",
   "rivonclaw-browser-profiles-tools",
+  // v1.9.61: 爪聊 mobile chat retired; its channel plugin no longer ships.
+  "rivonclaw-mobile-chat-channel",
+  "mobile-chat-channel",
 ]);
 
 /** Historical optional-provider deny entries. Remove only the stale deny
@@ -646,7 +649,6 @@ const RENAMED_PLUGIN_IDS: Record<string, string> = {
   // v1.6 → v1.7: easyclaw → rivonclaw rebrand
   "easyclaw-event-bridge": "rivonclaw-event-bridge",
   // v1.7 → v1.8: unify all extensions under rivonclaw- prefix
-  "mobile-chat-channel": "rivonclaw-mobile-chat-channel",
   "search-browser-fallback": "rivonclaw-search-browser-fallback",
 };
 
@@ -2134,10 +2136,6 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   // - openclaw-weixin requires its plugin loaded for QR login bootstrap —
   //   accounts are only created *after* QR login succeeds, so the plugin must
   //   be available before any account config exists.
-  // - mobile is still owned by SQLite pairings, but OpenClaw v2026.5.2 only
-  //   starts external channel plugins when the matching channel has a config
-  //   presence signal. When the mobile plugin is enabled, add that marker so
-  //   desktop RPCs like mobile_chat_start_sync are registered.
   {
     const existingChannels =
       typeof config.channels === "object" && config.channels !== null
@@ -2150,29 +2148,6 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         ? (existingChannels["openclaw-weixin"] as Record<string, unknown>)
         : {};
     existingChannels["openclaw-weixin"] = { ...existingWeixin, managed: true };
-
-    const plugins =
-      typeof config.plugins === "object" && config.plugins !== null
-        ? (config.plugins as Record<string, unknown>)
-        : {};
-    const pluginEntries =
-      typeof plugins.entries === "object" && plugins.entries !== null
-        ? (plugins.entries as Record<string, unknown>)
-        : {};
-    const mobileEntry = pluginEntries["rivonclaw-mobile-chat-channel"];
-    const mobileEnabled =
-      typeof mobileEntry === "object" &&
-      mobileEntry !== null &&
-      !Array.isArray(mobileEntry) &&
-      (mobileEntry as Record<string, unknown>).enabled === true;
-
-    if (mobileEnabled) {
-      const existingMobile =
-        typeof existingChannels.mobile === "object" && existingChannels.mobile !== null
-          ? (existingChannels.mobile as Record<string, unknown>)
-          : {};
-      existingChannels.mobile = { ...existingMobile, managed: true };
-    }
 
     config.channels = existingChannels;
   }

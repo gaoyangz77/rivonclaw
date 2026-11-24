@@ -9,7 +9,6 @@ import { AdsStoreBindingModel } from "./AdsStoreBinding.js";
 import { BillingOverviewModel, BillingPlanDefinitionModel, PaymentModel } from "./Subscription.js";
 import { ProviderKeyModel } from "./ProviderKey.js";
 import { ChannelAccountModel } from "./ChannelAccount.js";
-import { MobilePairingModel } from "./MobilePairing.js";
 import { ToolCapabilityModel } from "./ToolCapability.js";
 import { UserModel } from "./User.js";
 import { PlatformAppModel } from "./PlatformApp.js";
@@ -91,7 +90,6 @@ export const RootStoreModel = types
     adsStoreBindings: types.optional(types.array(AdsStoreBindingModel), []),
     providerKeys: types.optional(types.array(ProviderKeyModel), []),
     channelAccounts: types.optional(types.array(ChannelAccountModel), []),
-    mobilePairings: types.optional(types.array(MobilePairingModel), []),
     billingOverview: types.maybeNull(BillingOverviewModel),
     billingPlanDefinitions: types.optional(types.array(BillingPlanDefinitionModel), []),
     payments: types.optional(types.array(PaymentModel), []),
@@ -185,12 +183,6 @@ export const RootStoreModel = types
       return self.channelAccounts.find(
         (a) => a.channelId === channelId && a.accountId === accountId,
       );
-    },
-    getMobilePairing(id: string) {
-      return self.mobilePairings.find((p) => p.id === id);
-    },
-    getMobilePairingByPairingId(pairingId: string) {
-      return self.mobilePairings.find((p) => p.pairingId === pairingId);
     },
     getShop(id: string) {
       return self.shops.find((s) => s.id === id);

@@ -60,7 +60,6 @@
     "@playwright/test": "^1.58.2",
     "@rivonclaw/rivonclaw-capability-manager": "workspace:*",
     "@rivonclaw/rivonclaw-event-bridge": "workspace:*",
-    "@rivonclaw/rivonclaw-mobile-chat-channel": "workspace:*",
     "@rivonclaw/rivonclaw-search-browser-fallback": "workspace:*",
     "@types/ws": "^8.18.1",
     "cross-env": "^10.1.0",

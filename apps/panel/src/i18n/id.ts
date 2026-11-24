@@ -93,7 +93,6 @@ export default {
     providers: "Model",
     channels: "Pesan",
     usage: "Penggunaan",
-    mobile: "ChatClaw",
     extras: "Fitur Ekstra",
     plugins: "Plugin",
     skills: "Keterampilan",
@@ -868,8 +867,6 @@ export default {
     failedToRemove: "Gagal menghapus:",
     removeConfirmTitle: "Hapus {{entry}} dari daftar yang diizinkan?",
     removeConfirmMessage: "Mereka tidak dapat lagi mengirim pesan.",
-    staleTooltip: "Dilepaskan oleh perangkat jarak jauh",
-    staleHint: "Dilepaskan secara jarak jauh",
     timeJustNow: "sekarang",
     timeMinutesAgo: "{{count}}m yang lalu",
     timeHoursAgo: "{{count}}h yang lalu",
@@ -882,7 +879,6 @@ export default {
     ownerBadge: "Pemilik",
     nonOwnerBadge: "Pengguna",
     noRecipients: "Tidak ada penerima dalam daftar yang diizinkan.",
-    pairingIdColumn: "Memasangkan ID",
     copied: "Disalin!",
     expand: "Penerima",
   },
@@ -905,27 +901,6 @@ export default {
       "WeChat terikat. Silakan kirim satu pesan ke bot di WeChat untuk mengonfirmasi aktivasi; jika tidak, pesan keluar proaktif mungkin tidak terkirim.",
     weixinAlreadyConnectedHint:
       "Akun WeChat ini sudah terhubung. Status loginnya telah disegarkan.",
-  },
-  mobile: {
-    description:
-      "Pindai untuk menghubungkan ponsel Anda — tanpa konfigurasi, tanpa kerumitan. Ngobrol dengan agen AI Anda kapan saja, di mana saja.",
-    statusTitle: "Koneksi ChatClaw",
-    generationFailed: "Gagal membuat kode penyandingan: {{error}}",
-    disconnectConfirm: "Apakah Anda yakin ingin memutuskan sambungan perangkat seluler saat ini?",
-    disconnectFailed: "Gagal memutuskan sambungan: {{error}}",
-    connectedDesc: "Perangkat seluler Anda ({{device}}) berhasil terhubung.",
-    disconnect: "Putuskan Sambungan Perangkat",
-    waitingForConnection: "Pindai untuk Menghubungkan",
-    scanHint: "Pindai kode QR dengan kamera ponsel Anda untuk terhubung.",
-    codeExpired: "Kode QR Kedaluwarsa",
-    codeExpiredHint: "Klik kode QR untuk menghasilkan kode penyandingan baru.",
-    clickToRefresh: "Klik untuk menyegarkan",
-    expiresIn: "Kedaluwarsa dalam {{seconds}}s",
-    existingPairings: "Perangkat {{count}} sudah dipasangkan.",
-    pairTitle: "Pasangkan Perangkat",
-    installHint:
-      "Pertama kali? Pindai kode QR di sebelah kanan untuk menginstal ChatClaw di ponsel Anda. Sudah terpasang? Klik tombol Hubungkan, lalu pindai kode QR popup menggunakan pemindai bawaan ChatClaw untuk memasangkannya.",
-    pairHint: "Buka aplikasi ChatClaw dan gunakan pemindai bawaannya untuk memindai kode QR ini.",
   },
   stt: {
     title: "Pidato-ke-Teks",
@@ -2363,7 +2338,7 @@ export default {
         "Pilih platform perpesanan mana yang akan dihubungkan. Opsinya mencakup Telegram, WeChat, Feishu/Lark, Discord, Slack, WhatsApp, dan banyak lagi. Setiap platform memerlukan konfigurasi yang berbeda.",
       connectBtnTitle: "Tombol Hubungkan",
       connectBtnBody:
-        "Setelah memilih jenis saluran, klik Hubungkan untuk membuka dialog konfigurasi. Untuk Obrolan Seluler, tindakan ini akan membuka alur pemasangan kode QR.",
+        "Setelah memilih jenis saluran, klik Hubungkan untuk membuka dialog konfigurasi.",
       infoBoxTitle: "Info Saluran",
       infoBoxBody:
         "Saat Anda memilih saluran, area ini menampilkan petunjuk pengaturan yang berguna dan mungkin menyertakan tautan ke tutorial langkah demi langkah untuk platform tersebut.",
@@ -2378,7 +2353,7 @@ export default {
         "Klik di mana saja pada baris untuk memperluasnya dan melihat daftar penerima yang diizinkan — pengguna yang diberi wewenang untuk berinteraksi dengan bot Anda di saluran tersebut.",
       rowActionsTitle: "Tindakan Akun",
       rowActionsBody:
-        "Edit membuka dialog konfigurasi untuk mengubah kredensial atau pengaturan. Hapus secara permanen menghapus koneksi saluran. Akun Mobile Chat hanya dapat dihapus, tidak dapat diedit.",
+        "Edit membuka dialog konfigurasi untuk mengubah kredensial atau pengaturan. Hapus secara permanen menghapus koneksi saluran.",
       expandArrowTitle: "Perluas Detail",
       expandArrowBody:
         "Panah di sebelah kiri setiap baris mengalihkan tampilan yang diperluas, yang memperlihatkan permintaan pemasangan dan penerima resmi untuk saluran tersebut.",

@@ -73,7 +73,6 @@ function groupName(key) {
     fileDialog: "File Dialog",
     localModels: "Local Models",
     logs: "Logs",
-    mobile: "Mobile Chat",
     models: "Models",
     oauth: "OAuth",
     pairing: "Pairing",

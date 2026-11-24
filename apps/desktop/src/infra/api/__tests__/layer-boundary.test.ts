@@ -13,7 +13,6 @@ const DOMAIN_DIRS = new Set([
   "cs-bridge",
   "affiliate",
   "ecommerce-relay",
-  "mobile",
   "chat",
   "skills",
   "usage",

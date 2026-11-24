@@ -15,10 +15,6 @@ export const DEFAULTS = {
     cdpOffset: 12,
   },
 
-  relay: {
-    maxClientBytes: 14 * 1024 * 1024, // 14 MB
-  },
-
   gateway: {
     initialBackoffMs: 1_000,
     maxBackoffMs: 30_000,
@@ -40,14 +36,6 @@ export const DEFAULTS = {
     defaultEnabled: false,
   },
 
-  mobileSync: {
-    sentHistoryLimit: 200,
-    outboxLimit: 500,
-    ackTimeoutMs: 30_000,
-    saveDebounceMs: 500,
-    processedIdsLimit: 1_000,
-  },
-
   desktop: {
     updateMarkerMaxAgeMs: 5 * 60 * 1_000,
     // Allow Gateway's 30s orderly-stop watchdog to finish before Electron exits.
@@ -58,7 +46,6 @@ export const DEFAULTS = {
     probeTimeoutMs: 2_000,
     fetchTimeoutMs: 5_000,
     doctorTimeoutMs: 60_000,
-    pairingCodeTtlMs: 60_000,
     channelProbeTimeoutMs: 8_000,
     channelClientTimeoutMs: 25_000,
     agentReplyTimeoutMs: 60_000,

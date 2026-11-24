@@ -16,11 +16,6 @@ const POLICIES = {
     bundled: ["@rivonclaw/plugin-sdk", "@rivonclaw/core"],
   },
   "@rivonclaw/rivonclaw-event-bridge": { bundled: ["@rivonclaw/plugin-sdk"] },
-  "@rivonclaw/rivonclaw-mobile-chat-channel": {
-    bundled: ["@rivonclaw/plugin-sdk", "@rivonclaw/logger", "ws"],
-    // ws has tested pure-JS fallbacks; these are optional native accelerators.
-    optionalImports: ["bufferutil", "utf-8-validate"],
-  },
   "@rivonclaw/rivonclaw-search-browser-fallback": { bundled: ["@rivonclaw/plugin-sdk"] },
   "@rivonclaw/rivonclaw-cloud-tools": {
     bundled: ["@rivonclaw/plugin-sdk", "adm-zip"],
@@ -87,19 +82,7 @@ function scanBundleImports(pluginDir) {
             const spec = specifier.text;
             if (spec.startsWith("."))
               requireLocalFile(pluginDir, path.resolve(path.dirname(file), spec));
-            else if (!isBuiltin(spec)) {
-              let guarded = false;
-              for (let parent = node.parent; parent; parent = parent.parent) {
-                if (
-                  ts.isTryStatement(parent) &&
-                  parent.catchClause &&
-                  node.pos >= parent.tryBlock.pos &&
-                  node.end <= parent.tryBlock.end
-                )
-                  guarded = true;
-              }
-              imports.push({ specifier: spec, file, guarded });
-            }
+            else if (!isBuiltin(spec)) imports.push({ specifier: spec, file });
           }
           // Covers copied PDF.js and the worker URL used by import(moduleUrl).
           if (
@@ -156,13 +139,12 @@ function preparePluginManifest(sourceDir, pluginDir, vendorExports) {
     manifest.dependencies ??= {};
     manifest.dependencies[name] = range;
   }
-  for (const { specifier, file, guarded } of imports) {
+  for (const { specifier, file } of imports) {
     if (specifier.startsWith("openclaw/plugin-sdk/")) {
       if (!vendorExports[`./${specifier.slice("openclaw/".length)}`])
         throw new Error(`Unexported OpenClaw SDK: ${specifier}`);
       continue;
     }
-    if (policy.optionalImports?.includes(specifier) && guarded) continue;
     const name = packageName(specifier);
     if (!manifest.dependencies?.[name] && !manifest.optionalDependencies?.[name]) {
       throw new Error(`Undeclared packaged external: ${source.name} > ${specifier} (${file})`);
@@ -205,9 +187,8 @@ function packageExternalPlugins(
       );
       materializePluginDependencies(repoRoot, pluginDir, sourceDir, { rootSources, target });
       assertPluginDependencies(pluginDir, [pluginDir]);
-      for (const { specifier, file, guarded } of imports) {
+      for (const { specifier, file } of imports) {
         if (specifier.startsWith("openclaw/plugin-sdk/")) continue;
-        if (POLICIES[manifest.name].optionalImports?.includes(specifier) && guarded) continue;
         const resolved = createRequire(file).resolve(specifier);
         requireLocalFile(pluginDir, resolved);
       }

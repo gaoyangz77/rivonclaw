@@ -17,7 +17,6 @@ import {
   type LLMProviderManagerEnv,
 } from "../../providers/llm-provider-manager.js";
 import { ChannelManagerModel, type ChannelManagerEnv } from "../../channels/channel-manager.js";
-import { MobileManagerModel, type MobileManagerEnv } from "../../mobile/mobile-manager.js";
 import { normalizePlatform } from "../../utils/platform.js";
 
 export interface CustomerServiceShopContextProjection {
@@ -133,14 +132,8 @@ export function initChannelManagerEnv(env: ChannelManagerEnv): void {
   rootStore.channelManager.init();
 }
 
-/** Initialize the Mobile Manager environment. Called once during startup in panel-server.ts. */
-export function initMobileManagerEnv(env: MobileManagerEnv): void {
-  rootStore.mobileManager.setEnv(env);
-  rootStore.mobileManager.init();
-}
-
 // Re-export the env types for main.ts convenience
-export type { LLMProviderManagerEnv, ChannelManagerEnv, MobileManagerEnv };
+export type { LLMProviderManagerEnv, ChannelManagerEnv };
 
 // ---------------------------------------------------------------------------
 // Desktop-specific RootStore: extends shared model with ingestion actions
@@ -232,7 +225,10 @@ const DesktopRootStoreModel = RootStoreModel.views((self) => ({
     },
     failCategoryLoad(locale: string, error: string) {
       const bucket = self.categories.get(locale);
-      if (bucket) { bucket.loading = false; bucket.error = error; }
+      if (bucket) {
+        bucket.loading = false;
+        bucket.error = error;
+      }
     },
     beginShopRefresh(reason: string) {
       self.shopLifecycle.status = "loading";
@@ -568,7 +564,9 @@ const DesktopRootStoreModel = RootStoreModel.views((self) => ({
           if (s.get()) {
             applySnapshot(
               s.get(),
-              s.mergeSelectedFields ? { ...(getSnapshot(s.get()) as object), ...(sanitized as object) } : sanitized,
+              s.mergeSelectedFields
+                ? { ...(getSnapshot(s.get()) as object), ...(sanitized as object) }
+                : sanitized,
             );
           } else {
             s.set(sanitized);
@@ -794,35 +792,12 @@ const DesktopRootStoreModel = RootStoreModel.views((self) => ({
       );
       if (idx >= 0) self.channelAccounts.splice(idx, 1);
     },
-
-    /** Replace all mobile pairings in the MST store (bulk load from storage). */
-    loadMobilePairings(pairings: any[]) {
-      applySnapshot(self.mobilePairings, pairings);
-    },
-
-    /** Upsert a single mobile pairing. */
-    upsertMobilePairing(pairing: any) {
-      const idx = self.mobilePairings.findIndex((p) => p.id === pairing.id);
-      if (idx >= 0) {
-        applySnapshot(self.mobilePairings[idx], pairing);
-      } else {
-        self.mobilePairings.push(pairing);
-      }
-    },
-
-    /** Remove a mobile pairing by ID. */
-    removeMobilePairing(id: string) {
-      const idx = self.mobilePairings.findIndex((p) => p.id === id);
-      if (idx >= 0) self.mobilePairings.splice(idx, 1);
-    },
   }))
   .props({
     /** LLM Provider Manager — encapsulates provider key transaction actions. */
     llmManager: types.optional(LLMProviderManagerModel, {}),
     /** Channel Manager — encapsulates channel account CRUD and plugin entry computation. */
     channelManager: types.optional(ChannelManagerModel, {}),
-    /** Mobile Manager — encapsulates mobile pairing lifecycle and sync engine coordination. */
-    mobileManager: types.optional(MobileManagerModel, {}),
   });
 
 /** Singleton MST store instance for the Desktop process. */

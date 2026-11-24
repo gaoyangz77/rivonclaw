@@ -12,7 +12,7 @@
 but operating it directly means managing config files, local processes, provider
 credentials, channel plugins, and update workflows. RivonClaw packages that
 runtime into a desktop application with a local panel, provider management,
-mobile/channel integrations, ecommerce workflows, and release infrastructure.
+channel integrations, ecommerce workflows, and release infrastructure.
 
 OpenClaw is the engine; RivonClaw is the desktop cockpit and business layer.
 
@@ -26,7 +26,7 @@ OpenClaw is the engine; RivonClaw is the desktop cockpit and business layer.
   Ollama, subscription/coding-plan, proxy, model catalog, reauth, and usage
   surfaces.
 - **Channel integrations**: OpenClaw channel configuration plus RivonClaw-owned
-  mobile chat, Weixin wrapper, event bridge, and capability enforcement plugins.
+  Weixin wrapper, event bridge, and capability enforcement plugins.
 - **Cloud-backed business modules**: authenticated cloud GraphQL proxy, account
   and billing state, TikTok/ecommerce surfaces, customer-service bridge, and
   affiliate workflow support.
@@ -96,7 +96,6 @@ rivonclaw/
 │   ├── channel-weixin/
 │   ├── rivonclaw-capability-manager/
 │   ├── rivonclaw-event-bridge/
-│   ├── rivonclaw-mobile-chat-channel/
 │   └── rivonclaw-search-browser-fallback/
 ├── extensions-merchant/      # Private merchant plugins checked out in CI/dev
 ├── server/                   # Backend, relay, website, telemetry, deploy scripts
@@ -112,10 +111,10 @@ The monorepo uses pnpm workspaces (`apps/*`, `packages/*`, `extensions/*`,
 
 ### Apps
 
-| Package              | Description                                                                                                                                              |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@rivonclaw/desktop` | Electron 40 desktop app. Owns app lifecycle, local API routes, gateway startup, config writes, storage, updater, telemetry, and cloud/CS/mobile bridges. |
-| `@rivonclaw/panel`   | React 19 + Vite 6 SPA. Implements chat, provider setup, channels, extras, skills, crons, usage, settings, account, billing, and ecommerce surfaces.      |
+| Package              | Description                                                                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@rivonclaw/desktop` | Electron 40 desktop app. Owns app lifecycle, local API routes, gateway startup, config writes, storage, updater, telemetry, and cloud/CS bridges.   |
+| `@rivonclaw/panel`   | React 19 + Vite 6 SPA. Implements chat, provider setup, channels, extras, skills, crons, usage, settings, account, billing, and ecommerce surfaces. |
 
 ### Packages
 
@@ -123,7 +122,7 @@ The monorepo uses pnpm workspaces (`apps/*`, `packages/*`, `extensions/*`,
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@rivonclaw/core`         | Shared defaults, types, API route contract, provider catalog, MST models, generated GraphQL types, and utility helpers.                                   |
 | `@rivonclaw/gateway`      | OpenClaw config writer, launcher, OAuth profile sync, channel config writer, model catalog reader, skills reload helper, and vendor helpers.              |
-| `@rivonclaw/storage`      | SQLite repositories for settings, provider keys, usage, chat sessions, channel accounts/recipients, mobile pairings, tool selections, and CS escalations. |
+| `@rivonclaw/storage`      | SQLite repositories for settings, provider keys, usage, chat sessions, channel accounts/recipients, tool selections, and CS escalations. |
 | `@rivonclaw/secrets`      | Platform-aware secret storage for API keys and OAuth credentials.                                                                                         |
 | `@rivonclaw/proxy-router` | Local HTTP proxy router for provider and first-party network paths.                                                                                       |
 | `@rivonclaw/stt`          | STT provider utilities.                                                                                                                                   |
@@ -140,7 +139,6 @@ The monorepo uses pnpm workspaces (`apps/*`, `packages/*`, `extensions/*`,
 | `openclaw-weixin`                              | Wrapper around the Tencent Weixin OpenClaw channel with RivonClaw compatibility fixes. |
 | `@rivonclaw/rivonclaw-capability-manager`      | Enforces effective tool availability for the current run context.                      |
 | `@rivonclaw/rivonclaw-event-bridge`            | Mirrors selected OpenClaw agent events into the panel event stream.                    |
-| `@rivonclaw/rivonclaw-mobile-chat-channel`     | Mobile chat channel plugin and relay synchronization logic.                            |
 | `@rivonclaw/rivonclaw-search-browser-fallback` | Guides search fallback behavior when direct search credentials are unavailable.        |
 
 Merchant-specific plugins live in `extensions-merchant/*` and are checked out by
@@ -180,7 +178,7 @@ Electron Desktop
   ├─ OpenClaw config writer and launcher
   ├─ Proxy-aware cloud GraphQL/REST clients
   ├─ Backend subscription client
-  ├─ Channel / mobile / CS / ecommerce bridges
+  ├─ Channel / CS / ecommerce bridges
   └─ Auto-updater
 
 React Panel
@@ -204,16 +202,16 @@ The generated route reference lives at [`docs/API_ROUTES.md`](docs/API_ROUTES.md
 
 Defaults are resolved by [`packages/core/src/node-utils/paths.ts`](packages/core/src/node-utils/paths.ts).
 
-| Path                                               | Purpose                          |
-| -------------------------------------------------- | -------------------------------- |
-| `~/.rivonclaw/db.sqlite`                           | Desktop SQLite database          |
-| `~/.rivonclaw/logs/`                               | Application logs                 |
-| `~/.rivonclaw/secrets/`                            | File-based secret fallback       |
-| `~/.rivonclaw/openclaw/`                           | OpenClaw state directory         |
-| `~/.rivonclaw/openclaw/openclaw.json`              | Generated gateway config         |
-| `~/.rivonclaw/openclaw/agents/<agentId>/sessions/` | OpenClaw sessions                |
-| `~/.rivonclaw/openclaw/skills/`                    | User-installed skills            |
-| `~/.rivonclaw/openclaw/credentials/`               | OAuth/channel/mobile credentials |
+| Path                                               | Purpose                    |
+| -------------------------------------------------- | -------------------------- |
+| `~/.rivonclaw/db.sqlite`                           | Desktop SQLite database    |
+| `~/.rivonclaw/logs/`                               | Application logs           |
+| `~/.rivonclaw/secrets/`                            | File-based secret fallback |
+| `~/.rivonclaw/openclaw/`                           | OpenClaw state directory   |
+| `~/.rivonclaw/openclaw/openclaw.json`              | Generated gateway config   |
+| `~/.rivonclaw/openclaw/agents/<agentId>/sessions/` | OpenClaw sessions          |
+| `~/.rivonclaw/openclaw/skills/`                    | User-installed skills      |
+| `~/.rivonclaw/openclaw/credentials/`               | OAuth/channel credentials  |
 
 ## Releases
 

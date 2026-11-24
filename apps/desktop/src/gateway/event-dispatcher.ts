@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
-import type { MobileSessionResetRequest } from "../mobile/session-reset.js";
 
 const TELEGRAM_CHANNEL_ID = "telegram";
 const RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID = "rivonclaw-support";
@@ -18,8 +17,6 @@ export interface GatewayEventDispatcherDeps {
     membershipChanged: boolean;
   };
   onSessionActivity?: (sessionKey: string) => void;
-  /** A paired phone asked to reset its conversation; the mobile channel plugin awaits the outcome. */
-  onMobileSessionResetRequested?: (req: MobileSessionResetRequest) => void;
   /**
    * Internal department run activity for the office view.
    *
@@ -62,14 +59,7 @@ function isInternalTelegramDebugAccount(input: {
 export function createGatewayEventDispatcher(
   deps: GatewayEventDispatcherDeps,
 ): GatewayEventHandler {
-  const {
-    broadcastEvent,
-    chatSessions,
-    onRecipientSeen,
-    onSessionActivity,
-    onSceneEvent,
-    onMobileSessionResetRequested,
-  } = deps;
+  const { broadcastEvent, chatSessions, onRecipientSeen, onSessionActivity, onSceneEvent } = deps;
 
   return (evt: GatewayEventFrame): void => {
     if (evt.event === "plugin.rivonclaw.scene-event" || evt.event === "rivonclaw.scene-event") {
@@ -89,17 +79,6 @@ export function createGatewayEventDispatcher(
           stream: p.stream,
           seq: p.seq,
           data: p.data,
-        });
-      }
-    }
-
-    if (evt.event === "plugin.rivonclaw.mobile-session-reset-requested") {
-      const p = evt.payload as Partial<MobileSessionResetRequest> | undefined;
-      if (p?.pairingId && p.sessionKey && p.requestId) {
-        onMobileSessionResetRequested?.({
-          pairingId: p.pairingId,
-          sessionKey: p.sessionKey,
-          requestId: p.requestId,
         });
       }
     }
@@ -157,7 +136,7 @@ export function createGatewayEventDispatcher(
     // Persist inbound recipients through the injected domain action so channels
     // without a pairing flow can retain labels/owner metadata. Account-scoped
     // membership is also handled there when the channel supplies an accountId.
-    // Fires for every inbound message except mobile/webchat (filtered in the
+    // Fires for every inbound message except webchat (filtered in the
     // event-bridge extension). Emits `recipient-added` SSE only for brand-new
     // rows so the Panel can live-refresh without redundant traffic.
     if (
@@ -181,47 +160,6 @@ export function createGatewayEventDispatcher(
           channelId: p.channelId,
           accountId: p.accountId,
           recipientId: p.recipientId,
-        });
-      }
-    }
-
-    if (evt.event === "plugin.rivonclaw.mobile-inbound") {
-      const p = evt.payload as
-        | {
-            sessionKey?: string;
-            message?: string;
-            timestamp?: number;
-            channel?: string;
-            mediaPaths?: string[];
-          }
-        | undefined;
-      if (isInternalServiceSessionKey(p?.sessionKey)) return;
-      if (p?.sessionKey && p?.message) {
-        onSessionActivity?.(p.sessionKey);
-        // Auto-unarchive the session so it appears in Active sessions,
-        // even when the Panel UI is closed.
-        const session = chatSessions.getByKey(p.sessionKey);
-        if (session?.archivedAt) {
-          chatSessions.upsert(p.sessionKey, { archivedAt: null });
-        }
-        // Convert absolute media file paths to panel-server /api/media/ URLs.
-        const MEDIA_DIR_SEG = "/openclaw/media/";
-        const mediaUrls: string[] = [];
-        if (Array.isArray(p.mediaPaths)) {
-          for (const fp of p.mediaPaths) {
-            const idx = fp.indexOf(MEDIA_DIR_SEG);
-            if (idx >= 0) {
-              mediaUrls.push(`/api/media/${fp.slice(idx + MEDIA_DIR_SEG.length)}`);
-            }
-          }
-        }
-        broadcastEvent("inbound", {
-          runId: randomUUID(),
-          sessionKey: p.sessionKey,
-          channel: p.channel || "mobile",
-          message: p.message,
-          timestamp: p.timestamp || Date.now(),
-          ...(mediaUrls.length > 0 ? { mediaUrls } : {}),
         });
       }
     }

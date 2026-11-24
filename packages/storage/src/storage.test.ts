@@ -915,6 +915,48 @@ describe("migration 34: remove_gemini_oauth_provider", () => {
   });
 });
 
+describe("migration 35: retire_mobile_chat", () => {
+  it("removes mobile rows and the pairings table while keeping other channels", () => {
+    // Migration 35 already dropped the table on open; rebuild it from the
+    // historical migrations so the test seeds a pre-retirement database.
+    for (const id of [14, 16, 17, 18]) {
+      storage.db.exec(migrations.find((entry) => entry.id === id)!.sql);
+    }
+    storage.db
+      .prepare(
+        `INSERT INTO mobile_pairings (id, device_id, access_token, relay_url, created_at)
+         VALUES ('p1', 'dev', 'token', 'wss://relay.example', '2026-01-01T00:00:00Z')`,
+      )
+      .run();
+    const insertRecipient = storage.db.prepare(
+      `INSERT INTO channel_recipients (channel_id, recipient_id, label, created_at, updated_at)
+       VALUES (?, ?, '', 1, 1)`,
+    );
+    insertRecipient.run("mobile", "phone-1");
+    insertRecipient.run("telegram", "tg-1");
+    const insertAccount = storage.db.prepare(
+      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+       VALUES (?, ?, NULL, '{}', 1, 1)`,
+    );
+    insertAccount.run("mobile", "default");
+    insertAccount.run("feishu", "default");
+
+    storage.db.exec(migrations.find((entry) => entry.id === 35)!.sql);
+
+    expect(
+      storage.db.prepare("SELECT channel_id FROM channel_recipients ORDER BY channel_id").all(),
+    ).toEqual([{ channel_id: "telegram" }]);
+    expect(
+      storage.db.prepare("SELECT channel_id FROM channel_accounts ORDER BY channel_id").all(),
+    ).toEqual([{ channel_id: "feishu" }]);
+    expect(
+      storage.db
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'mobile_pairings'")
+        .all(),
+    ).toEqual([]);
+  });
+});
+
 describe("ToolSelections", () => {
   it("should save and retrieve selections for a scope", () => {
     storage.toolSelections.setForScope("chat_session", "sess-1", [

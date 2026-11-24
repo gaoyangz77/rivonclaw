@@ -94,7 +94,6 @@ export default {
     providers: "Modelle",
     channels: "Nachrichten",
     usage: "Nutzung",
-    mobile: "ChatClaw",
     extras: "Zusätzliche Funktionen",
     plugins: "Plugins",
     skills: "Fähigkeiten",
@@ -886,8 +885,6 @@ export default {
     failedToRemove: "Fehler beim Entfernen:",
     removeConfirmTitle: "{{entry}} von der Zulassungsliste entfernen?",
     removeConfirmMessage: "Sie können keine Nachrichten mehr senden.",
-    staleTooltip: "Vom Remote-Gerät entkoppelt",
-    staleHint: "Per Fernbedienung entkoppelt",
     timeJustNow: "gerade jetzt",
     timeMinutesAgo: "Vor {{count}}m",
     timeHoursAgo: "Vor {{count}}h",
@@ -900,7 +897,6 @@ export default {
     ownerBadge: "Besitzer",
     nonOwnerBadge: "Benutzer",
     noRecipients: "Keine Empfänger in der Zulassungsliste.",
-    pairingIdColumn: "Paarung ID",
     copied: "Kopiert!",
     expand: "Empfänger",
   },
@@ -923,30 +919,6 @@ export default {
       "WeChat ist gebunden. Bitte senden Sie eine Nachricht an den Bot in WeChat, um die Aktivierung zu bestätigen; Andernfalls werden proaktive ausgehende Nachrichten möglicherweise nicht zugestellt.",
     weixinAlreadyConnectedHint:
       "Dieses WeChat-Konto war bereits verbunden. Der Anmeldestatus wurde aktualisiert.",
-  },
-  mobile: {
-    description:
-      "Scannen Sie, um Ihr Telefon zu verbinden – keine Konfiguration, kein Aufwand. Chatten Sie jederzeit und überall mit Ihrem KI-Agenten.",
-    statusTitle: "ChatClaw-Verbindung",
-    generationFailed: "Der Kopplungscode konnte nicht generiert werden: {{error}}",
-    disconnectConfirm:
-      "Sind Sie sicher, dass Sie die Verbindung zum aktuellen Mobilgerät trennen möchten?",
-    disconnectFailed: "Die Verbindung konnte nicht getrennt werden: {{error}}",
-    connectedDesc: "Ihr Mobilgerät ({{device}}) wurde erfolgreich verbunden.",
-    disconnect: "Gerät trennen",
-    waitingForConnection: "Scannen zum Verbinden",
-    scanHint:
-      "Scannen Sie den QR-Code mit der Kamera Ihres Telefons, um eine Verbindung herzustellen.",
-    codeExpired: "QR-Code abgelaufen",
-    codeExpiredHint: "Klicken Sie auf den QR-Code, um einen neuen Kopplungscode zu generieren.",
-    clickToRefresh: "Klicken Sie zum Aktualisieren",
-    expiresIn: "Läuft in {{seconds}}s ab",
-    existingPairings: "{{count}}-Gerät(e) bereits gekoppelt.",
-    pairTitle: "Gerät koppeln",
-    installHint:
-      "Zum ersten Mal? Scannen Sie den QR-Code rechts, um ChatClaw auf Ihrem Telefon zu installieren. Bereits installiert? Klicken Sie auf die Schaltfläche „Verbinden“ und scannen Sie dann den Popup-QR-Code mit dem integrierten Scanner von ChatClaw zum Koppeln.",
-    pairHint:
-      "Öffnen Sie die ChatClaw-App und scannen Sie diesen QR-Code mit dem integrierten Scanner.",
   },
   stt: {
     title: "Speech-to-Text",
@@ -2408,7 +2380,7 @@ export default {
         "Wählen Sie aus, welche Messaging-Plattform Sie verbinden möchten. Zu den Optionen gehören Telegram, WeChat, Feishu/Lark, Discord, Slack, WhatsApp und mehr. Jede Plattform erfordert eine andere Konfiguration.",
       connectBtnTitle: "Schaltfläche „Verbinden“.",
       connectBtnBody:
-        "Nachdem Sie einen Kanaltyp ausgewählt haben, klicken Sie auf „Verbinden“, um den Konfigurationsdialog zu öffnen. Beim mobilen Chat wird stattdessen ein QR-Code-Pairing-Ablauf geöffnet.",
+        "Nachdem Sie einen Kanaltyp ausgewählt haben, klicken Sie auf „Verbinden“, um den Konfigurationsdialog zu öffnen.",
       infoBoxTitle: "Kanalinformationen",
       infoBoxBody:
         "Wenn Sie einen Kanal auswählen, werden in diesem Bereich hilfreiche Einrichtungsanweisungen angezeigt und möglicherweise ein Link zu einer Schritt-für-Schritt-Anleitung für diese Plattform.",
@@ -2423,7 +2395,7 @@ export default {
         "Klicken Sie auf eine beliebige Stelle in einer Zeile, um sie zu erweitern und die Empfänger-Zulassungsliste anzuzeigen – die Benutzer, die berechtigt sind, mit Ihrem Bot auf diesem Kanal zu interagieren.",
       rowActionsTitle: "Kontoaktionen",
       rowActionsBody:
-        "Bearbeiten öffnet den Konfigurationsdialog zum Ändern von Anmeldeinformationen oder Einstellungen. Durch Löschen wird die Kanalverbindung dauerhaft entfernt. Mobile Chat-Konten können nur gelöscht, nicht bearbeitet werden.",
+        "Bearbeiten öffnet den Konfigurationsdialog zum Ändern von Anmeldeinformationen oder Einstellungen. Durch Löschen wird die Kanalverbindung dauerhaft entfernt.",
       expandArrowTitle: "Erweitern Sie Details",
       expandArrowBody:
         "Der Pfeil links in jeder Zeile schaltet die erweiterte Ansicht um, in der die Pairing-Anfragen und autorisierten Empfänger für diesen Kanal angezeigt werden.",
