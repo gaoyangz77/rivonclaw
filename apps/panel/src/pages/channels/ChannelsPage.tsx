@@ -353,8 +353,8 @@ export const ChannelsPage = observer(function ChannelsPage() {
                       </div>
                       <div className="channel-info-copy">
                         {zh
-                          ? "TK匠已内置官方 OpenClaw 飞书插件。连接后会自动保存凭证并启用通道。"
-                          : "TK Copilot includes the official OpenClaw Feishu/Lark plugin. After connecting, it saves credentials and enables the channel."}
+                          ? "TK匠已内置飞书官方插件。连接后会自动保存凭证并启用通道。"
+                          : "TK Copilot includes the official Feishu/Lark plugin. After connecting, it saves credentials and enables the channel."}
                       </div>
                     </div>
                   );

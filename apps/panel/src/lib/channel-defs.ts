@@ -4,7 +4,18 @@
  */
 
 export const KNOWN_CHANNELS = [
-  { id: "mobile", labelKey: "nav.mobile", tutorialUrl: "", tooltip: "mobile.description" },
+  {
+    id: "openclaw-weixin",
+    labelKey: "channels.channelWeixin",
+    tutorialUrl: "",
+    tooltip: "channels.tooltipWeixin",
+  },
+  {
+    id: "feishu",
+    labelKey: "channels.channelFeishu",
+    tutorialUrl: "https://docs.openclaw.ai/channels/feishu",
+    tooltip: "channels.tooltipFeishu",
+  },
   {
     id: "telegram",
     labelKey: "channels.channelTelegram",
@@ -42,12 +53,6 @@ export const KNOWN_CHANNELS = [
     tooltip: "channels.tooltipIMessage",
   },
   {
-    id: "feishu",
-    labelKey: "channels.channelFeishu",
-    tutorialUrl: "https://docs.openclaw.ai/channels/feishu",
-    tooltip: "channels.tooltipFeishu",
-  },
-  {
     id: "line",
     labelKey: "channels.channelLine",
     tutorialUrl: "https://docs.openclaw.ai/channels/line",
@@ -71,12 +76,20 @@ export const KNOWN_CHANNELS = [
     tutorialUrl: "https://docs.openclaw.ai/channels/msteams",
     tooltip: "channels.tooltipMsteams",
   },
-  {
-    id: "openclaw-weixin",
-    labelKey: "channels.channelWeixin",
-    tutorialUrl: "",
-    tooltip: "channels.tooltipWeixin",
-  },
+  { id: "mobile", labelKey: "nav.mobile", tutorialUrl: "", tooltip: "mobile.description" },
 ] as const;
+
+/**
+ * Channels no longer offered for new connections. 爪聊 (the mobile chat app) was
+ * retired (founder, 2026-11-23): it stays in KNOWN_CHANNELS so an existing
+ * pairing still renders with its label and can be disconnected.
+ */
+export const RETIRED_CHANNELS = new Set<string>(["mobile"]);
+
+/**
+ * What 「连接新通道」 offers, in display order: WeChat and Feishu first — the
+ * two most sellers connect — then the rest as before.
+ */
+export const CONNECTABLE_CHANNELS = KNOWN_CHANNELS.filter((channel) => !RETIRED_CHANNELS.has(channel.id));
 
 export const QR_LOGIN_CHANNELS = new Set(["openclaw-weixin"]);

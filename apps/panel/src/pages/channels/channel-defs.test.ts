@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import type { ChannelsStatusSnapshot, ChannelAccountSnapshot } from "../../api/index.js";
 import {
   buildAccountsList,
+  getVisibleChannels,
   resolveDisplayedRunningStatus,
   type MstChannelAccountLike,
 } from "./channel-defs.jsx";
@@ -41,6 +42,15 @@ function snapshot(
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
+
+describe("getVisibleChannels — what 「连接新通道」 offers", () => {
+  it("leads with WeChat and Feishu and no longer offers the retired 爪聊 (mobile)", () => {
+    const ids = getVisibleChannels("zh", "").map((channel) => channel.id);
+    expect(ids.slice(0, 2)).toEqual(["openclaw-weixin", "feishu"]);
+    expect(ids).not.toContain("mobile");
+    expect(ids).toHaveLength(12);
+  });
+});
 
 describe("buildAccountsList — MST-authoritative with snapshot overlay", () => {
   it("merges MST identity with runtime overlay when both are present", () => {

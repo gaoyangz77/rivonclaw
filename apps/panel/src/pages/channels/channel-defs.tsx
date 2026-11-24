@@ -1,4 +1,4 @@
-import { KNOWN_CHANNELS } from "../../lib/channel-defs.js";
+import { CONNECTABLE_CHANNELS } from "../../lib/channel-defs.js";
 import type { ChannelAccountSnapshot } from "../../api/index.js";
 import { TkBadge, type TkBadgeTone } from "../../components/design-system/index.js";
 
@@ -70,7 +70,7 @@ export function resolveDisplayedRunningStatus(
   return account.running;
 }
 
-/** Return all known channels (no locale-based filtering). */
+/** The channels 「连接新通道」 offers: every known one except the retired (no locale-based filtering). */
 export function getVisibleChannels(_lang: string, _selectedDropdownChannel: string) {
-  return [...KNOWN_CHANNELS];
+  return [...CONNECTABLE_CHANNELS];
 }
