@@ -44,6 +44,18 @@ describe("Affiliate permission error localization", () => {
     });
   });
 
+  it.each([
+    ["AFFILIATE_TARGET_BD_OUTSIDE_REGION_OVERLAP", "targetOutsideRegionOverlap"],
+    ["AFFILIATE_CREATOR_OUTSIDE_TEAM_LEAD_SCOPE", "creatorOutsideTeamLeadScope"],
+    ["AFFILIATE_TARGET_BD_OUTSIDE_TEAM_LEAD_SCOPE", "targetOutsideTeamLeadScope"],
+    ["AFFILIATE_OPERATOR_OUTSIDE_SCOPE", "operatorOutsideScope"],
+  ])("localizes the ADR-113 denial %s", async (reason, key) => {
+    await i18n.changeLanguage("zh");
+    const message = i18n.t(`ecommerce.affiliateStaff.${key}`);
+    expect(message).not.toContain("ecommerce.");
+    await expect(clientFor(reason).mutate({ mutation })).rejects.toMatchObject({ message });
+  });
+
   it("uses the language current at response time and keeps configuration denials distinct from other-BD denials", async () => {
     await i18n.changeLanguage("en");
     const client = clientFor("AFFILIATE_OPERATION_NOT_PERMITTED");

@@ -192,8 +192,9 @@ function AffiliateWorkbenchSampleList({
 }: Omit<Props, "tab">) {
   const { t } = useTranslation();
   const { showToast } = useToast();
-  // Reopening a sample is daily work, which a staff login does not do (ADR-112).
-  const readOnly = useAffiliateAccess().readOnly;
+  // Reopening a sample is daily work: staff do it only with OPERATE, and each row's
+  // `viewerCanPerformDailyOperations` still decides its own button (ADR-113).
+  const canOperate = useAffiliateAccess().canOperate;
   const [statusFilter, setStatusFilter] = useState<GQL.AffiliateWorkbenchSampleStatusFilter>(
     GQL.AffiliateWorkbenchSampleStatusFilter.PendingReview,
   );
@@ -683,7 +684,7 @@ function AffiliateWorkbenchSampleList({
                       <td>
                         <div className="affiliate-workbench-cell-actions">
                           {row.sampleApplication.sampleWorkStatus ===
-                            GQL.SampleWorkStatus.RequestPendingReview && !readOnly ? (
+                            GQL.SampleWorkStatus.RequestPendingReview && canOperate ? (
                             <button
                               className="btn btn-secondary"
                               type="button"

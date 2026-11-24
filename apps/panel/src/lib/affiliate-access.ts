@@ -1,13 +1,15 @@
 import { GQL } from "@rivonclaw/core";
 
 /**
- * What the signed-in Affiliate login may see and do in the Panel (ADR-112).
+ * What the signed-in Affiliate login may see and do in the Panel (ADR-112,
+ * ADR-113).
  *
  * One value answers it for every Affiliate surface, so no page adds its own
- * "is this a team lead" condition. Like `lib/permission-scope.ts` it shapes what
- * the Panel offers, not what the Backend allows: every refusal still comes from
- * the Backend, and a control is hidden here only because the Backend would
- * refuse it.
+ * "is this a team lead" condition. A staff login's answer comes from the
+ * permissions its profiles hold (`VIEW`, `OPERATE`, `ALLOCATE`), never from the
+ * role kind. Like `lib/permission-scope.ts` it shapes what the Panel offers, not
+ * what the Backend allows: every refusal still comes from the Backend, and a
+ * control is hidden here only because the Backend would refuse it.
  */
 
 export type AffiliateCreatorDetailTab =
@@ -24,20 +26,36 @@ export interface AffiliateAccess {
   isTeamLead: boolean;
   isRegionAdmin: boolean;
   /**
-   * Daily work is refused: decisions on proposals, messages, sample reviews,
-   * escalation answers, tags, notes, claims and every collaboration change.
-   * True for every staff login. Region admin allocation is the one write staff
-   * have, and `canAllocate` carries it.
+   * `VIEW`: the work views (workbenches, conversations, proposals, escalations,
+   * collaborations) and the Creator's contact routes. The union over both facets.
    */
-  readOnly: boolean;
-  /** Region admin: assign, reassign and release the Creators of the granted shops. */
+  canView: boolean;
+  /**
+   * `OPERATE`: the daily work (decide proposals, review samples, send messages,
+   * tag, edit contacts, escalate and answer). The union over both facets; the
+   * per-row flags the Backend returns (`viewerCanApprove`,
+   * `viewerCanPerformDailyOperations`) still decide each row, because a facet
+   * operates only inside its own reach.
+   */
+  canOperate: boolean;
+  /**
+   * `ALLOCATE`: assign, reassign and release Creators, offered as the staff
+   * allocation control. False for a supervisor or BD, who own Creators through
+   * the owner selector of their own pages.
+   */
   canAllocate: boolean;
   /**
+   * Collaboration management (create, configure, edit, remove). Admin-only for
+   * every permission set (ADR-113), so false for any staff login.
+   */
+  canManageCollaborations: boolean;
+  /**
    * Creator detail tabs whose queries the Backend serves this login, or null for
-   * every tab. A region admin reads the profile, samples and activity only.
+   * every tab. Without `VIEW` a profile reads the profile, samples and activity
+   * only (the base Creator read every live profile has).
    */
   creatorDetailTabs: readonly AffiliateCreatorDetailTab[] | null;
-  /** Whether the Creator's contact routes may be read (a region admin may not). */
+  /** Whether the Creator's contact routes may be read. */
   canReadCreatorContacts: boolean;
 }
 
@@ -46,19 +64,26 @@ export const AFFILIATE_FULL_ACCESS: AffiliateAccess = {
   kind: GQL.AffiliateViewerKind.Supervisor,
   isTeamLead: false,
   isRegionAdmin: false,
-  readOnly: false,
+  canView: true,
+  canOperate: true,
   canAllocate: false,
+  canManageCollaborations: true,
   creatorDetailTabs: null,
   canReadCreatorContacts: true,
 };
 
 export type AffiliateStaffSurface = "WORKBENCH" | "HISTORY" | "CREATORS";
 
-const REGION_ADMIN_DETAIL_TABS: readonly AffiliateCreatorDetailTab[] = [
+const BASE_CREATOR_DETAIL_TABS: readonly AffiliateCreatorDetailTab[] = [
   "profile",
   "samples",
   "activity",
 ];
+
+type AffiliateViewerCapabilitiesFacts = Pick<
+  GQL.AffiliateViewerCapabilities,
+  "kind" | "isTeamLead" | "isRegionAdmin" | "teamLeadPermissions" | "regionAdminPermissions"
+>;
 
 /**
  * The access of a staff login from its capabilities. Null when the login holds
@@ -67,20 +92,27 @@ const REGION_ADMIN_DETAIL_TABS: readonly AffiliateCreatorDetailTab[] = [
  * carries no restriction here.
  */
 export function resolveAffiliateStaffAccess(
-  capabilities: Pick<GQL.AffiliateViewerCapabilities, "kind" | "isTeamLead" | "isRegionAdmin">,
+  capabilities: AffiliateViewerCapabilitiesFacts,
 ): AffiliateAccess | null {
   if (capabilities.kind !== GQL.AffiliateViewerKind.Staff) return AFFILIATE_FULL_ACCESS;
   const { isTeamLead, isRegionAdmin } = capabilities;
   if (!isTeamLead && !isRegionAdmin) return null;
+  // The Backend returns an empty list for a facet the login does not hold, so the
+  // union needs no facet check of its own.
+  const holds = (permission: GQL.AffiliateStaffPermission) =>
+    capabilities.teamLeadPermissions.includes(permission) ||
+    capabilities.regionAdminPermissions.includes(permission);
+  const canView = holds(GQL.AffiliateStaffPermission.View);
   return {
     kind: GQL.AffiliateViewerKind.Staff,
     isTeamLead,
     isRegionAdmin,
-    readOnly: true,
-    canAllocate: isRegionAdmin,
-    // Reads are the union of both facets: the team lead facet reads every tab.
-    creatorDetailTabs: isTeamLead ? null : REGION_ADMIN_DETAIL_TABS,
-    canReadCreatorContacts: isTeamLead,
+    canView,
+    canOperate: holds(GQL.AffiliateStaffPermission.Operate),
+    canAllocate: holds(GQL.AffiliateStaffPermission.Allocate),
+    canManageCollaborations: false,
+    creatorDetailTabs: canView ? null : BASE_CREATOR_DETAIL_TABS,
+    canReadCreatorContacts: canView,
   };
 }
 
@@ -90,7 +122,21 @@ export function affiliateAccessMaySeeSurface(
   surface: AffiliateStaffSurface,
 ): boolean {
   if (access.kind !== GQL.AffiliateViewerKind.Staff) return true;
-  return surface === "CREATORS" ? access.isTeamLead || access.isRegionAdmin : access.isTeamLead;
+  // The Creator list is the base read of every live profile; the work views need `VIEW`.
+  return surface === "CREATORS" ? true : access.canView;
+}
+
+/**
+ * The `ecommerce.affiliateStaff` key that tells a staff login what its profile
+ * may do, from the permissions it holds: view only, view and operate, allocate,
+ * or a combination. `OPERATE` always implies `VIEW`, so the wording never offers
+ * "operate" without "view". Null for a supervisor or BD, who get no notice.
+ */
+export function affiliateStaffNoticeKey(access: AffiliateAccess): string | null {
+  if (access.kind !== GQL.AffiliateViewerKind.Staff) return null;
+  const work = access.canOperate ? "ViewOperate" : access.canView ? "View" : "";
+  const allocate = access.canAllocate ? "Allocate" : "";
+  return work || allocate ? `notice${work}${allocate}` : "noticeCreatorsOnly";
 }
 
 /** Whether a Creator detail tab is available to this access. */
@@ -111,18 +157,4 @@ export function affiliateAccessCreatorTab(
 ): AffiliateCreatorDetailTab {
   if (affiliateAccessMaySeeCreatorTab(access, requested)) return requested;
   return access.creatorDetailTabs?.[0] ?? requested;
-}
-
-/**
- * Whether every shop of a Creator is in the viewer's shop list. A region admin
- * may allocate a Creator only when all of its shops are in scope, and a Creator
- * with no shop stays with the admins. The shop list a region admin reads is
- * already limited to their scope; the Backend remains the authority and its
- * refusal is shown if this guess is wrong.
- */
-export function creatorWithinShopScope(
-  creatorShopIds: readonly string[],
-  scopeShopIds: ReadonlySet<string>,
-): boolean {
-  return creatorShopIds.length > 0 && creatorShopIds.every((shopId) => scopeShopIds.has(shopId));
 }

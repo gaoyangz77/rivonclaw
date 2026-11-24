@@ -27,15 +27,26 @@ vi.mock("@apollo/client/react", () => ({
 
 const LEAD = { isOwner: false, permissionScopes: ["AFFILIATE_TEAM_LEAD"] };
 const ADMIN = { isOwner: false, permissionScopes: ["AFFILIATE_REGION_ADMIN"] };
-const capabilities = (isTeamLead: boolean, isRegionAdmin: boolean) => ({
-  data: { affiliateViewerCapabilities: { kind: "STAFF", isTeamLead, isRegionAdmin } },
+/** What the Backend says a login holds: each facet's permissions, or null when the facet is not held. */
+const capabilities = (lead: string[] | null, admin: string[] | null) => ({
+  data: {
+    affiliateViewerCapabilities: {
+      kind: "STAFF",
+      isTeamLead: lead !== null,
+      isRegionAdmin: admin !== null,
+      teamLeadPermissions: lead ?? [],
+      regionAdminPermissions: admin ?? [],
+    },
+  },
   error: undefined,
   refetch: vi.fn(),
 });
 
 function Probe() {
   const access = useAffiliateAccess();
-  return <p>{`readOnly=${access.readOnly} allocate=${access.canAllocate}`}</p>;
+  return (
+    <p>{`view=${access.canView} operate=${access.canOperate} allocate=${access.canAllocate}`}</p>
+  );
 }
 
 function renderGate(surface: "WORKBENCH" | "HISTORY" | "CREATORS" = "WORKBENCH") {
@@ -58,18 +69,21 @@ describe("AffiliateStaffGate", () => {
     ["a supervisor", { isOwner: false, permissionScopes: ["AFFILIATE"] }],
     ["a BD", { isOwner: false, permissionScopes: ["AFFILIATE_BUSINESS_DEVELOPER"] }],
     ["an owner", { isOwner: true, permissionScopes: [] }],
-  ])("passes %s straight through without reading capabilities or restricting anything", (_name, user) => {
-    state.user = user;
-    renderGate();
-    expect(screen.getByText("readOnly=false allocate=false")).toBeTruthy();
-    expect(state.skipped.every(Boolean)).toBe(true);
-  });
+  ])(
+    "passes %s straight through without reading capabilities or restricting anything",
+    (_name, user) => {
+      state.user = user;
+      renderGate();
+      expect(screen.getByText("view=true operate=true allocate=false")).toBeTruthy();
+      expect(state.skipped.every(Boolean)).toBe(true);
+    },
+  );
 
   it("holds a staff login on a loading state until the Backend names its profile", () => {
     state.user = LEAD;
     renderGate();
     expect(screen.getByText(i18n.t("ecommerce.affiliateStaff.loadingAccess"))).toBeTruthy();
-    expect(screen.queryByText(/readOnly=/)).toBeNull();
+    expect(screen.queryByText(/view=/)).toBeNull();
   });
 
   it("shows the failure with a retry that reads capabilities again", () => {
@@ -84,34 +98,56 @@ describe("AffiliateStaffGate", () => {
 
   it("tells a login with the scope but no profile that it is not set up, and renders no page", () => {
     state.user = LEAD;
-    state.query = capabilities(false, false);
+    state.query = capabilities(null, null);
     renderGate();
     expect(screen.getByText(i18n.t("ecommerce.affiliateStaff.notSetUpTitle"))).toBeTruthy();
-    expect(screen.queryByText(/readOnly=/)).toBeNull();
+    expect(screen.queryByText(/view=/)).toBeNull();
   });
 
-  it("gives a team lead a read-only page", () => {
+  it("gives a team lead holding VIEW the workbench without operating or allocating", () => {
     state.user = LEAD;
-    state.query = capabilities(true, false);
+    state.query = capabilities(["VIEW"], null);
     renderGate("WORKBENCH");
-    expect(screen.getByText("readOnly=true allocate=false")).toBeTruthy();
+    expect(screen.getByText("view=true operate=false allocate=false")).toBeTruthy();
   });
 
-  it("gives a region admin the Creator list with allocation, and closes the workbenches to them", () => {
+  it("opens the workbenches and collaborations to a region admin holding VIEW", () => {
     state.user = ADMIN;
-    state.query = capabilities(false, true);
+    state.query = capabilities(null, ["VIEW", "OPERATE", "ALLOCATE"]);
+    for (const surface of ["WORKBENCH", "HISTORY", "CREATORS"] as const) {
+      renderGate(surface);
+      expect(screen.getByText("view=true operate=true allocate=true")).toBeTruthy();
+      cleanup();
+    }
+  });
+
+  it("gives a region admin without VIEW the Creator list with allocation, and closes the work views", () => {
+    state.user = ADMIN;
+    state.query = capabilities(null, ["ALLOCATE"]);
     renderGate("CREATORS");
-    expect(screen.getByText("readOnly=true allocate=true")).toBeTruthy();
-    cleanup();
-    renderGate("WORKBENCH");
-    expect(screen.getByText(i18n.t("ecommerce.affiliateStaff.unavailableTitle"))).toBeTruthy();
-    expect(screen.queryByText(/readOnly=/)).toBeNull();
+    expect(screen.getByText("view=false operate=false allocate=true")).toBeTruthy();
+    for (const surface of ["WORKBENCH", "HISTORY"] as const) {
+      cleanup();
+      renderGate(surface);
+      expect(screen.getByText(i18n.t("ecommerce.affiliateStaff.unavailableTitle"))).toBeTruthy();
+      expect(screen.queryByText(/view=/)).toBeNull();
+    }
   });
 
-  it("closes collaborations to a region admin who is not also a team lead", () => {
-    state.user = ADMIN;
-    state.query = capabilities(false, true);
-    renderGate("HISTORY");
+  it("closes the work views to a team lead without VIEW too, since the role no longer decides", () => {
+    state.user = LEAD;
+    state.query = capabilities([], null);
+    renderGate("WORKBENCH");
     expect(screen.getByText(i18n.t("ecommerce.affiliateStaff.unavailableTitle"))).toBeTruthy();
+    cleanup();
+    renderGate("CREATORS");
+    expect(screen.getByText("view=false operate=false allocate=false")).toBeTruthy();
+  });
+
+  it("opens the work views when either facet of a two-profile login holds VIEW", () => {
+    state.user = LEAD;
+    state.query = capabilities(["ALLOCATE"], ["VIEW"]);
+    renderGate("HISTORY");
+    expect(screen.getByText("view=true operate=false allocate=true")).toBeTruthy();
   });
 });

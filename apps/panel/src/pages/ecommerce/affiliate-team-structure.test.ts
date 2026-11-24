@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { GQL } from "@rivonclaw/core";
 import {
   buildTeamTree,
+  defaultStaffPermissions,
   descendantLeadIds,
   displayNameAfterMemberPick,
   memberLabel,
   parentLeadCandidates,
+  sameStaffPermissions,
   teamStructureErrorKey,
+  toggleStaffPermission,
   unboundEligibleMembers,
   type TeamLeadProfile,
 } from "./affiliate-team-structure.js";
@@ -20,6 +24,7 @@ function lead(
     memberUserId: `member-${id}`,
     displayName: id.toUpperCase(),
     parentLeadId,
+    permissions: [GQL.AffiliateStaffPermission.View],
     archivedAt,
   };
 }
@@ -145,5 +150,41 @@ describe("displayNameAfterMemberPick", () => {
   it("leaves the draft alone for a member without a name", () => {
     expect(displayNameAfterMemberPick("", undefined, { name: null })).toBe("");
     expect(displayNameAfterMemberPick("Ann", ann, { name: null })).toBe("Ann");
+  });
+});
+
+describe("staff permission drafts", () => {
+  const { View, Operate, Allocate } = GQL.AffiliateStaffPermission;
+
+  it("starts a new profile on the Backend's role default", () => {
+    expect(defaultStaffPermissions("TEAM_LEAD")).toEqual([View]);
+    expect(defaultStaffPermissions("REGION_ADMIN")).toEqual([Allocate]);
+  });
+
+  it("ticks VIEW with OPERATE, whatever was ticked before", () => {
+    expect(toggleStaffPermission([], Operate, true)).toEqual([View, Operate]);
+    expect(toggleStaffPermission([Allocate], Operate, true)).toEqual([View, Operate, Allocate]);
+    expect(toggleStaffPermission([View, Operate], Operate, true)).toEqual([View, Operate]);
+  });
+
+  it("unticks OPERATE with VIEW, and leaves OPERATE alone when only OPERATE is unticked", () => {
+    expect(toggleStaffPermission([View, Operate, Allocate], View, false)).toEqual([Allocate]);
+    expect(toggleStaffPermission([View, Operate], Operate, false)).toEqual([View]);
+  });
+
+  it("keeps ALLOCATE independent of the other two and lists the set in a stable order", () => {
+    expect(toggleStaffPermission([Allocate], View, true)).toEqual([View, Allocate]);
+    expect(toggleStaffPermission([View, Allocate], Allocate, false)).toEqual([View]);
+    expect(toggleStaffPermission([Allocate, View], Operate, true)).toEqual([
+      View,
+      Operate,
+      Allocate,
+    ]);
+  });
+
+  it("compares permission sets without regard to order", () => {
+    expect(sameStaffPermissions([View, Allocate], [Allocate, View])).toBe(true);
+    expect(sameStaffPermissions([View], [View, Allocate])).toBe(false);
+    expect(sameStaffPermissions([], [])).toBe(true);
   });
 });

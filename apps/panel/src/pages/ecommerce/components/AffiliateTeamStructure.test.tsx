@@ -54,6 +54,7 @@ function structure(overrides: Partial<TeamStructure> = {}): TeamStructure {
         memberUserId: "u-head",
         displayName: "Head Lead",
         parentLeadId: null,
+        permissions: [GQL.AffiliateStaffPermission.View],
         archivedAt: null,
       },
       {
@@ -61,6 +62,7 @@ function structure(overrides: Partial<TeamStructure> = {}): TeamStructure {
         memberUserId: "u-mid",
         displayName: "Mid Lead",
         parentLeadId: "head",
+        permissions: [GQL.AffiliateStaffPermission.View, GQL.AffiliateStaffPermission.Operate],
         archivedAt: null,
       },
       {
@@ -68,6 +70,7 @@ function structure(overrides: Partial<TeamStructure> = {}): TeamStructure {
         memberUserId: "u-old",
         displayName: "Old Lead",
         parentLeadId: null,
+        permissions: [],
         archivedAt: "2026-11-01T00:00:00Z",
       },
     ],
@@ -78,6 +81,7 @@ function structure(overrides: Partial<TeamStructure> = {}): TeamStructure {
         displayName: "UK Admin",
         regions: [GQL.ShopRegion.Gb],
         shopIds: [],
+        permissions: [GQL.AffiliateStaffPermission.Allocate],
         archivedAt: null,
       },
     ],
@@ -189,8 +193,10 @@ describe("AffiliateTeamLeadEditor", () => {
       memberUserId: "u-free",
       displayName: "New Lead",
       parentLeadId: "mid",
+      permissions: ["VIEW"],
       displayNameChanged: true,
       parentLeadIdChanged: true,
+      permissionsChanged: true,
     });
   });
 
@@ -278,8 +284,10 @@ describe("AffiliateTeamLeadEditor", () => {
       memberUserId: undefined,
       displayName: "Head Renamed",
       parentLeadId: null,
+      permissions: ["VIEW"],
       displayNameChanged: true,
       parentLeadIdChanged: false,
+      permissionsChanged: false,
     });
   });
 });
@@ -312,6 +320,8 @@ describe("AffiliateRegionAdminEditor", () => {
       displayName: "US Admin",
       regions: [],
       shopIds: ["shop-us"],
+      permissions: ["ALLOCATE"],
+      permissionsChanged: true,
     });
   });
 
@@ -326,7 +336,7 @@ describe("AffiliateRegionAdminEditor", () => {
         onSave={onSave}
       />,
     );
-    expect(screen.getByText(/This region admin only allocates Creators/)).toBeTruthy();
+    expect(screen.getByText(/This region admin only reaches the regions and shops/)).toBeTruthy();
     expect(screen.queryByText(/This BD/)).toBeNull();
     expect(screen.getByText("ra@x.com")).toBeTruthy();
     fireEvent.click(screen.getByRole("radio", { name: /All shops/ }));
@@ -337,6 +347,104 @@ describe("AffiliateRegionAdminEditor", () => {
       displayName: "UK Admin",
       regions: [],
       shopIds: [],
+      permissions: ["ALLOCATE"],
+      permissionsChanged: false,
     });
+  });
+});
+
+describe("staff permission checkboxes", () => {
+  const noop = () => undefined;
+  const box = (name: string) =>
+    screen.getByRole("checkbox", { name: new RegExp(`^${name}`) }) as HTMLInputElement;
+
+  it("prefills a new team lead with VIEW and a new region admin with ALLOCATE", () => {
+    render(
+      <AffiliateTeamLeadEditor
+        structure={structure()}
+        leadId={null}
+        saving={false}
+        onClose={noop}
+        onSave={vi.fn()}
+      />,
+    );
+    expect([
+      box("View business status").checked,
+      box("Operate business status").checked,
+      box("Allocate Creators").checked,
+    ]).toEqual([true, false, false]);
+    cleanup();
+    render(
+      <AffiliateRegionAdminEditor
+        structure={structure()}
+        adminId={null}
+        saving={false}
+        onClose={noop}
+        onSave={vi.fn()}
+      />,
+    );
+    expect([
+      box("View business status").checked,
+      box("Operate business status").checked,
+      box("Allocate Creators").checked,
+    ]).toEqual([false, false, true]);
+  });
+
+  it("ticks VIEW with OPERATE and unticks OPERATE with VIEW", () => {
+    render(
+      <AffiliateRegionAdminEditor
+        structure={structure()}
+        adminId="ra1"
+        saving={false}
+        onClose={noop}
+        onSave={vi.fn()}
+      />,
+    );
+    fireEvent.click(box("Operate business status"));
+    expect(box("View business status").checked).toBe(true);
+    expect(box("Operate business status").checked).toBe(true);
+    fireEvent.click(box("View business status"));
+    expect(box("Operate business status").checked).toBe(false);
+  });
+
+  it("sends the changed permissions of a lead and marks them changed", () => {
+    const onSave = vi.fn();
+    render(
+      <AffiliateTeamLeadEditor
+        structure={structure()}
+        leadId="head"
+        saving={false}
+        onClose={noop}
+        onSave={onSave}
+      />,
+    );
+    const save = screen.getByRole("button", { name: "Save" }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    fireEvent.click(box("Operate business status"));
+    expect(save.disabled).toBe(false);
+    fireEvent.click(save);
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "head",
+        permissions: ["VIEW", "OPERATE"],
+        permissionsChanged: true,
+        displayNameChanged: false,
+      }),
+    );
+  });
+
+  it("shows each profile's permissions as short labels in the tree", () => {
+    render(
+      <AffiliateTeamStructureTree
+        tree={buildTeamTree(structure())}
+        structure={structure()}
+        busyId={null}
+        onSetParent={vi.fn()}
+        onEditLead={vi.fn()}
+        onArchiveLead={vi.fn()}
+      />,
+    );
+    expect(screen.getAllByText("View").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Operate").length).toBe(1);
   });
 });

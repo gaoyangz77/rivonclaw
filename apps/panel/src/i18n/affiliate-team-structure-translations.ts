@@ -9,7 +9,7 @@ const en = {
   structureTabSummary: "Team leads, region admins, reporting lines",
   teamStructureTitle: "Team structure",
   teamStructureDescription:
-    "Place BDs under team leads, at any depth. A team lead sees what the BDs below them see, read-only.",
+    "Place BDs under team leads, at any depth. A team lead's reach is the BDs below them; what they may do within it follows the permissions you tick.",
   teamStructureSaved: "Team structure saved.",
   teamLeadArchived: "Team lead archived.",
   regionAdminArchived: "Region admin archived.",
@@ -54,15 +54,14 @@ const en = {
   regionAdminArchiveMessage: "Archive {{name}}? They can no longer allocate Creators.",
   regionAdminsTitle: "Region admins",
   regionAdminsDescription:
-    "Region admins assign, reassign and release the Creators of their regions and shops. They do no daily work.",
+    "A region admin's reach is the regions and shops you grant; what they may do within it follows the permissions you tick.",
   regionAdminAdd: "Add region admin",
   regionAdminAddTitle: "Add region admin",
   regionAdminEditTitle: "Edit region admin",
   regionAdminsEmpty: "No region admins yet.",
-  regionAdminScopeAllHint:
-    "This region admin can allocate Creators of every shop, including shops connected later.",
+  regionAdminScopeAllHint: "This region admin reaches every shop, including shops connected later.",
   regionAdminScopeSpecificHint:
-    "This region admin only allocates Creators of the regions and shops selected below.",
+    "This region admin only reaches the regions and shops selected below.",
   teamStructureErrorMemberInvalid:
     "This member cannot be used: they were not found, are disabled, or their role lacks the matching Affiliate scope.",
   teamStructureErrorProfileExists: "This member already has a live profile.",
@@ -75,6 +74,22 @@ const en = {
   teamStructureErrorShopNotFound:
     "One of the selected shops no longer exists. Reopen the editor and choose again.",
   teamStructureErrorInputInvalid: "Check the name and the selection, then try again.",
+  permissionsLabel: "Permissions",
+  permissionsHint:
+    "Reach comes from the team structure or the shop scope. These choose what this person may do within it. Everyone can open the Creator list.",
+  permissionView: "View business status",
+  permissionViewHint:
+    "Workbenches, conversations, proposals, escalations, collaborations and Creator contacts.",
+  permissionOperate: "Operate business status",
+  permissionOperateHint:
+    "Review samples, send messages, decide proposals, tag and edit contacts. Needs View.",
+  permissionAllocate: "Allocate Creators",
+  permissionAllocateHint:
+    "Assign or reassign Creators to a BD, or release them to the public pool.",
+  permissionViewShort: "View",
+  permissionOperateShort: "Operate",
+  permissionAllocateShort: "Allocate",
+  permissionNoneShort: "Creator list only",
 };
 
 type Copy = typeof en;
@@ -83,7 +98,8 @@ const zh: Copy = {
   structureTab: "团队架构",
   structureTabSummary: "组长、站点管理员、上下级关系",
   teamStructureTitle: "团队架构",
-  teamStructureDescription: "把 BD 放到组长名下，层级不限。组长只读查看名下 BD 能看到的内容。",
+  teamStructureDescription:
+    "把 BD 放到组长名下，层级不限。组长的范围是名下的 BD，能做什么取决于你勾选的权限。",
   teamStructureSaved: "团队结构已保存。",
   teamLeadArchived: "组长已归档。",
   regionAdminArchived: "站点管理员已归档。",
@@ -124,13 +140,13 @@ const zh: Copy = {
   regionAdminArchiveTitle: "归档站点管理员",
   regionAdminArchiveMessage: "归档 {{name}}?此后其不能再分配达人。",
   regionAdminsTitle: "站点管理员",
-  regionAdminsDescription: "站点管理员可以为所属站点和店铺的达人分配、改派和释放，不做日常运营。",
+  regionAdminsDescription: "站点管理员的范围是你授予的站点和店铺，能做什么取决于你勾选的权限。",
   regionAdminAdd: "添加站点管理员",
   regionAdminAddTitle: "添加站点管理员",
   regionAdminEditTitle: "编辑站点管理员",
   regionAdminsEmpty: "还没有站点管理员。",
-  regionAdminScopeAllHint: "该站点管理员可以分配所有店铺的达人，包括之后接入的店铺。",
-  regionAdminScopeSpecificHint: "该站点管理员只分配下方所选站点和店铺的达人。",
+  regionAdminScopeAllHint: "该站点管理员覆盖所有店铺，包括之后接入的店铺。",
+  regionAdminScopeSpecificHint: "该站点管理员只覆盖下方选中的站点和店铺。",
   teamStructureErrorMemberInvalid:
     "无法使用该成员：成员不存在、已被停用，或其角色没有对应的联盟权限。",
   teamStructureErrorProfileExists: "该成员已有一个生效的档案。",
@@ -141,6 +157,20 @@ const zh: Copy = {
   teamStructureErrorParentCycle: "组长不能汇报给自己或自己团队里的人。",
   teamStructureErrorShopNotFound: "所选店铺中有已不存在的店铺，请重新打开编辑器再选择。",
   teamStructureErrorInputInvalid: "请检查名称和所选内容后重试。",
+  permissionsLabel: "权限",
+  permissionsHint:
+    "范围来自团队结构或店铺范围，这里决定此人在范围内能做什么。所有人都能打开达人列表。",
+  permissionView: "查看业务状态",
+  permissionViewHint: "工作台、会话、提案、转人工、合作记录和达人联系方式。",
+  permissionOperate: "操作业务状态",
+  permissionOperateHint:
+    "审核申样、发消息、处理提案、打标签、编辑联系方式。需要同时勾选“查看业务状态”。",
+  permissionAllocate: "分配达人",
+  permissionAllocateHint: "为达人分配或更换 BD，或退回公池。",
+  permissionViewShort: "查看",
+  permissionOperateShort: "操作",
+  permissionAllocateShort: "分配",
+  permissionNoneShort: "仅达人列表",
 };
 
 const de: Copy = {
@@ -148,7 +178,7 @@ const de: Copy = {
   structureTabSummary: "Teamleiter, Regionsadmins, Berichtslinien",
   teamStructureTitle: "Teamstruktur",
   teamStructureDescription:
-    "Ordnen Sie BDs beliebig tief unter Teamleitern ein. Ein Teamleiter sieht schreibgeschützt, was die BDs unter ihm sehen.",
+    "Ordnen Sie BDs beliebig tief unter Teamleitern ein. Der Zuständigkeitsbereich eines Teamleiters sind die BDs unter ihm; was er darin tun darf, richtet sich nach den angekreuzten Berechtigungen.",
   teamStructureSaved: "Teamstruktur gespeichert.",
   teamLeadArchived: "Teamleiter archiviert.",
   regionAdminArchived: "Regionsadmin archiviert.",
@@ -194,15 +224,14 @@ const de: Copy = {
   regionAdminArchiveMessage: "{{name}} archivieren? Er kann dann keine Creator mehr zuweisen.",
   regionAdminsTitle: "Regionsadmins",
   regionAdminsDescription:
-    "Regionsadmins weisen die Creator ihrer Regionen und Shops zu, ordnen sie neu zu und geben sie frei. Das Tagesgeschäft übernehmen sie nicht.",
+    "Der Zuständigkeitsbereich eines Regionsadmins sind die Regionen und Shops, die Sie freigeben; was er darin tun darf, richtet sich nach den angekreuzten Berechtigungen.",
   regionAdminAdd: "Regionsadmin hinzufügen",
   regionAdminAddTitle: "Regionsadmin hinzufügen",
   regionAdminEditTitle: "Regionsadmin bearbeiten",
   regionAdminsEmpty: "Noch keine Regionsadmins.",
-  regionAdminScopeAllHint:
-    "Dieser Regionsadmin kann Creator aller Shops zuweisen, auch später verbundener Shops.",
+  regionAdminScopeAllHint: "Dieser Regionsadmin deckt alle Shops ab, auch später verbundene.",
   regionAdminScopeSpecificHint:
-    "Dieser Regionsadmin weist nur Creator der unten gewählten Regionen und Shops zu.",
+    "Dieser Regionsadmin deckt nur die unten ausgewählten Regionen und Shops ab.",
   teamStructureErrorMemberInvalid:
     "Dieses Mitglied kann nicht verwendet werden: Es wurde nicht gefunden, ist deaktiviert oder seine Rolle hat nicht den passenden Affiliate-Bereich.",
   teamStructureErrorProfileExists: "Dieses Mitglied hat bereits ein aktives Profil.",
@@ -217,6 +246,22 @@ const de: Copy = {
   teamStructureErrorShopNotFound:
     "Einer der gewählten Shops existiert nicht mehr. Öffnen Sie den Editor erneut und wählen Sie neu.",
   teamStructureErrorInputInvalid: "Prüfen Sie Name und Auswahl und versuchen Sie es erneut.",
+  permissionsLabel: "Berechtigungen",
+  permissionsHint:
+    "Der Zuständigkeitsbereich ergibt sich aus der Teamstruktur oder dem Shop-Umfang. Hier legen Sie fest, was die Person darin tun darf. Die Creator-Liste kann jeder öffnen.",
+  permissionView: "Geschäftsstatus ansehen",
+  permissionViewHint:
+    "Arbeitsbereiche, Unterhaltungen, Vorschläge, Eskalationen, Kooperationen und Creator-Kontakte.",
+  permissionOperate: "Geschäftsstatus bearbeiten",
+  permissionOperateHint:
+    "Sample-Anfragen prüfen, Nachrichten senden, Vorschläge entscheiden, Tags setzen und Kontakte bearbeiten. Erfordert „Geschäftsstatus ansehen“.",
+  permissionAllocate: "Creator zuweisen",
+  permissionAllocateHint:
+    "Creator einem BD zuweisen oder neu zuweisen, oder in den öffentlichen Pool zurückgeben.",
+  permissionViewShort: "Ansehen",
+  permissionOperateShort: "Bearbeiten",
+  permissionAllocateShort: "Zuweisen",
+  permissionNoneShort: "Nur Creator-Liste",
 };
 
 const es: Copy = {
@@ -224,7 +269,7 @@ const es: Copy = {
   structureTabSummary: "Líderes de equipo, administradores de región, líneas de dependencia",
   teamStructureTitle: "Estructura del equipo",
   teamStructureDescription:
-    "Coloque BDs bajo líderes de equipo, a cualquier profundidad. Un líder de equipo ve, solo en lectura, lo que ven los BDs de su equipo.",
+    "Coloque BDs bajo líderes de equipo, a cualquier profundidad. El alcance de un líder de equipo son los BDs de su equipo; lo que puede hacer dentro de él depende de los permisos que marque.",
   teamStructureSaved: "Estructura del equipo guardada.",
   teamLeadArchived: "Líder de equipo archivado.",
   regionAdminArchived: "Administrador regional archivado.",
@@ -270,15 +315,15 @@ const es: Copy = {
   regionAdminArchiveMessage: "¿Archivar a {{name}}? Ya no podrá asignar creadores.",
   regionAdminsTitle: "Administradores de región",
   regionAdminsDescription:
-    "Los administradores de región asignan, reasignan y liberan los creadores de sus regiones y tiendas. No hacen trabajo diario.",
+    "El alcance de un administrador de región son las regiones y tiendas que concede; lo que puede hacer dentro de él depende de los permisos que marque.",
   regionAdminAdd: "Añadir administrador de región",
   regionAdminAddTitle: "Añadir administrador de región",
   regionAdminEditTitle: "Editar administrador de región",
   regionAdminsEmpty: "Aún no hay administradores de región.",
   regionAdminScopeAllHint:
-    "Este administrador puede asignar creadores de todas las tiendas, incluidas las conectadas más adelante.",
+    "Este administrador de región abarca todas las tiendas, incluidas las que se conecten más adelante.",
   regionAdminScopeSpecificHint:
-    "Este administrador solo asigna creadores de las regiones y tiendas seleccionadas abajo.",
+    "Este administrador de región solo abarca las regiones y tiendas seleccionadas abajo.",
   teamStructureErrorMemberInvalid:
     "No se puede usar este miembro: no se encontró, está desactivado o su rol no tiene el permiso de afiliados correspondiente.",
   teamStructureErrorProfileExists: "Este miembro ya tiene un perfil activo.",
@@ -291,6 +336,21 @@ const es: Copy = {
   teamStructureErrorShopNotFound:
     "Una de las tiendas seleccionadas ya no existe. Vuelva a abrir el editor y elija de nuevo.",
   teamStructureErrorInputInvalid: "Revise el nombre y la selección e inténtelo de nuevo.",
+  permissionsLabel: "Permisos",
+  permissionsHint:
+    "El alcance viene de la estructura del equipo o de las tiendas concedidas. Aquí eliges qué puede hacer la persona dentro de él. Todos pueden abrir la lista de creadores.",
+  permissionView: "Ver el estado del negocio",
+  permissionViewHint:
+    "Espacios de trabajo, conversaciones, propuestas, escalaciones, colaboraciones y contactos de creadores.",
+  permissionOperate: "Operar el estado del negocio",
+  permissionOperateHint:
+    "Revisar muestras, enviar mensajes, decidir propuestas, etiquetar y editar contactos. Requiere «Ver el estado del negocio».",
+  permissionAllocate: "Asignar creadores",
+  permissionAllocateHint: "Asignar o reasignar creadores a un BD, o devolverlos al grupo público.",
+  permissionViewShort: "Ver",
+  permissionOperateShort: "Operar",
+  permissionAllocateShort: "Asignar",
+  permissionNoneShort: "Solo lista de creadores",
 };
 
 const fr: Copy = {
@@ -298,7 +358,7 @@ const fr: Copy = {
   structureTabSummary: "Chefs d'équipe, administrateurs de région, liens hiérarchiques",
   teamStructureTitle: "Structure de l'équipe",
   teamStructureDescription:
-    "Placez les BD sous des chefs d'équipe, à n'importe quelle profondeur. Un chef d'équipe voit, en lecture seule, ce que voient les BD de son équipe.",
+    "Placez les BD sous des chefs d'équipe, à n'importe quelle profondeur. Le périmètre d'un chef d'équipe est constitué des BD de son équipe ; ce qu'il peut y faire dépend des autorisations que vous cochez.",
   teamStructureSaved: "Structure de l'équipe enregistrée.",
   teamLeadArchived: "Chef d'équipe archivé.",
   regionAdminArchived: "Administrateur régional archivé.",
@@ -344,15 +404,15 @@ const fr: Copy = {
   regionAdminArchiveMessage: "Archiver {{name}} ? Il ne pourra plus attribuer de créateurs.",
   regionAdminsTitle: "Administrateurs de région",
   regionAdminsDescription:
-    "Les administrateurs de région attribuent, réattribuent et libèrent les créateurs de leurs régions et boutiques. Ils ne font pas le travail quotidien.",
+    "Le périmètre d'un administrateur de région est constitué des régions et boutiques que vous accordez ; ce qu'il peut y faire dépend des autorisations que vous cochez.",
   regionAdminAdd: "Ajouter un administrateur de région",
   regionAdminAddTitle: "Ajouter un administrateur de région",
   regionAdminEditTitle: "Modifier l'administrateur de région",
   regionAdminsEmpty: "Aucun administrateur de région pour l'instant.",
   regionAdminScopeAllHint:
-    "Cet administrateur peut attribuer les créateurs de toutes les boutiques, y compris celles connectées plus tard.",
+    "Cet administrateur de région couvre toutes les boutiques, y compris celles connectées plus tard.",
   regionAdminScopeSpecificHint:
-    "Cet administrateur n'attribue que les créateurs des régions et boutiques sélectionnées ci-dessous.",
+    "Cet administrateur de région ne couvre que les régions et boutiques sélectionnées ci-dessous.",
   teamStructureErrorMemberInvalid:
     "Ce membre ne peut pas être utilisé : introuvable, désactivé, ou son rôle n'a pas la permission d'affiliation correspondante.",
   teamStructureErrorProfileExists: "Ce membre a déjà un profil actif.",
@@ -365,6 +425,22 @@ const fr: Copy = {
   teamStructureErrorShopNotFound:
     "Une des boutiques sélectionnées n'existe plus. Rouvrez l'éditeur et choisissez à nouveau.",
   teamStructureErrorInputInvalid: "Vérifiez le nom et la sélection, puis réessayez.",
+  permissionsLabel: "Autorisations",
+  permissionsHint:
+    "Le périmètre vient de la structure d'équipe ou des boutiques accordées. Vous choisissez ici ce que la personne peut y faire. Tout le monde peut ouvrir la liste des créateurs.",
+  permissionView: "Consulter l’état de l’activité",
+  permissionViewHint:
+    "Espaces de travail, conversations, propositions, escalades, collaborations et contacts des créateurs.",
+  permissionOperate: "Gérer l’état de l’activité",
+  permissionOperateHint:
+    "Examiner les échantillons, envoyer des messages, décider des propositions, étiqueter et modifier les contacts. Nécessite « Consulter l’état de l’activité ».",
+  permissionAllocate: "Attribuer des créateurs",
+  permissionAllocateHint:
+    "Attribuer ou réattribuer des créateurs à un BD, ou les remettre au pool public.",
+  permissionViewShort: "Consulter",
+  permissionOperateShort: "Gérer",
+  permissionAllocateShort: "Attribuer",
+  permissionNoneShort: "Liste des créateurs seulement",
 };
 
 const id: Copy = {
@@ -372,7 +448,7 @@ const id: Copy = {
   structureTabSummary: "Ketua tim, admin wilayah, garis pelaporan",
   teamStructureTitle: "Struktur tim",
   teamStructureDescription:
-    "Tempatkan BD di bawah ketua tim, dengan kedalaman berapa pun. Ketua tim melihat, hanya-baca, apa yang dilihat BD di bawahnya.",
+    "Tempatkan BD di bawah ketua tim, dengan kedalaman berapa pun. Cakupan ketua tim adalah BD di bawahnya; apa yang boleh dilakukannya mengikuti izin yang Anda centang.",
   teamStructureSaved: "Struktur tim disimpan.",
   teamLeadArchived: "Ketua tim diarsipkan.",
   regionAdminArchived: "Admin wilayah diarsipkan.",
@@ -418,15 +494,15 @@ const id: Copy = {
   regionAdminArchiveMessage: "Arsipkan {{name}}? Ia tidak lagi dapat membagikan kreator.",
   regionAdminsTitle: "Admin wilayah",
   regionAdminsDescription:
-    "Admin wilayah menugaskan, menugaskan ulang, dan melepas kreator dari wilayah dan toko mereka. Mereka tidak mengerjakan tugas harian.",
+    "Cakupan admin wilayah adalah wilayah dan toko yang Anda berikan; apa yang boleh dilakukannya mengikuti izin yang Anda centang.",
   regionAdminAdd: "Tambah admin wilayah",
   regionAdminAddTitle: "Tambah admin wilayah",
   regionAdminEditTitle: "Ubah admin wilayah",
   regionAdminsEmpty: "Belum ada admin wilayah.",
   regionAdminScopeAllHint:
-    "Admin wilayah ini dapat membagikan kreator dari semua toko, termasuk toko yang terhubung kemudian.",
+    "Admin wilayah ini mencakup semua toko, termasuk toko yang dihubungkan kemudian.",
   regionAdminScopeSpecificHint:
-    "Admin wilayah ini hanya membagikan kreator dari wilayah dan toko yang dipilih di bawah.",
+    "Admin wilayah ini hanya mencakup wilayah dan toko yang dipilih di bawah.",
   teamStructureErrorMemberInvalid:
     "Anggota ini tidak dapat dipakai: tidak ditemukan, dinonaktifkan, atau perannya tidak memiliki izin afiliasi yang sesuai.",
   teamStructureErrorProfileExists: "Anggota ini sudah memiliki profil aktif.",
@@ -439,6 +515,21 @@ const id: Copy = {
   teamStructureErrorShopNotFound:
     "Salah satu toko yang dipilih sudah tidak ada. Buka editor lagi dan pilih ulang.",
   teamStructureErrorInputInvalid: "Periksa nama dan pilihan, lalu coba lagi.",
+  permissionsLabel: "Izin",
+  permissionsHint:
+    "Cakupan berasal dari struktur tim atau toko yang diberikan. Di sini Anda memilih apa yang boleh dilakukan orang ini di dalamnya. Semua orang dapat membuka daftar Creator.",
+  permissionView: "Lihat status bisnis",
+  permissionViewHint: "Meja kerja, percakapan, proposal, eskalasi, kolaborasi, dan kontak Creator.",
+  permissionOperate: "Operasikan status bisnis",
+  permissionOperateHint:
+    "Meninjau sampel, mengirim pesan, memutuskan proposal, memberi tag, dan mengedit kontak. Memerlukan “Lihat status bisnis”.",
+  permissionAllocate: "Alokasikan Creator",
+  permissionAllocateHint:
+    "Menugaskan atau menugaskan ulang Creator ke BD, atau mengembalikannya ke kolam publik.",
+  permissionViewShort: "Lihat",
+  permissionOperateShort: "Operasi",
+  permissionAllocateShort: "Alokasi",
+  permissionNoneShort: "Hanya daftar Creator",
 };
 
 const it: Copy = {
@@ -446,7 +537,7 @@ const it: Copy = {
   structureTabSummary: "Responsabili di team, amministratori di area, linee di riporto",
   teamStructureTitle: "Struttura del team",
   teamStructureDescription:
-    "Inserisci i BD sotto i responsabili di team, a qualsiasi profondità. Un responsabile vede, in sola lettura, ciò che vedono i BD del suo team.",
+    "Inserisci i BD sotto i responsabili di team, a qualsiasi profondità. L'ambito di un responsabile sono i BD del suo team; ciò che può fare al suo interno dipende dai permessi che spunti.",
   teamStructureSaved: "Struttura del team salvata.",
   teamLeadArchived: "Responsabile di team archiviato.",
   regionAdminArchived: "Amministratore regionale archiviato.",
@@ -492,15 +583,15 @@ const it: Copy = {
   regionAdminArchiveMessage: "Archiviare {{name}}? Non potrà più assegnare creator.",
   regionAdminsTitle: "Amministratori di area",
   regionAdminsDescription:
-    "Gli amministratori di area assegnano, riassegnano e rilasciano i creator delle loro aree e dei loro negozi. Non svolgono il lavoro quotidiano.",
+    "L'ambito di un amministratore di area sono le aree e i negozi che concedi; ciò che può fare al suo interno dipende dai permessi che spunti.",
   regionAdminAdd: "Aggiungi amministratore di area",
   regionAdminAddTitle: "Aggiungi amministratore di area",
   regionAdminEditTitle: "Modifica amministratore di area",
   regionAdminsEmpty: "Ancora nessun amministratore di area.",
   regionAdminScopeAllHint:
-    "Questo amministratore può assegnare i creator di tutti i negozi, compresi quelli collegati in seguito.",
+    "Questo amministratore di area copre tutti i negozi, compresi quelli collegati in seguito.",
   regionAdminScopeSpecificHint:
-    "Questo amministratore assegna solo i creator delle aree e dei negozi selezionati sotto.",
+    "Questo amministratore di area copre solo le aree e i negozi selezionati qui sotto.",
   teamStructureErrorMemberInvalid:
     "Questo membro non può essere usato: non trovato, disattivato o con un ruolo privo del permesso di affiliazione corrispondente.",
   teamStructureErrorProfileExists: "Questo membro ha già un profilo attivo.",
@@ -514,6 +605,22 @@ const it: Copy = {
   teamStructureErrorShopNotFound:
     "Uno dei negozi selezionati non esiste più. Riapri l'editor e scegli di nuovo.",
   teamStructureErrorInputInvalid: "Controlla il nome e la selezione, poi riprova.",
+  permissionsLabel: "Permessi",
+  permissionsHint:
+    "L'ambito deriva dalla struttura del team o dai negozi concessi. Qui scegli cosa può fare la persona al suo interno. Tutti possono aprire l'elenco dei creator.",
+  permissionView: "Visualizzare lo stato dell’attività",
+  permissionViewHint:
+    "Aree di lavoro, conversazioni, proposte, escalation, collaborazioni e contatti dei creator.",
+  permissionOperate: "Gestire lo stato dell’attività",
+  permissionOperateHint:
+    "Rivedere i campioni, inviare messaggi, decidere le proposte, applicare tag e modificare i contatti. Richiede «Visualizzare lo stato dell’attività».",
+  permissionAllocate: "Assegnare i creator",
+  permissionAllocateHint:
+    "Assegnare o riassegnare i creator a un BD, o restituirli al pool pubblico.",
+  permissionViewShort: "Visualizza",
+  permissionOperateShort: "Gestisci",
+  permissionAllocateShort: "Assegna",
+  permissionNoneShort: "Solo elenco creator",
 };
 
 const th: Copy = {
@@ -521,7 +628,7 @@ const th: Copy = {
   structureTabSummary: "หัวหน้าทีม ผู้ดูแลภูมิภาค สายการรายงาน",
   teamStructureTitle: "โครงสร้างทีม",
   teamStructureDescription:
-    "จัด BD ไว้ภายใต้หัวหน้าทีมได้หลายระดับ หัวหน้าทีมดูข้อมูลของ BD ในทีมได้แบบอ่านอย่างเดียว",
+    "จัด BD ไว้ภายใต้หัวหน้าทีมได้หลายระดับ ขอบเขตของหัวหน้าทีมคือ BD ที่อยู่ใต้ทีม ส่วนสิ่งที่ทำได้ในขอบเขตนั้นขึ้นอยู่กับสิทธิ์ที่คุณติ๊กเลือก",
   teamStructureSaved: "บันทึกโครงสร้างทีมแล้ว",
   teamLeadArchived: "เก็บถาวรหัวหน้าทีมแล้ว",
   regionAdminArchived: "เก็บถาวรผู้ดูแลภูมิภาคแล้ว",
@@ -563,13 +670,13 @@ const th: Copy = {
   regionAdminArchiveMessage: "เก็บถาวร {{name}} หรือไม่ เขาจะไม่สามารถมอบหมายครีเอเตอร์ได้อีก",
   regionAdminsTitle: "ผู้ดูแลภูมิภาค",
   regionAdminsDescription:
-    "ผู้ดูแลภูมิภาคมอบหมาย โอนย้าย และปล่อยครีเอเตอร์ของภูมิภาคและร้านค้าของตน โดยไม่ทำงานประจำวัน",
+    "ขอบเขตของผู้ดูแลภูมิภาคคือภูมิภาคและร้านค้าที่คุณมอบให้ ส่วนสิ่งที่ทำได้ในขอบเขตนั้นขึ้นอยู่กับสิทธิ์ที่คุณติ๊กเลือก",
   regionAdminAdd: "เพิ่มผู้ดูแลภูมิภาค",
   regionAdminAddTitle: "เพิ่มผู้ดูแลภูมิภาค",
   regionAdminEditTitle: "แก้ไขผู้ดูแลภูมิภาค",
   regionAdminsEmpty: "ยังไม่มีผู้ดูแลภูมิภาค",
-  regionAdminScopeAllHint: "ผู้ดูแลภูมิภาคคนนี้มอบหมายครีเอเตอร์ของทุกร้านค้าได้ รวมถึงร้านที่เชื่อมต่อภายหลัง",
-  regionAdminScopeSpecificHint: "ผู้ดูแลภูมิภาคคนนี้มอบหมายครีเอเตอร์ได้เฉพาะภูมิภาคและร้านค้าที่เลือกด้านล่าง",
+  regionAdminScopeAllHint: "ผู้ดูแลภูมิภาคคนนี้ครอบคลุมทุกร้านค้า รวมถึงร้านค้าที่เชื่อมต่อภายหลัง",
+  regionAdminScopeSpecificHint: "ผู้ดูแลภูมิภาคคนนี้ครอบคลุมเฉพาะภูมิภาคและร้านค้าที่เลือกด้านล่าง",
   teamStructureErrorMemberInvalid: "ใช้สมาชิกคนนี้ไม่ได้: ไม่พบ ถูกปิดใช้งาน หรือบทบาทไม่มีสิทธิ์แอฟฟิลิเอตที่ตรงกัน",
   teamStructureErrorProfileExists: "สมาชิกคนนี้มีโปรไฟล์ที่ใช้งานอยู่แล้ว",
   teamStructureErrorProfileNotFound: "ไม่พบโปรไฟล์ กรุณารีเฟรชแล้วลองอีกครั้ง",
@@ -579,6 +686,20 @@ const th: Copy = {
   teamStructureErrorParentCycle: "หัวหน้าทีมรายงานต่อตัวเองหรือคนในทีมของตนเองไม่ได้",
   teamStructureErrorShopNotFound: "ร้านค้าที่เลือกบางร้านไม่มีอยู่แล้ว กรุณาเปิดตัวแก้ไขใหม่แล้วเลือกอีกครั้ง",
   teamStructureErrorInputInvalid: "ตรวจสอบชื่อและตัวเลือก แล้วลองอีกครั้ง",
+  permissionsLabel: "สิทธิ์",
+  permissionsHint:
+    "ขอบเขตมาจากโครงสร้างทีมหรือร้านค้าที่มอบให้ ที่นี่คุณเลือกว่าบุคคลนี้ทำอะไรได้ในขอบเขตนั้น ทุกคนเปิดรายการ Creator ได้",
+  permissionView: "ดูสถานะธุรกิจ",
+  permissionViewHint: "พื้นที่ทำงาน การสนทนา ข้อเสนอ การส่งต่อให้คน ความร่วมมือ และข้อมูลติดต่อ Creator",
+  permissionOperate: "ดำเนินการสถานะธุรกิจ",
+  permissionOperateHint:
+    "ตรวจคำขอตัวอย่าง ส่งข้อความ ตัดสินข้อเสนอ ติดแท็ก และแก้ไขข้อมูลติดต่อ ต้องเปิด “ดูสถานะธุรกิจ” ด้วย",
+  permissionAllocate: "จัดสรร Creator",
+  permissionAllocateHint: "มอบหมายหรือเปลี่ยนผู้รับผิดชอบ Creator ให้ BD หรือคืนเข้าพูลสาธารณะ",
+  permissionViewShort: "ดู",
+  permissionOperateShort: "ดำเนินการ",
+  permissionAllocateShort: "จัดสรร",
+  permissionNoneShort: "เฉพาะรายการ Creator",
 };
 
 export const AFFILIATE_TEAM_STRUCTURE_COPY = { en, zh, de, es, fr, id, it, th };

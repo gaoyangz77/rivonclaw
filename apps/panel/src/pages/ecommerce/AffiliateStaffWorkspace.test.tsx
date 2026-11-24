@@ -56,7 +56,13 @@ const COLLABORATION = {
 
 const creatorItem = (id: string, shopId: string, owner: string | null) => ({
   creatorId: id,
-  creatorProfile: { id, displayName: `Creator ${id}`, nickname: `Creator ${id}`, username: id, performances: [] },
+  creatorProfile: {
+    id,
+    displayName: `Creator ${id}`,
+    nickname: `Creator ${id}`,
+    username: id,
+    performances: [],
+  },
   creatorRelation: {
     id: `rel-${id}`,
     businessDeveloperId: owner,
@@ -72,7 +78,13 @@ const state = vi.hoisted(() => ({
   operations: [] as string[],
   creatorInputs: [] as Record<string, unknown>[],
   entityStore: {} as Record<string, unknown>,
-  capabilities: { kind: "STAFF", isTeamLead: true, isRegionAdmin: false },
+  capabilities: {
+    kind: "STAFF",
+    isTeamLead: true,
+    isRegionAdmin: false,
+    teamLeadPermissions: ["VIEW"] as string[],
+    regionAdminPermissions: [] as string[],
+  },
   detail: {} as Record<string, unknown>,
   // One object per test: a query result that changes identity every render would loop the loaded-query hooks.
   data: {} as Record<string, unknown>,
@@ -92,7 +104,8 @@ vi.mock("@apollo/client/react", () => ({
     const definition = document.definitions.find((d) => d.kind === "OperationDefinition");
     const operation = definition?.kind === "OperationDefinition" ? definition.name!.value : "";
     if (!options?.skip) state.operations.push(operation);
-    if (!options?.skip && operation === "AffiliateCreators") state.creatorInputs.push(options?.variables?.input ?? {});
+    if (!options?.skip && operation === "AffiliateCreators")
+      state.creatorInputs.push(options?.variables?.input ?? {});
     return {
       data: options?.skip ? undefined : state.data,
       loading: false,
@@ -143,7 +156,10 @@ function buildData() {
   };
 }
 
-function signIn(user: typeof LEAD | typeof ADMIN | typeof BOTH, capabilities: typeof state.capabilities) {
+function signIn(
+  user: typeof LEAD | typeof ADMIN | typeof BOTH,
+  capabilities: typeof state.capabilities,
+) {
   state.capabilities = capabilities;
   state.data = buildData();
   state.entityStore = {
@@ -172,9 +188,20 @@ function signIn(user: typeof LEAD | typeof ADMIN | typeof BOTH, capabilities: ty
     },
   };
 }
-const asLead = () => signIn(LEAD, { kind: "STAFF", isTeamLead: true, isRegionAdmin: false });
-const asRegionAdmin = () => signIn(ADMIN, { kind: "STAFF", isTeamLead: false, isRegionAdmin: true });
-const asBoth = () => signIn(BOTH, { kind: "STAFF", isTeamLead: true, isRegionAdmin: true });
+// The role defaults of ADR-113: a team lead may VIEW, a region admin may ALLOCATE.
+const caps = (lead: string[] | null, admin: string[] | null) => ({
+  kind: "STAFF",
+  isTeamLead: lead !== null,
+  isRegionAdmin: admin !== null,
+  teamLeadPermissions: lead ?? [],
+  regionAdminPermissions: admin ?? [],
+});
+const accessFacts = (lead: string[] | null, admin: string[] | null) =>
+  caps(lead, admin) as unknown as Parameters<typeof resolveAffiliateStaffAccess>[0];
+const asLead = () => signIn(LEAD, caps(["VIEW"], null));
+const asRegionAdmin = () => signIn(ADMIN, caps(null, ["ALLOCATE"]));
+const asRegionAdminViewing = () => signIn(ADMIN, caps(null, ["VIEW", "ALLOCATE"]));
+const asBoth = () => signIn(BOTH, caps(["VIEW"], ["ALLOCATE"]));
 
 // Operations the Backend refuses a team lead / a region admin (ADR-112).
 const REFUSED_TO_STAFF = [
@@ -199,7 +226,13 @@ beforeEach(async () => {
   state.detail = {
     viewerCanPerformDailyOperations: false,
     viewerCanEditCreatorConfiguration: false,
-    creator: { id: "creator-profile", displayName: "Test Creator", nickname: "Test Creator", username: "tester", performances: [] },
+    creator: {
+      id: "creator-profile",
+      displayName: "Test Creator",
+      nickname: "Test Creator",
+      username: "tester",
+      performances: [],
+    },
     creatorRelationship: {
       id: "rel-in-scope",
       businessDeveloperId: "bd-alice",
@@ -210,7 +243,12 @@ beforeEach(async () => {
       workSummary: { agentRequiredCount: 0, staffRequiredCount: 0, externalWaitingCount: 0 },
     },
     includedShopIds: ["shop-1"],
-    counts: { sampleApplicationCount: 0, platformCollaborationCount: 0, pendingProposalCount: 0, lifecycleEventCount: 0 },
+    counts: {
+      sampleApplicationCount: 0,
+      platformCollaborationCount: 0,
+      pendingProposalCount: 0,
+      lifecycleEventCount: 0,
+    },
     shopActivitySummaries: [],
   };
   Element.prototype.scrollTo = vi.fn();
@@ -232,7 +270,9 @@ describe("Creator list for a team lead", () => {
     expect(state.operations).toContain("AffiliateTeamLeadSubtree");
     expect(state.operations).not.toContain("AffiliateRegionBusinessDeveloperOptions");
     for (const refused of REFUSED_TO_STAFF) expect(state.operations).not.toContain(refused);
-    const filter = screen.getByRole("button", { name: text("ecommerce.affiliateWorkspace.businessDeveloperFilter") });
+    const filter = screen.getByRole("button", {
+      name: text("ecommerce.affiliateWorkspace.businessDeveloperFilter"),
+    });
     expect(filter.textContent).toContain(text("ecommerce.affiliateStaff.allMyTeam"));
     // The default sends no BD filter: the Backend answers with the whole subtree.
     expect(state.creatorInputs.at(-1)).toMatchObject({ businessDeveloperId: null });
@@ -244,10 +284,12 @@ describe("Creator list for a team lead", () => {
 
     expect(screen.getAllByText("Alice").length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Alice" })).toBeNull();
-    expect(screen.queryByRole("button", { name: text("ecommerce.creatorExport.button") })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: text("ecommerce.creatorExport.button") }),
+    ).toBeNull();
     expect(screen.queryByRole("button", { name: "Change BD" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Assign BD" })).toBeNull();
-    expect(screen.getByText(text("ecommerce.affiliateStaff.teamLeadNotice"))).toBeTruthy();
+    expect(screen.getByText(text("ecommerce.affiliateStaff.noticeView"))).toBeTruthy();
   });
 });
 
@@ -261,29 +303,35 @@ describe("Creator list for a region admin", () => {
     for (const refused of [...REFUSED_TO_STAFF, ...REFUSED_TO_REGION_ADMIN]) {
       expect(state.operations).not.toContain(refused);
     }
-    const filter = screen.getByRole("button", { name: text("ecommerce.affiliateWorkspace.businessDeveloperFilter") });
-    expect(filter.textContent).toContain(text("ecommerce.affiliateWorkspace.allBusinessDevelopers"));
+    const filter = screen.getByRole("button", {
+      name: text("ecommerce.affiliateWorkspace.businessDeveloperFilter"),
+    });
+    expect(filter.textContent).toContain(
+      text("ecommerce.affiliateWorkspace.allBusinessDevelopers"),
+    );
   });
 
-  it("offers assign or change and release only on Creators whose shops are all in scope", () => {
+  it("offers allocation on every listed Creator and leaves the reach to the list and the Backend", () => {
     asRegionAdmin();
     render(toast(<AffiliateCreatorsRoute />));
 
-    // One owned in-scope Creator (change + release), one public-pool Creator (assign), one with a
-    // shop outside the admin's shops (nothing).
-    expect(screen.getAllByRole("button", { name: "Change BD" })).toHaveLength(1);
+    // Two owned Creators (change + release), one public-pool Creator (assign). The Panel no
+    // longer guesses the shop reach: the Creator list is already limited to it (ADR-113).
+    expect(screen.getAllByRole("button", { name: "Change BD" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Assign BD" })).toHaveLength(1);
     expect(
       screen.getAllByRole("button", { name: text("ecommerce.affiliateWorkspace.releaseCreator") }),
-    ).toHaveLength(1);
-    expect(screen.getByText(text("ecommerce.affiliateStaff.regionAdminNotice"))).toBeTruthy();
+    ).toHaveLength(2);
+    expect(screen.getByText(text("ecommerce.affiliateStaff.noticeAllocate"))).toBeTruthy();
   });
 
   it("opens no BD roster detail from an owner name and offers no export", () => {
     asRegionAdmin();
     render(toast(<AffiliateCreatorsRoute />));
     expect(screen.queryByRole("button", { name: "Alice" })).toBeNull();
-    expect(screen.queryByRole("button", { name: text("ecommerce.creatorExport.button") })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: text("ecommerce.creatorExport.button") }),
+    ).toBeNull();
   });
 
   it("opening a Creator's allocation does not open its detail", () => {
@@ -301,8 +349,8 @@ describe("a login holding both facets", () => {
     render(toast(<AffiliateCreatorsRoute />));
     expect(state.operations).toContain("AffiliateTeamLeadSubtree");
     expect(state.operations).toContain("AffiliateRegionBusinessDeveloperOptions");
-    expect(screen.getAllByRole("button", { name: "Change BD" })).toHaveLength(1);
-    expect(screen.getByText(text("ecommerce.affiliateStaff.teamLeadAndRegionAdminNotice"))).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Change BD" })).toHaveLength(2);
+    expect(screen.getByText(text("ecommerce.affiliateStaff.noticeViewAllocate"))).toBeTruthy();
   });
 });
 
@@ -311,18 +359,31 @@ describe("pages closed to the wrong kind of staff", () => {
     ["Agent Workbench", AffiliateWorkbenchRoute],
     ["Manual Workbench", AffiliateManualWorkbenchRoute],
     ["Platform collaborations", AffiliateHistoryRoute],
-  ])("shows a region admin that %s is not for their role, and loads none of it", (_name, Route) => {
-    asRegionAdmin();
-    render(toast(<Route />));
-    expect(screen.getByText(text("ecommerce.affiliateStaff.unavailableTitle"))).toBeTruthy();
-    expect(state.operations).toEqual(["AffiliateViewerCapabilities"]);
-  });
+  ])(
+    "shows a region admin without VIEW that %s needs that permission, and loads none of it",
+    (_name, Route) => {
+      asRegionAdmin();
+      render(toast(<Route />));
+      expect(screen.getByText(text("ecommerce.affiliateStaff.unavailableTitle"))).toBeTruthy();
+      expect(state.operations).toEqual(["AffiliateViewerCapabilities"]);
+    },
+  );
 
   it("says a staff login without a profile is not set up, and loads no Affiliate data", () => {
-    signIn(LEAD, { kind: "STAFF", isTeamLead: false, isRegionAdmin: false });
+    signIn(LEAD, caps(null, null));
     render(toast(<AffiliateCreatorsRoute />));
     expect(screen.getByText(text("ecommerce.affiliateStaff.notSetUpTitle"))).toBeTruthy();
     expect(state.operations).toEqual(["AffiliateViewerCapabilities"]);
+  });
+});
+
+describe("Workbenches for a region admin holding VIEW", () => {
+  it("opens the Agent Workbench and filters by the BDs the admin may name", () => {
+    asRegionAdminViewing();
+    render(toast(<AffiliateWorkbenchRoute />));
+    expect(state.operations).toContain("AffiliateRegionBusinessDeveloperOptions");
+    expect(screen.queryByText(text("ecommerce.affiliateStaff.unavailableTitle"))).toBeNull();
+    expect(screen.getByText(text("ecommerce.affiliateStaff.noticeViewAllocate"))).toBeTruthy();
   });
 });
 
@@ -336,9 +397,11 @@ describe("Workbenches for a team lead", () => {
 
     expect(state.operations).toContain("AffiliateTeamLeadSubtree");
     for (const refused of REFUSED_TO_STAFF) expect(state.operations).not.toContain(refused);
-    const filter = screen.getByRole("button", { name: text("ecommerce.affiliateWorkspace.businessDeveloperFilter") });
+    const filter = screen.getByRole("button", {
+      name: text("ecommerce.affiliateWorkspace.businessDeveloperFilter"),
+    });
     expect(filter.textContent).toContain(text("ecommerce.affiliateStaff.allMyTeam"));
-    expect(screen.getByText(text("ecommerce.affiliateStaff.teamLeadNotice"))).toBeTruthy();
+    expect(screen.getByText(text("ecommerce.affiliateStaff.noticeView"))).toBeTruthy();
   });
 });
 
@@ -346,7 +409,8 @@ describe("Platform collaborations for a team lead", () => {
   it("lists and opens collaborations without offering to create, configure, edit or remove", () => {
     asLead();
     render(toast(<AffiliateHistoryRoute />));
-    const operation = (key: string) => text(`ecommerce.affiliateWorkspace.collaborationOperations.${key}`);
+    const operation = (key: string) =>
+      text(`ecommerce.affiliateWorkspace.collaborationOperations.${key}`);
 
     expect(screen.queryByRole("button", { name: operation("newCollaboration") })).toBeNull();
     expect(screen.queryByRole("button", { name: operation("openSettings") })).toBeNull();
@@ -379,7 +443,7 @@ describe("Creator detail", () => {
 
   it("gives a region admin the profile, samples and activity tabs and opens on the profile", () => {
     asRegionAdmin();
-    renderDetail(resolveAffiliateStaffAccess({ kind: "STAFF", isTeamLead: false, isRegionAdmin: true }));
+    renderDetail(resolveAffiliateStaffAccess(accessFacts(null, ["ALLOCATE"])));
 
     const names = tabNames().join("|");
     expect(names).toContain(label("relationshipPanelProfile"));
@@ -389,7 +453,9 @@ describe("Creator detail", () => {
     expect(names).not.toContain(label("relationshipPanelCommunication"));
     expect(names).not.toContain(label("relationshipPanelPlatformCollaborations"));
     expect(
-      screen.getByRole("tab", { name: new RegExp(label("relationshipPanelProfile")) }).getAttribute("aria-selected"),
+      screen
+        .getByRole("tab", { name: new RegExp(label("relationshipPanelProfile")) })
+        .getAttribute("aria-selected"),
     ).toBe("true");
     for (const refused of [...REFUSED_TO_STAFF, ...REFUSED_TO_REGION_ADMIN]) {
       expect(state.operations).not.toContain(refused);
@@ -398,7 +464,7 @@ describe("Creator detail", () => {
 
   it("hides the contact routes from a region admin and shows allocation in management", () => {
     asRegionAdmin();
-    renderDetail(resolveAffiliateStaffAccess({ kind: "STAFF", isTeamLead: false, isRegionAdmin: true }));
+    renderDetail(resolveAffiliateStaffAccess(accessFacts(null, ["ALLOCATE"])));
 
     expect(screen.queryByRole("tab", { name: label("relationshipInspectorContacts") })).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: label("relationshipInspectorManagement") }));
@@ -409,7 +475,7 @@ describe("Creator detail", () => {
 
   it("gives a team lead every tab, names the owner from the subtree and offers no write", () => {
     asLead();
-    renderDetail(resolveAffiliateStaffAccess({ kind: "STAFF", isTeamLead: true, isRegionAdmin: false }));
+    renderDetail(resolveAffiliateStaffAccess(accessFacts(["VIEW"], null)));
 
     const names = tabNames().join("|");
     expect(names).toContain(label("relationshipPanelCurrentWork"));
@@ -421,18 +487,81 @@ describe("Creator detail", () => {
     expect(owner?.textContent).toBe("Alice");
     expect(screen.queryByRole("button", { name: "Change BD" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Assign BD" })).toBeNull();
-    expect(screen.queryByRole("button", { name: text("ecommerce.affiliateWorkspace.releaseCreator") })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: text("ecommerce.affiliateWorkspace.releaseCreator") }),
+    ).toBeNull();
   });
 
-  it("offers allocation only when every shop of the Creator is in the admin's shops", () => {
+  it("offers allocation when only some of the Creator's shops are in the admin's shops (any-shop rule)", () => {
     asRegionAdmin();
     (state.detail.creatorRelationship as { shopStates: unknown[] }).shopStates = [
       { shopId: "shop-1" },
       { shopId: "shop-9" },
     ];
-    renderDetail(resolveAffiliateStaffAccess({ kind: "STAFF", isTeamLead: false, isRegionAdmin: true }));
+    renderDetail(resolveAffiliateStaffAccess(accessFacts(null, ["ALLOCATE"])));
     fireEvent.click(screen.getByRole("tab", { name: label("relationshipInspectorManagement") }));
     const management = document.querySelector(".affiliate-relationship-owner-card") as HTMLElement;
-    expect(within(management).queryByRole("button", { name: "Change BD" })).toBeNull();
+    expect(within(management).getByRole("button", { name: "Change BD" })).toBeTruthy();
+  });
+
+  it("shows no allocation control to a profile without ALLOCATE", () => {
+    asLead();
+    renderDetail(resolveAffiliateStaffAccess(accessFacts(["VIEW"], null)));
+    fireEvent.click(screen.getByRole("tab", { name: label("relationshipInspectorManagement") }));
+    expect(screen.queryByRole("button", { name: "Change BD" })).toBeNull();
+  });
+
+  it("opens every tab to a region admin holding VIEW", () => {
+    asRegionAdminViewing();
+    renderDetail(resolveAffiliateStaffAccess(accessFacts(null, ["VIEW", "ALLOCATE"])));
+    const names = tabNames().join("|");
+    expect(names).toContain(label("relationshipPanelCurrentWork"));
+    expect(names).toContain(label("relationshipPanelCommunication"));
+  });
+
+  describe("with the Creator edit flag set by the Backend for an OPERATE staff login", () => {
+    const openManagement = () =>
+      fireEvent.click(screen.getByRole("tab", { name: label("relationshipInspectorManagement") }));
+
+    it("enables tags, contacts and the seller note, and hides release and protection without ALLOCATE", () => {
+      asLead();
+      state.detail.viewerCanEditCreatorConfiguration = true;
+      renderDetail(resolveAffiliateStaffAccess(accessFacts(["VIEW", "OPERATE"], null)));
+
+      fireEvent.click(screen.getByRole("tab", { name: label("relationshipInspectorContacts") }));
+      const email = document.querySelector('input[type="email"]') as HTMLInputElement;
+      fireEvent.change(email, { target: { value: "creator@example.com" } });
+      const saveEmail = email.parentElement!.querySelector("button") as HTMLButtonElement;
+      expect(saveEmail.disabled).toBe(false);
+
+      openManagement();
+      expect(document.querySelector(".affiliate-system-tag-editor")).not.toBeNull();
+      expect(
+        within(
+          document.querySelector(".affiliate-relationship-seller-note-card") as HTMLElement,
+        ).getByRole("button", { name: text("common.add") }),
+      ).toBeTruthy();
+      expect(
+        screen.queryByRole("button", { name: text("ecommerce.affiliateWorkspace.releaseCreator") }),
+      ).toBeNull();
+      expect(document.querySelector(".affiliate-relationship-protection-control")).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: text("ecommerce.affiliateTeam.addProtectedCreator") }),
+      ).toBeNull();
+    });
+
+    it("shows release, but still no protection, once the login also holds ALLOCATE", () => {
+      asLead();
+      state.detail.viewerCanEditCreatorConfiguration = true;
+      renderDetail(resolveAffiliateStaffAccess(accessFacts(["VIEW", "OPERATE", "ALLOCATE"], null)));
+      openManagement();
+      // One release button: the allocation control's. The detail adds no second one for staff.
+      expect(
+        screen.getAllByRole("button", {
+          name: text("ecommerce.affiliateWorkspace.releaseCreator"),
+        }),
+      ).toHaveLength(1);
+      expect(document.querySelector(".affiliate-relationship-protection-control")).toBeNull();
+    });
   });
 });

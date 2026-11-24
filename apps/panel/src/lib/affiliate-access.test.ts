@@ -5,69 +5,124 @@ import {
   affiliateAccessCreatorTab,
   affiliateAccessMaySeeCreatorTab,
   affiliateAccessMaySeeSurface,
-  creatorWithinShopScope,
+  affiliateStaffNoticeKey,
   resolveAffiliateStaffAccess,
 } from "./affiliate-access.js";
 
-const staff = (isTeamLead: boolean, isRegionAdmin: boolean) =>
-  resolveAffiliateStaffAccess({ kind: GQL.AffiliateViewerKind.Staff, isTeamLead, isRegionAdmin });
+const { View, Operate, Allocate } = GQL.AffiliateStaffPermission;
+type Permissions = GQL.AffiliateStaffPermission[];
+
+/** A login whose facets hold exactly these permissions; a facet with no list is not held. */
+const staff = (lead: Permissions | null, admin: Permissions | null) =>
+  resolveAffiliateStaffAccess({
+    kind: GQL.AffiliateViewerKind.Staff,
+    isTeamLead: lead !== null,
+    isRegionAdmin: admin !== null,
+    teamLeadPermissions: lead ?? [],
+    regionAdminPermissions: admin ?? [],
+  });
 
 describe("resolveAffiliateStaffAccess", () => {
   it("gives a staff login with neither profile no access at all", () => {
-    expect(staff(false, false)).toBeNull();
+    expect(staff(null, null)).toBeNull();
   });
 
-  it("makes a team lead read-only, with every Creator tab and contacts", () => {
-    expect(staff(true, false)).toEqual({
+  it("reads each capability from the permissions, whatever the role", () => {
+    expect(staff([View], null)).toEqual({
       kind: "STAFF",
       isTeamLead: true,
       isRegionAdmin: false,
-      readOnly: true,
+      canView: true,
+      canOperate: false,
       canAllocate: false,
+      canManageCollaborations: false,
       creatorDetailTabs: null,
       canReadCreatorContacts: true,
     });
-  });
-
-  it("lets a region admin allocate and read only the tabs the Backend serves", () => {
-    const access = staff(false, true)!;
-    expect(access.readOnly).toBe(true);
-    expect(access.canAllocate).toBe(true);
-    expect(access.creatorDetailTabs).toEqual(["profile", "samples", "activity"]);
-    expect(access.canReadCreatorContacts).toBe(false);
-  });
-
-  it("gives both facets the union of reads and the region admin writes", () => {
-    const access = staff(true, true)!;
-    expect(access.readOnly).toBe(true);
-    expect(access.canAllocate).toBe(true);
-    expect(access.creatorDetailTabs).toBeNull();
-    expect(access.canReadCreatorContacts).toBe(true);
-  });
-
-  it("leaves a supervisor or BD unrestricted", () => {
-    for (const kind of [GQL.AffiliateViewerKind.Supervisor, GQL.AffiliateViewerKind.BusinessDeveloper]) {
-      expect(
-        resolveAffiliateStaffAccess({ kind, isTeamLead: false, isRegionAdmin: false }),
-      ).toBe(AFFILIATE_FULL_ACCESS);
+    // The same permissions on the other role give the same capabilities.
+    const lead = staff([View, Operate, Allocate], null)!;
+    const admin = staff(null, [View, Operate, Allocate])!;
+    for (const access of [lead, admin]) {
+      expect(access).toMatchObject({ canView: true, canOperate: true, canAllocate: true });
     }
   });
 
+  it.each([
+    ["no permission", [], { canView: false, canOperate: false, canAllocate: false }],
+    ["VIEW", [View], { canView: true, canOperate: false, canAllocate: false }],
+    ["VIEW + OPERATE", [View, Operate], { canView: true, canOperate: true, canAllocate: false }],
+    ["ALLOCATE", [Allocate], { canView: false, canOperate: false, canAllocate: true }],
+    ["VIEW + ALLOCATE", [View, Allocate], { canView: true, canOperate: false, canAllocate: true }],
+    [
+      "VIEW + OPERATE + ALLOCATE",
+      [View, Operate, Allocate],
+      { canView: true, canOperate: true, canAllocate: true },
+    ],
+  ] as const)("holds %s on a region admin", (_label, permissions, expected) => {
+    expect(staff(null, [...permissions])).toMatchObject(expected);
+  });
+
+  it("takes the union over both facets", () => {
+    const access = staff([View], [Allocate])!;
+    expect(access).toMatchObject({ canView: true, canOperate: false, canAllocate: true });
+    expect(staff([Allocate], [View, Operate])).toMatchObject({
+      canView: true,
+      canOperate: true,
+      canAllocate: true,
+    });
+  });
+
+  it("never lets staff manage collaborations, whatever they hold", () => {
+    expect(
+      staff([View, Operate, Allocate], [View, Operate, Allocate])!.canManageCollaborations,
+    ).toBe(false);
+  });
+
+  it("reads the contacts with VIEW only", () => {
+    expect(staff(null, [Allocate])!.canReadCreatorContacts).toBe(false);
+    expect(staff(null, [View])!.canReadCreatorContacts).toBe(true);
+    expect(staff([Allocate], [View])!.canReadCreatorContacts).toBe(true);
+  });
+
+  it("leaves a supervisor or BD unrestricted", () => {
+    for (const kind of [
+      GQL.AffiliateViewerKind.Supervisor,
+      GQL.AffiliateViewerKind.BusinessDeveloper,
+    ]) {
+      expect(
+        resolveAffiliateStaffAccess({
+          kind,
+          isTeamLead: false,
+          isRegionAdmin: false,
+          teamLeadPermissions: [],
+          regionAdminPermissions: [],
+        }),
+      ).toBe(AFFILIATE_FULL_ACCESS);
+    }
+    expect(AFFILIATE_FULL_ACCESS).toMatchObject({ canView: true, canOperate: true });
+    expect(AFFILIATE_FULL_ACCESS.canManageCollaborations).toBe(true);
+  });
+
   it("keeps the same tab list reference so effects keyed on it do not re-run", () => {
-    expect(staff(false, true)!.creatorDetailTabs).toBe(staff(false, true)!.creatorDetailTabs);
+    expect(staff(null, [Allocate])!.creatorDetailTabs).toBe(staff([], null)!.creatorDetailTabs);
   });
 });
 
 describe("affiliateAccessMaySeeSurface", () => {
-  it("opens the workbenches and collaborations to team leads only, and the Creator list to both", () => {
-    const lead = staff(true, false)!;
-    const admin = staff(false, true)!;
-    expect(affiliateAccessMaySeeSurface(lead, "WORKBENCH")).toBe(true);
-    expect(affiliateAccessMaySeeSurface(lead, "HISTORY")).toBe(true);
-    expect(affiliateAccessMaySeeSurface(lead, "CREATORS")).toBe(true);
-    expect(affiliateAccessMaySeeSurface(admin, "WORKBENCH")).toBe(false);
-    expect(affiliateAccessMaySeeSurface(admin, "HISTORY")).toBe(false);
-    expect(affiliateAccessMaySeeSurface(admin, "CREATORS")).toBe(true);
+  it("opens the workbenches and collaborations to any facet holding VIEW", () => {
+    for (const access of [staff([View], null)!, staff(null, [View])!, staff([Allocate], [View])!]) {
+      expect(affiliateAccessMaySeeSurface(access, "WORKBENCH")).toBe(true);
+      expect(affiliateAccessMaySeeSurface(access, "HISTORY")).toBe(true);
+      expect(affiliateAccessMaySeeSurface(access, "CREATORS")).toBe(true);
+    }
+  });
+
+  it("opens only the Creator list to a profile without VIEW, a team lead included", () => {
+    for (const access of [staff([], null)!, staff([Allocate], null)!, staff(null, [Allocate])!]) {
+      expect(affiliateAccessMaySeeSurface(access, "WORKBENCH")).toBe(false);
+      expect(affiliateAccessMaySeeSurface(access, "HISTORY")).toBe(false);
+      expect(affiliateAccessMaySeeSurface(access, "CREATORS")).toBe(true);
+    }
   });
 
   it("never closes a page to a supervisor or BD", () => {
@@ -78,31 +133,44 @@ describe("affiliateAccessMaySeeSurface", () => {
 });
 
 describe("Creator detail tabs", () => {
-  it("hides the tabs a region admin cannot read and opens on one they can", () => {
-    const admin = staff(false, true)!;
-    expect(affiliateAccessMaySeeCreatorTab(admin, "samples")).toBe(true);
-    expect(affiliateAccessMaySeeCreatorTab(admin, "overview")).toBe(false);
-    expect(affiliateAccessMaySeeCreatorTab(admin, "platform")).toBe(false);
-    expect(affiliateAccessMaySeeCreatorTab(admin, "conversation")).toBe(false);
-    expect(affiliateAccessCreatorTab(admin, "overview")).toBe("profile");
-    expect(affiliateAccessCreatorTab(admin, "samples")).toBe("samples");
+  it("shows every tab with VIEW from either facet", () => {
+    for (const access of [staff([View], null)!, staff(null, [View])!, staff([Allocate], [View])!]) {
+      expect(access.creatorDetailTabs).toBeNull();
+      expect(affiliateAccessMaySeeCreatorTab(access, "conversation")).toBe(true);
+    }
+  });
+
+  it("keeps the base tabs only for a profile without VIEW and opens on one it can read", () => {
+    for (const admin of [staff(null, [Allocate])!, staff([Allocate], null)!]) {
+      expect(affiliateAccessMaySeeCreatorTab(admin, "samples")).toBe(true);
+      expect(affiliateAccessMaySeeCreatorTab(admin, "overview")).toBe(false);
+      expect(affiliateAccessMaySeeCreatorTab(admin, "platform")).toBe(false);
+      expect(affiliateAccessMaySeeCreatorTab(admin, "conversation")).toBe(false);
+      expect(affiliateAccessCreatorTab(admin, "overview")).toBe("profile");
+      expect(affiliateAccessCreatorTab(admin, "samples")).toBe("samples");
+    }
   });
 
   it("keeps the requested tab for everyone else", () => {
-    expect(affiliateAccessCreatorTab(staff(true, false)!, "conversation")).toBe("conversation");
+    expect(affiliateAccessCreatorTab(staff([View], null)!, "conversation")).toBe("conversation");
     expect(affiliateAccessCreatorTab(AFFILIATE_FULL_ACCESS, "overview")).toBe("overview");
   });
 });
 
-describe("creatorWithinShopScope", () => {
-  const scope = new Set(["shop-1", "shop-2"]);
-
-  it("needs every shop of the Creator in scope", () => {
-    expect(creatorWithinShopScope(["shop-1", "shop-2"], scope)).toBe(true);
-    expect(creatorWithinShopScope(["shop-1", "shop-9"], scope)).toBe(false);
+describe("affiliateStaffNoticeKey", () => {
+  it.each([
+    [[], "noticeCreatorsOnly"],
+    [[View], "noticeView"],
+    [[View, Operate], "noticeViewOperate"],
+    [[Allocate], "noticeAllocate"],
+    [[View, Allocate], "noticeViewAllocate"],
+    [[View, Operate, Allocate], "noticeViewOperateAllocate"],
+  ] as const)("names what %j may do", (permissions, key) => {
+    expect(affiliateStaffNoticeKey(staff(null, [...permissions])!)).toBe(key);
   });
 
-  it("leaves a Creator with no shop to the admins", () => {
-    expect(creatorWithinShopScope([], scope)).toBe(false);
+  it("describes the union of both facets and gives supervisors and BDs no notice", () => {
+    expect(affiliateStaffNoticeKey(staff([View], [Allocate])!)).toBe("noticeViewAllocate");
+    expect(affiliateStaffNoticeKey(AFFILIATE_FULL_ACCESS)).toBeNull();
   });
 });

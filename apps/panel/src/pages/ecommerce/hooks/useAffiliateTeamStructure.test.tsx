@@ -41,9 +41,10 @@ describe("useAffiliateTeamStructure", () => {
       memberUserId: "u1",
       displayName: "Lead",
       parentLeadId: "head",
+      permissions: [GQL.AffiliateStaffPermission.View],
     });
     expect(mutation(WRITE_AFFILIATE_TEAM_LEAD_MUTATION)).toHaveBeenCalledWith({
-      variables: { input: { memberUserId: "u1", displayName: "Lead" } },
+      variables: { input: { memberUserId: "u1", displayName: "Lead", permissions: ["VIEW"] } },
     });
     expect(mutation(SET_AFFILIATE_TEAM_PARENT_MUTATION)).toHaveBeenCalledWith({
       variables: {
@@ -67,6 +68,7 @@ describe("useAffiliateTeamStructure", () => {
       memberUserId: "u1",
       displayName: "Lead",
       parentLeadId: null,
+      permissions: [GQL.AffiliateStaffPermission.View],
     });
     expect(mutation(SET_AFFILIATE_TEAM_PARENT_MUTATION)).not.toHaveBeenCalled();
   });
@@ -83,8 +85,10 @@ describe("useAffiliateTeamStructure", () => {
         id: "lead-1",
         displayName: "Same",
         parentLeadId: "child",
+        permissions: [GQL.AffiliateStaffPermission.View],
         displayNameChanged: false,
         parentLeadIdChanged: true,
+        permissionsChanged: false,
       }),
     ).rejects.toBe(refusal);
     expect(mutation(WRITE_AFFILIATE_TEAM_LEAD_MUTATION)).not.toHaveBeenCalled();
@@ -100,9 +104,87 @@ describe("useAffiliateTeamStructure", () => {
       displayName: "UK",
       regions: [GQL.ShopRegion.Gb],
       shopIds: [],
+      permissions: [GQL.AffiliateStaffPermission.Allocate],
+      permissionsChanged: false,
     });
     expect(mutation(WRITE_AFFILIATE_REGION_ADMIN_MUTATION)).toHaveBeenCalledWith({
       variables: { input: { id: "ra1", displayName: "UK", regions: ["GB"], shopIds: [] } },
     });
+  });
+
+  it("sends the permissions of a new region admin and of an update that changed them", async () => {
+    const { result } = renderHook(() => useAffiliateTeamStructure());
+    mutation(WRITE_AFFILIATE_REGION_ADMIN_MUTATION).mockResolvedValue({});
+    await result.current.saveRegionAdmin({
+      memberUserId: "u2",
+      displayName: "US",
+      regions: [],
+      shopIds: ["shop-us"],
+      permissions: [GQL.AffiliateStaffPermission.Allocate],
+    });
+    expect(mutation(WRITE_AFFILIATE_REGION_ADMIN_MUTATION)).toHaveBeenLastCalledWith({
+      variables: {
+        input: {
+          memberUserId: "u2",
+          displayName: "US",
+          regions: [],
+          shopIds: ["shop-us"],
+          permissions: ["ALLOCATE"],
+        },
+      },
+    });
+    await result.current.saveRegionAdmin({
+      id: "ra1",
+      displayName: "UK",
+      regions: [GQL.ShopRegion.Gb],
+      shopIds: [],
+      permissions: [GQL.AffiliateStaffPermission.View, GQL.AffiliateStaffPermission.Operate],
+      permissionsChanged: true,
+    });
+    expect(mutation(WRITE_AFFILIATE_REGION_ADMIN_MUTATION)).toHaveBeenLastCalledWith({
+      variables: {
+        input: {
+          id: "ra1",
+          displayName: "UK",
+          regions: ["GB"],
+          shopIds: [],
+          permissions: ["VIEW", "OPERATE"],
+        },
+      },
+    });
+  });
+
+  it("writes a lead update that only changed the permissions, without the name or a parent call", async () => {
+    const { result } = renderHook(() => useAffiliateTeamStructure());
+    mutation(WRITE_AFFILIATE_TEAM_LEAD_MUTATION).mockResolvedValue({});
+    mutation(SET_AFFILIATE_TEAM_PARENT_MUTATION);
+    await result.current.saveTeamLead({
+      id: "lead-1",
+      displayName: "Same",
+      parentLeadId: null,
+      permissions: [GQL.AffiliateStaffPermission.View, GQL.AffiliateStaffPermission.Operate],
+      displayNameChanged: false,
+      parentLeadIdChanged: false,
+      permissionsChanged: true,
+    });
+    expect(mutation(WRITE_AFFILIATE_TEAM_LEAD_MUTATION)).toHaveBeenCalledWith({
+      variables: { input: { id: "lead-1", permissions: ["VIEW", "OPERATE"] } },
+    });
+    expect(mutation(SET_AFFILIATE_TEAM_PARENT_MUTATION)).not.toHaveBeenCalled();
+  });
+
+  it("writes nothing for a lead update that changed neither the name nor the permissions", async () => {
+    const { result } = renderHook(() => useAffiliateTeamStructure());
+    mutation(WRITE_AFFILIATE_TEAM_LEAD_MUTATION).mockResolvedValue({});
+    await result.current.saveTeamLead({
+      id: "lead-1",
+      displayName: "Same",
+      parentLeadId: null,
+      permissions: [GQL.AffiliateStaffPermission.View],
+      displayNameChanged: false,
+      parentLeadIdChanged: false,
+      permissionsChanged: false,
+    });
+    expect(mutation(WRITE_AFFILIATE_TEAM_LEAD_MUTATION)).not.toHaveBeenCalled();
   });
 });

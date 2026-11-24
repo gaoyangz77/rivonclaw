@@ -18,9 +18,11 @@ export interface TeamLeadSaveInput {
   memberUserId?: string;
   displayName: string;
   parentLeadId: string | null;
+  permissions: GQL.AffiliateStaffPermission[];
   /** On update, whether the draft changed each field; unchanged fields are not sent. */
   displayNameChanged?: boolean;
   parentLeadIdChanged?: boolean;
+  permissionsChanged?: boolean;
 }
 
 export interface RegionAdminSaveInput {
@@ -29,10 +31,13 @@ export interface RegionAdminSaveInput {
   displayName: string;
   regions: GQL.ShopRegion[];
   shopIds: string[];
+  permissions: GQL.AffiliateStaffPermission[];
+  /** On update, whether the draft changed the permissions; an unchanged set is not sent. */
+  permissionsChanged?: boolean;
 }
 
 /**
- * Reads the admin team structure and owns its writes (ADR-112).
+ * Reads the admin team structure and owns its writes (ADR-112, ADR-113).
  *
  * The structure is an admin-only configuration read straight from the Backend
  * through the Desktop proxy; it has no entity-store model. So the "update the
@@ -91,13 +96,25 @@ export function useAffiliateTeamStructure(options: { skip?: boolean } = {}) {
         if (!leadId) {
           const created = await writeLead({
             variables: {
-              input: { memberUserId: input.memberUserId, displayName: input.displayName },
+              input: {
+                memberUserId: input.memberUserId,
+                displayName: input.displayName,
+                permissions: input.permissions,
+              },
             },
           });
           leadId = created.data?.writeAffiliateTeamLead.id;
           if (!leadId) throw new Error("AffiliateTeamLeadProfile was not returned");
-        } else if (input.displayNameChanged) {
-          await writeLead({ variables: { input: { id: leadId, displayName: input.displayName } } });
+        } else if (input.displayNameChanged || input.permissionsChanged) {
+          await writeLead({
+            variables: {
+              input: {
+                id: leadId,
+                ...(input.displayNameChanged ? { displayName: input.displayName } : {}),
+                ...(input.permissionsChanged ? { permissions: input.permissions } : {}),
+              },
+            },
+          });
         }
         const parentWanted = input.id ? input.parentLeadIdChanged : input.parentLeadId !== null;
         if (parentWanted) {
@@ -139,6 +156,8 @@ export function useAffiliateTeamStructure(options: { skip?: boolean } = {}) {
               displayName: input.displayName,
               regions: input.regions,
               shopIds: input.shopIds,
+              // On update an omitted list keeps the stored set; on create it stores the role default.
+              ...(!input.id || input.permissionsChanged ? { permissions: input.permissions } : {}),
             },
           },
         });

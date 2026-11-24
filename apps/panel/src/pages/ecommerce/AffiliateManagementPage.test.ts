@@ -1440,8 +1440,8 @@ describe("Affiliate canonical UI contract", () => {
     expect(page).toContain("<AgentWorkBundleDetailModal");
     expect(page).toContain("<AffiliateDetailModal");
     expect(page).toContain('className="affiliate-agent-work-detail-modal"');
-    // Deciding is offered for a pending proposal, and never to a read-only staff login (ADR-112).
-    expect(page).toContain("const canDecide = isPending && !access.readOnly;");
+    // Deciding is offered for a pending proposal, and only to a staff login holding OPERATE (ADR-113).
+    expect(page).toContain("const canDecide = isPending && access.canOperate;");
     expect(page).toContain("allowDecisionActions={canDecide}");
     expect(page).toContain("onApprove={canDecide ? onApprove : undefined}");
     expect(page).toContain("showRevisionHistory={false}");

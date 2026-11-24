@@ -106,21 +106,16 @@ const AFFILIATE_WORKSPACE_SCOPES: readonly GQL.PermissionScope[] = [
 ];
 
 /**
- * Affiliate pages a team lead reads read-only over their subtree (ADR-112).
- * Every query these pages issue is on the team lead read allowlist; a page
- * that issues one that is not stays out of this set.
+ * Affiliate pages a team lead or region admin opens (ADR-112, ADR-113). Which of
+ * them show anything is decided by the profile's permissions, not by the scope:
+ * the Creator list is the base read of every live profile, while the workbenches
+ * and collaborations need `VIEW`, which `AffiliateStaffGate` checks once the
+ * Backend has said what the login holds. Every query these pages issue is on a
+ * staff read allowlist; a page that issues one that is not stays out of this set.
  */
-const AFFILIATE_TEAM_LEAD_WORKSPACE_SCOPES: readonly GQL.PermissionScope[] = [
+const AFFILIATE_STAFF_WORKSPACE_SCOPES: readonly GQL.PermissionScope[] = [
   ...AFFILIATE_WORKSPACE_SCOPES,
   GQL.PermissionScope.AffiliateTeamLead,
-];
-
-/**
- * The Creator list also serves region admins, who allocate Creators to BDs
- * from it (ADR-112).
- */
-const AFFILIATE_CREATOR_LIST_SCOPES: readonly GQL.PermissionScope[] = [
-  ...AFFILIATE_TEAM_LEAD_WORKSPACE_SCOPES,
   GQL.PermissionScope.AffiliateRegionAdmin,
 ];
 
@@ -276,7 +271,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.affiliateNeedsAttention",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scopes: AFFILIATE_TEAM_LEAD_WORKSPACE_SCOPES,
+    scopes: AFFILIATE_STAFF_WORKSPACE_SCOPES,
   },
   {
     path: "/commerce/affiliate/manual-workbench",
@@ -286,7 +281,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.affiliateManualWorkbench",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scopes: AFFILIATE_TEAM_LEAD_WORKSPACE_SCOPES,
+    scopes: AFFILIATE_STAFF_WORKSPACE_SCOPES,
   },
   {
     path: "/commerce/affiliate/creators",
@@ -296,7 +291,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.affiliateCreators",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scopes: AFFILIATE_CREATOR_LIST_SCOPES,
+    scopes: AFFILIATE_STAFF_WORKSPACE_SCOPES,
   },
   {
     path: "/commerce/affiliate/history",
@@ -306,7 +301,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.affiliateHistory",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scopes: AFFILIATE_TEAM_LEAD_WORKSPACE_SCOPES,
+    scopes: AFFILIATE_STAFF_WORKSPACE_SCOPES,
   },
   {
     path: "/commerce/affiliate/analytics",

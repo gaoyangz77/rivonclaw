@@ -30,6 +30,7 @@ import {
 } from "../hooks/useAffiliateTeamStructure.js";
 import { AffiliateBusinessDeveloperShopScopeSummary } from "./AffiliateBusinessDeveloperShopScopeSummary.js";
 import { AffiliateRegionAdminEditor } from "./AffiliateRegionAdminEditor.js";
+import { AffiliateStaffPermissionBadges } from "./AffiliateStaffPermissionsField.js";
 import { AffiliateTeamLeadEditor } from "./AffiliateTeamLeadEditor.js";
 import { AffiliateTeamStructureTree, type ParentSubject } from "./AffiliateTeamStructureTree.js";
 import "./AffiliateTeamStructure.css";
@@ -334,6 +335,7 @@ function RegionAdminRow({
             </small>
           )}
         </div>
+        <AffiliateStaffPermissionBadges permissions={admin.permissions} />
         {!member && (
           <TkBadge tone="warning">
             {t("ecommerce.affiliateTeam.teamStructureMemberIneligibleShort")}

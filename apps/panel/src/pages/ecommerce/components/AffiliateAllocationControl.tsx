@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
+import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import type { GQL } from "@rivonclaw/core";
 import { AFFILIATE_ASSIGNABLE_BUSINESS_DEVELOPERS_QUERY } from "../../../api/affiliate-staff-queries.js";
@@ -10,24 +11,32 @@ import {
   TkChoiceSelect,
   TkLoadingState,
   TkModal,
+  TkPrivate,
 } from "../../../components/design-system/index.js";
 import { useToast } from "../../../components/Toast.js";
+import { AFFILIATE_CREATOR_OWNER_CHANGED } from "../../../lib/affiliate-allocation.js";
+import { graphQLErrorCode } from "../../../lib/graphql-error-code.js";
+import { shopDisplayLabel } from "../../../lib/shop-display.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { AffiliateReleaseCreatorButton } from "./AffiliateReleaseCreatorButton.js";
 import "./AffiliateAllocationControl.css";
 
 /**
- * Who owns a Creator, for a region admin (ADR-112): assign a BD, change the BD,
- * or return the Creator to the public pool. These are the only writes a staff
- * login has, and the Backend allows each only for a Creator whose shops are all
- * in the admin's scope. Its refusal (translated by the Affiliate permission
- * error link) reaches the admin as a toast; the control is shown only where the
- * Panel can see the Creator's shops are in scope.
+ * Who owns a Creator, for a staff login holding `ALLOCATE` (ADR-112, ADR-113):
+ * assign a BD, change the BD, or return the Creator to the public pool. The
+ * picker lists only the BDs the Backend lets this login name for the Creator, and
+ * the Backend decides each write; its refusal (translated by the Affiliate
+ * permission error link) reaches the user as a toast.
  *
- * Takes ids only: the owner it was opened for is what the release confirms, and
- * the BD list is read for the Creator when the dialog opens.
+ * Every assignment carries the owner the user was looking at when the dialog
+ * opened (`null` for a public Creator), so a write based on a stale owner is
+ * refused instead of overriding someone else's change. A BD that does not cover
+ * every shop of the Creator is a warning, never a block (ADR-113).
+ *
+ * Takes ids only: the owner it was opened for is what the write and the release
+ * confirm, and the BD list is read for the Creator when the dialog opens.
  */
-export function AffiliateAllocationControl({
+export const AffiliateAllocationControl = observer(function AffiliateAllocationControl({
   creatorRelationshipId,
   businessDeveloperId,
   onChanged,
@@ -37,47 +46,71 @@ export function AffiliateAllocationControl({
   businessDeveloperId: string | null;
   onChanged: () => Promise<unknown>;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const entityStore = useEntityStore();
-  const [open, setOpen] = useState(false);
+  // The dialog is open while this is set. It holds the owner seen at open: the
+  // owner the write expects, and the one the picker leaves out.
+  const [dialog, setDialog] = useState<{ expectedOwnerId: string | null } | null>(null);
   const [chosenId, setChosenId] = useState("");
   const candidates = useQuery<{
-    affiliateAssignableBusinessDevelopers: GQL.AffiliateAllocationBusinessDeveloper[];
+    affiliateAssignableBusinessDevelopers: GQL.AffiliateAssignableBusinessDeveloper[];
   }>(AFFILIATE_ASSIGNABLE_BUSINESS_DEVELOPERS_QUERY, {
     variables: { creatorRelationshipId },
     fetchPolicy: "network-only",
-    skip: !open,
+    skip: !dialog,
   });
   const [assign, { loading }] = useMutation<{
     assignAffiliateBusinessDeveloper: GQL.AffiliateCreatorRelationship;
   }>(ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION);
 
   const developers = (candidates.data?.affiliateAssignableBusinessDevelopers ?? [])
-    .filter((developer) => developer.id !== businessDeveloperId)
+    .filter((developer) => developer.id !== dialog?.expectedOwnerId)
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  const chosen = developers.find((developer) => developer.id === chosenId);
+  const uncoveredShops = (chosen?.uncoveredShopIds ?? []).map((shopId) =>
+    shopDisplayLabel(
+      entityStore.shops.find((candidate) => candidate.id === shopId),
+      shopId,
+    ),
+  );
 
   function openDialog() {
     setChosenId("");
-    setOpen(true);
+    setDialog({ expectedOwnerId: businessDeveloperId });
   }
 
   async function confirmAssignment() {
-    if (!chosenId || loading) return;
-    const chosen = developers.find((developer) => developer.id === chosenId);
+    if (!dialog || !chosen || loading) return;
+    const { expectedOwnerId } = dialog;
+    const chosenName = chosen.displayName;
+    const targetId = chosen.id;
     try {
       const result = await assign({
-        variables: { input: { creatorRelationshipId, businessDeveloperId: chosenId } },
+        variables: {
+          input: {
+            creatorRelationshipId,
+            businessDeveloperId: targetId,
+            expectedBusinessDeveloperId: expectedOwnerId,
+          },
+        },
       });
       const relationship = result.data?.assignAffiliateBusinessDeveloper;
-      if (!relationship || String(relationship.businessDeveloperId ?? "") !== chosenId) {
+      if (!relationship || String(relationship.businessDeveloperId ?? "") !== targetId) {
         throw new Error(t("ecommerce.updateFailed"));
       }
       entityStore.affiliateWorkspace.upsertAffiliateCreatorRelationship(relationship);
-      setOpen(false);
+      setDialog(null);
       await onChanged();
-      showToast(t("ecommerce.affiliateStaff.allocated", { name: chosen?.displayName ?? "" }), "success");
+      showToast(t("ecommerce.affiliateStaff.allocated", { name: chosenName }), "success");
     } catch (error) {
+      if (graphQLErrorCode(error) === AFFILIATE_CREATOR_OWNER_CHANGED) {
+        // Someone changed the owner after this dialog opened: show the current one.
+        setDialog(null);
+        showToast(t("ecommerce.affiliateStaff.ownerChanged"), "error");
+        await onChanged();
+        return;
+      }
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
     }
   }
@@ -90,7 +123,11 @@ export function AffiliateAllocationControl({
       onKeyDown={(event) => event.stopPropagation()}
     >
       <TkButton size="sm" variant="secondary" onClick={openDialog}>
-        {t(businessDeveloperId ? "ecommerce.affiliateStaff.changeBd" : "ecommerce.affiliateStaff.assignBd")}
+        {t(
+          businessDeveloperId
+            ? "ecommerce.affiliateStaff.changeBd"
+            : "ecommerce.affiliateStaff.assignBd",
+        )}
       </TkButton>
       {businessDeveloperId ? (
         <AffiliateReleaseCreatorButton
@@ -100,9 +137,9 @@ export function AffiliateAllocationControl({
         />
       ) : null}
       <TkModal
-        isOpen={open}
+        isOpen={dialog !== null}
         onClose={() => {
-          if (!loading) setOpen(false);
+          if (!loading) setDialog(null);
         }}
         title={t("ecommerce.affiliateStaff.allocateTitle")}
         maxWidth={480}
@@ -128,18 +165,32 @@ export function AffiliateAllocationControl({
                 label: developer.displayName,
               }))}
               searchable
-              searchPlaceholder={t("ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder")}
+              searchPlaceholder={t(
+                "ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder",
+              )}
               disabled={loading}
             />
           )}
+          {uncoveredShops.length > 0 ? (
+            <TkAlert tone="warning">
+              <TkPrivate sensitive={uncoveredShops.some((shop) => shop.sensitive)}>
+                {t("ecommerce.affiliateStaff.allocateUncoveredWarning", {
+                  shops: new Intl.ListFormat(i18n.language, {
+                    style: "long",
+                    type: "conjunction",
+                  }).format(uncoveredShops.map((shop) => shop.text)),
+                })}
+              </TkPrivate>
+            </TkAlert>
+          ) : null}
           <div className="tk-v1-modal-actions">
-            <TkButton variant="secondary" disabled={loading} onClick={() => setOpen(false)}>
+            <TkButton variant="secondary" disabled={loading} onClick={() => setDialog(null)}>
               {t("common.cancel")}
             </TkButton>
             <TkButton
               variant="primary"
               loading={loading}
-              disabled={!chosenId}
+              disabled={!chosen}
               onClick={() => void confirmAssignment()}
             >
               {t("ecommerce.affiliateStaff.allocateConfirm")}
@@ -149,4 +200,4 @@ export function AffiliateAllocationControl({
       </TkModal>
     </div>
   );
-}
+});

@@ -1,19 +1,25 @@
 import { gql } from "@apollo/client/core";
 
 /**
- * Affiliate staff logins (ADR-112): the team lead's read-only workspace over
- * their subtree and the region admin's Creator allocation. Each operation here
- * is on the Backend allowlist of the staff kind that issues it; supervisors and
- * BDs never call them.
+ * Affiliate staff logins (ADR-112, ADR-113): the team lead's workspace over
+ * their subtree and the region admin's Creator allocation, each as far as the
+ * profile's permissions go. Each operation here is on the Backend allowlist of
+ * the staff kind that issues it; supervisors and BDs never call them.
  */
 
-/** Which kind of Affiliate login the caller is, and which staff profiles it holds. */
+/**
+ * Which kind of Affiliate login the caller is, which staff profiles it holds and
+ * what each profile may do (ADR-113). A facet the login does not hold lists no
+ * permission.
+ */
 export const AFFILIATE_VIEWER_CAPABILITIES_QUERY = gql`
   query AffiliateViewerCapabilities {
     affiliateViewerCapabilities {
       kind
       isTeamLead
       isRegionAdmin
+      teamLeadPermissions
+      regionAdminPermissions
     }
   }
 `;
@@ -41,12 +47,17 @@ export const AFFILIATE_TEAM_LEAD_SUBTREE_QUERY = gql`
   }
 `;
 
-/** The BDs a Creator may be assigned to (region admins, for a Creator wholly inside their scope). */
+/**
+ * The BDs a Creator may be assigned to by this login (ADR-113), each with the
+ * Creator's shops that BD does not cover. The uncovered shops are a warning, never
+ * a refusal.
+ */
 export const AFFILIATE_ASSIGNABLE_BUSINESS_DEVELOPERS_QUERY = gql`
   query AffiliateAssignableBusinessDevelopers($creatorRelationshipId: ID!) {
     affiliateAssignableBusinessDevelopers(creatorRelationshipId: $creatorRelationshipId) {
       id
       displayName
+      uncoveredShopIds
     }
   }
 `;

@@ -1181,6 +1181,14 @@ export interface AffiliateApprovalSection {
   overdueRate?: Maybe<Scalars["Float"]["output"]>;
 }
 
+/** A business developer one Creator may be assigned to (ADR-113), with the Creator's shops the developer's shop scope does not cover. */
+export interface AffiliateAssignableBusinessDeveloper {
+  displayName: Scalars["String"]["output"];
+  id: Scalars["ID"]["output"];
+  /** The Creator's shops outside the developer's shop scope (ADR-110). That developer will not see those shops' samples or messages; a warning, never a refusal. */
+  uncoveredShopIds: Array<Scalars["ID"]["output"]>;
+}
+
 export interface AffiliateBusinessDeveloper {
   acceptingCreators: Scalars["Boolean"]["output"];
   agentAssistanceMode: AffiliateAgentAssistanceMode;
@@ -2938,6 +2946,7 @@ export interface AffiliateCreatorRelationshipDetailPayload {
   performance?: Maybe<AffiliateCreatorPerformanceCurrent>;
   protection?: Maybe<AffiliateCreatorProtection>;
   shopActivitySummaries: Array<AffiliateCreatorRelationshipShopActivitySummary>;
+  /** Whether the viewer may edit this Creator's tags, contact details (email, WhatsApp) and seller metadata (UID, note). Protection and release to the public pool are decided separately. A supervisor, the owning business developer, or a team lead or region admin holding OPERATE whose reach covers the Creator. */
   viewerCanEditCreatorConfiguration: Scalars["Boolean"]["output"];
   viewerCanPerformDailyOperations: Scalars["Boolean"]["output"];
 }
@@ -4548,6 +4557,8 @@ export interface AffiliateRegionAdminProfile {
   id: Scalars["ID"]["output"];
   /** The member login this region admin signs in as. */
   memberUserId: Scalars["ID"]["output"];
+  /** What this region admin may do within their reach. Resolved: a profile with nothing stored holds the role default. */
+  permissions: Array<AffiliateStaffPermission>;
   /** Dynamic shop grant: every shop of the account in these regions. */
   regions: Array<ShopRegion>;
   /** Static shop grant. With no regions either, the region admin is unrestricted. */
@@ -5325,6 +5336,15 @@ export interface AffiliateShopsCollaborationListPayload {
   truncated: Scalars["Boolean"]["output"];
 }
 
+/** What an Affiliate team lead or region admin profile may do within its reach. VIEW reads the work views (sample requests, conversations, message history, proposals, escalations, collaborations); OPERATE acts on that work and always comes with VIEW; ALLOCATE assigns, reassigns and releases Creators. The base Creator list and detail are open to every live profile whatever it holds. */
+export const AffiliateStaffPermission = {
+  Allocate: "ALLOCATE",
+  Operate: "OPERATE",
+  View: "VIEW",
+} as const;
+
+export type AffiliateStaffPermission =
+  (typeof AffiliateStaffPermission)[keyof typeof AffiliateStaffPermission];
 export interface AffiliateTargetCollaborationCreateProductInput {
   productId: Scalars["String"]["input"];
   /** Target Collaboration Shop Ads-attributed commission in basis points. */
@@ -5382,6 +5402,8 @@ export interface AffiliateTeamLeadProfile {
   memberUserId: Scalars["ID"]["output"];
   /** The team lead this lead reports to. May name an archived lead; readers then treat the lead as having no parent. */
   parentLeadId?: Maybe<Scalars["ID"]["output"]>;
+  /** What this lead may do within their reach. Resolved: a profile with nothing stored holds the role default. */
+  permissions: Array<AffiliateStaffPermission>;
   updatedAt: Scalars["DateTimeISO"]["output"];
 }
 
@@ -5552,6 +5574,10 @@ export interface AffiliateViewerCapabilities {
   /** Staff only: the login has a live team lead profile. */
   isTeamLead: Scalars["Boolean"]["output"];
   kind: AffiliateViewerKind;
+  /** The permissions the login's live region admin profile holds; empty without that profile. */
+  regionAdminPermissions: Array<AffiliateStaffPermission>;
+  /** The permissions the login's live team lead profile holds; empty without that profile. */
+  teamLeadPermissions: Array<AffiliateStaffPermission>;
 }
 
 /** Which kind of Affiliate login the caller is: a supervisor (owner or Affiliate Supervisor), a business developer, or staff (team lead and/or region admin). */
@@ -6108,6 +6134,8 @@ export type AnnouncementTemplateFormat =
 export interface AssignAffiliateBusinessDeveloperInput {
   businessDeveloperId?: InputMaybe<Scalars["ID"]["input"]>;
   creatorRelationshipId: Scalars["ID"]["input"];
+  /** The owner the caller saw: a business developer id, or null for a public Creator. The write is refused with AFFILIATE_CREATOR_OWNER_CHANGED when the current owner differs. Required from team leads and region admins (null must be sent explicitly to expect a public Creator); optional for supervisors. */
+  expectedBusinessDeveloperId?: InputMaybe<Scalars["ID"]["input"]>;
   randomForShopId?: InputMaybe<Scalars["ID"]["input"]>;
 }
 
@@ -15143,8 +15171,8 @@ export interface Query {
   affiliateApprovalPolicies: Array<AffiliateApprovalPolicy>;
   /** Read campaign condition options across all Affiliate shops owned by the authenticated seller account. */
   affiliateApprovalPolicyContext: AffiliateApprovalPolicyContextPayload;
-  /** The business developers a Creator may be assigned to: live, and their shop scope covers at least one of the Creator's shops (ADR-110). Supervisors, and region admins for a Creator wholly inside their scope. */
-  affiliateAssignableBusinessDevelopers: Array<AffiliateAllocationBusinessDeveloper>;
+  /** The business developers a Creator may be assigned to: live, and their shop scope covers at least one of the Creator's shops (ADR-110). Supervisors; staff holding ALLOCATE see the developers their region admin or team lead facet may name for a Creator in its reach (ADR-113). Each option lists the Creator's shops the developer does not cover. */
+  affiliateAssignableBusinessDevelopers: Array<AffiliateAssignableBusinessDeveloper>;
   /** List paginated user-level Affiliate business developers with workload and channel counts. */
   affiliateBusinessDeveloperPage: AffiliateBusinessDeveloperPage;
   /** List user-level Affiliate business developers. */
@@ -15231,7 +15259,7 @@ export interface Query {
   affiliatePredictCreatorProductFit: AffiliateCreatorProductFitPayload;
   /** Read deduplicated Product summaries for Affiliate pages through the authorized shop-scoped Product cache. */
   affiliateProductSummaries: Array<AffiliateRelationshipProductSummary>;
-  /** The business developers a Creator list may be filtered by: live, with a shop scope that reaches the caller's shops (unrestricted developers included). Every live developer for a supervisor or an unrestricted region admin. */
+  /** The business developers a Creator list may be filtered by: for a region admin facet, live with a shop scope that reaches its shops (unrestricted developers included); for a team lead facet, the developers of its team. Every live developer for a supervisor or an unrestricted region admin. */
   affiliateRegionBusinessDeveloperOptions: Array<AffiliateAllocationBusinessDeveloper>;
   /** Read Target Collaboration memberships and Sample-referenced Open Collaborations for one CreatorRelationship without creator-level expansion. */
   affiliateRelationshipPlatformCollaborations: AffiliateRelationshipPlatformCollaborationPage;
@@ -19404,6 +19432,8 @@ export interface WriteAffiliateRegionAdminInput {
   id?: InputMaybe<Scalars["ID"]["input"]>;
   /** Required on create: a member whose role grants the region admin scope. Never changes on update. */
   memberUserId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Omitted on update keeps the stored set; omitted on create stores the role default (ALLOCATE). OPERATE requires VIEW. */
+  permissions?: InputMaybe<Array<AffiliateStaffPermission>>;
   /** Omitted on update keeps the stored grant. */
   regions?: InputMaybe<Array<ShopRegion>>;
   /** Omitted on update keeps the stored grant; every id must be a shop of the account. */
@@ -19417,6 +19447,8 @@ export interface WriteAffiliateTeamLeadInput {
   id?: InputMaybe<Scalars["ID"]["input"]>;
   /** Required on create: a member whose role grants the team lead scope. Never changes on update. */
   memberUserId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Omitted on update keeps the stored set; omitted on create stores the role default (VIEW). OPERATE requires VIEW. */
+  permissions?: InputMaybe<Array<AffiliateStaffPermission>>;
 }
 
 export interface WriteCampaignProductInput {

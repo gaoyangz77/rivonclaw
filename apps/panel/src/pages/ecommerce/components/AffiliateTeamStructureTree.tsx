@@ -11,6 +11,7 @@ import {
   type TeamTree,
   type TeamTreeLead,
 } from "../affiliate-team-structure.js";
+import { AffiliateStaffPermissionBadges } from "./AffiliateStaffPermissionsField.js";
 import "./AffiliateTeamStructure.css";
 
 export type ParentSubject =
@@ -26,7 +27,7 @@ interface TreeHandlers {
 }
 
 /**
- * The hierarchy as a nested list (ADR-112): leads at any depth, each lead's
+ * The hierarchy as a nested list (ADR-112), each lead with the permissions it holds (ADR-113): leads at any depth, each lead's
  * child leads before its BDs, then a group of BDs that report to no live lead.
  * Takes plain objects only; the page re-reads them from the query on each render.
  */
@@ -112,6 +113,7 @@ function LeadBranch({
             count: node.businessDevelopers.length,
           }),
         ].join(" · ")}
+        permissions={<AffiliateStaffPermissionBadges permissions={lead.permissions} />}
         warnings={
           <>
             {node.inCycle && (
@@ -196,6 +198,7 @@ function NodeRow({
   badge,
   name,
   meta,
+  permissions,
   warnings,
   parentValue,
   parentOptions,
@@ -206,6 +209,8 @@ function NodeRow({
   badge: ReactNode;
   name: string;
   meta?: string;
+  /** The profile's permissions as short labels; absent for a BD, who holds none. */
+  permissions?: ReactNode;
   warnings?: ReactNode;
   parentValue: string;
   parentOptions: ReadonlyArray<{ id: string; displayName: string }>;
@@ -224,6 +229,7 @@ function NodeRow({
           </strong>
           {meta && <small>{meta}</small>}
         </div>
+        {permissions}
         {warnings}
       </div>
       <div className="affiliate-team-structure-reports">

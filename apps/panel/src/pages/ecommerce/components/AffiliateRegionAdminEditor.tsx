@@ -21,13 +21,16 @@ import {
 } from "../../../lib/affiliate-bd-shop-scope.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import {
+  defaultStaffPermissions,
   displayNameAfterMemberPick,
   memberLabel,
+  sameStaffPermissions,
   unboundEligibleMembers,
   type TeamStructure,
 } from "../affiliate-team-structure.js";
 import type { RegionAdminSaveInput } from "../hooks/useAffiliateTeamStructure.js";
 import { AffiliateBusinessDeveloperShopScopeEditor } from "./AffiliateBusinessDeveloperShopScopeEditor.js";
+import { AffiliateStaffPermissionsField } from "./AffiliateStaffPermissionsField.js";
 import { ACCOUNT_MEMBERS_ROUTE } from "./AffiliateTeamLeadEditor.js";
 import "./AffiliateTeamStructure.css";
 
@@ -43,7 +46,8 @@ const NEW_REGION_ADMIN_SCOPE: BusinessDeveloperShopScopeDraft = {
 };
 
 /**
- * Creates or edits one region admin profile (ADR-112). The scope is the
+ * Creates or edits one region admin profile (ADR-112) and the permissions it
+ * holds (ADR-113). The scope is the
  * ADR-110 region and shop editor, reused as is. The drafts are primitives
  * seeded once on mount; the stored profile is re-read from the structure.
  */
@@ -73,6 +77,10 @@ export const AffiliateRegionAdminEditor = observer(function AffiliateRegionAdmin
       ? shopScopeDraftFrom(admin, new Set(scopeShopsFrom(entityStore.shops).map((shop) => shop.id)))
       : NEW_REGION_ADMIN_SCOPE,
   );
+  // A new region admin starts on the role default; an existing one on what it holds.
+  const [permissions, setPermissions] = useState(
+    () => admin?.permissions ?? defaultStaffPermissions("REGION_ADMIN"),
+  );
 
   const members = unboundEligibleMembers(structure.eligibleRegionAdminMembers);
 
@@ -87,8 +95,9 @@ export const AffiliateRegionAdminEditor = observer(function AffiliateRegionAdmin
 
   const name = displayName.trim();
   const scopeSaveable = isShopScopeDraftSaveable(scope);
+  const permissionsChanged = !admin || !sameStaffPermissions(permissions, admin.permissions);
   const changed = admin
-    ? name !== admin.displayName || isShopScopeDraftChanged(scope, admin)
+    ? name !== admin.displayName || isShopScopeDraftChanged(scope, admin) || permissionsChanged
     : true;
   const canSave =
     Boolean(name) && scopeSaveable && changed && (admin ? true : Boolean(memberUserId));
@@ -115,6 +124,8 @@ export const AffiliateRegionAdminEditor = observer(function AffiliateRegionAdmin
             memberUserId: admin ? undefined : memberUserId,
             displayName: name,
             ...shopScopeOfDraft(scope),
+            permissions,
+            permissionsChanged,
           });
         }}
       >
@@ -176,6 +187,7 @@ export const AffiliateRegionAdminEditor = observer(function AffiliateRegionAdmin
             allHint={t("ecommerce.affiliateTeam.regionAdminScopeAllHint")}
             specificHint={t("ecommerce.affiliateTeam.regionAdminScopeSpecificHint")}
           />
+          <AffiliateStaffPermissionsField value={permissions} onChange={setPermissions} />
           <div className="tk-v1-modal-actions">
             <TkButton type="button" onClick={onClose} disabled={saving}>
               {t("common.cancel")}

@@ -1,21 +1,17 @@
 import { useTranslation } from "react-i18next";
 import { useAffiliateAccess } from "../../hooks/useAffiliateAccess.js";
+import { affiliateStaffNoticeKey } from "../../lib/affiliate-access.js";
 import { TkAlert } from "../design-system/index.js";
 
 /**
- * Tells a team lead or region admin what their view is for (ADR-112). Renders
- * nothing for supervisors and BDs, so a page can mount it unconditionally.
+ * Tells a team lead or region admin what this login may do (ADR-113): view,
+ * view and operate, allocate, or a combination. Renders nothing for supervisors
+ * and BDs, so a page can mount it unconditionally.
  */
 export function AffiliateStaffNotice({ className }: { className?: string }) {
   const { t } = useTranslation();
-  const access = useAffiliateAccess();
-  if (access.kind !== "STAFF") return null;
-  const key =
-    access.isTeamLead && access.isRegionAdmin
-      ? "teamLeadAndRegionAdminNotice"
-      : access.isTeamLead
-        ? "teamLeadNotice"
-        : "regionAdminNotice";
+  const key = affiliateStaffNoticeKey(useAffiliateAccess());
+  if (!key) return null;
   return (
     <TkAlert className={className} tone="info">
       {t(`ecommerce.affiliateStaff.${key}`)}

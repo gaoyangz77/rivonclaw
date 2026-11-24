@@ -26,7 +26,13 @@ vi.mock("@apollo/client/react", () => ({
 }));
 vi.mock("../../../components/Toast.js", () => ({ useToast: () => ({ showToast: mocks.toast }) }));
 vi.mock("../../../store/EntityStoreProvider.js", () => ({
-  useEntityStore: () => ({ affiliateWorkspace: workspace }),
+  useEntityStore: () => ({
+    affiliateWorkspace: workspace,
+    shops: [{ id: "shop-b", alias: "Shop B", shopName: null, platformShopId: null }],
+  }),
+}));
+vi.mock("../../../store/RuntimeStatusProvider.js", () => ({
+  useRuntimeStatus: () => ({ appSettings: { privacyMode: false } }),
 }));
 
 beforeEach(async () => {
@@ -34,8 +40,8 @@ beforeEach(async () => {
   mocks.candidateCalls.length = 0;
   mocks.candidates.data = {
     affiliateAssignableBusinessDevelopers: [
-      { id: "bd-a", displayName: "Alice" },
-      { id: "bd-b", displayName: "Bob" },
+      { id: "bd-a", displayName: "Alice", uncoveredShopIds: [] },
+      { id: "bd-b", displayName: "Bob", uncoveredShopIds: [] },
     ],
   };
   mocks.candidates.error = undefined;
@@ -57,11 +63,15 @@ function view(owner: string | null = null, onChanged = vi.fn().mockResolvedValue
 it("offers Assign for a public-pool Creator and Change plus release for an owned one", () => {
   view(null);
   expect(screen.getByRole("button", { name: "Assign BD" })).toBeTruthy();
-  expect(screen.queryByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.releaseCreator") })).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.releaseCreator") }),
+  ).toBeNull();
   cleanup();
   view("bd-a");
   expect(screen.getByRole("button", { name: "Change BD" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.releaseCreator") })).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.releaseCreator") }),
+  ).toBeTruthy();
 });
 
 it("reads the assignable BDs only once the dialog opens, for this Creator", () => {
@@ -94,7 +104,13 @@ it("names the chosen BD explicitly, never a random assignment, and refreshes the
   });
   await waitFor(() => expect(mocks.assign).toHaveBeenCalledTimes(1));
   expect(mocks.assign.mock.calls[0]![0]).toEqual({
-    variables: { input: { creatorRelationshipId: "relationship-1", businessDeveloperId: "bd-b" } },
+    variables: {
+      input: {
+        creatorRelationshipId: "relationship-1",
+        businessDeveloperId: "bd-b",
+        expectedBusinessDeveloperId: null,
+      },
+    },
   });
   await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(1));
   expect(mocks.toast).toHaveBeenCalledWith("Creator assigned to Bob.", "success");
@@ -124,7 +140,9 @@ it("shows the refusal when the BD list cannot be read, and the empty state when 
 it("shows the translated Backend refusal and leaves everything unchanged when the assignment fails", async () => {
   const onChanged = vi.fn();
   view(null, onChanged);
-  mocks.assign.mockRejectedValue(new Error(i18n.t("ecommerce.affiliateStaff.creatorOutsideRegionScope")));
+  mocks.assign.mockRejectedValue(
+    new Error(i18n.t("ecommerce.affiliateStaff.creatorOutsideRegionScope")),
+  );
   fireEvent.click(screen.getByRole("button", { name: "Assign BD" }));
   fireEvent.click(screen.getByRole("button", { name: "Business developer" }));
   fireEvent.click(screen.getByText("Alice"));
@@ -138,4 +156,68 @@ it("shows the translated Backend refusal and leaves everything unchanged when th
     ),
   );
   expect(onChanged).not.toHaveBeenCalled();
+});
+
+it("expects the owner the dialog opened on when reassigning an owned Creator", async () => {
+  view("bd-a");
+  mocks.assign.mockResolvedValue({
+    data: {
+      assignAffiliateBusinessDeveloper: {
+        id: "relationship-1",
+        creatorId: "c",
+        businessDeveloperId: "bd-b",
+        updatedAt: "2026-11-20T00:00:00Z",
+      },
+    },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Change BD" }));
+  fireEvent.click(screen.getByRole("button", { name: "Business developer" }));
+  fireEvent.click(screen.getByText("Bob"));
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Assign" }));
+  });
+  await waitFor(() => expect(mocks.assign).toHaveBeenCalledTimes(1));
+  expect(mocks.assign.mock.calls[0]![0].variables.input.expectedBusinessDeveloperId).toBe("bd-a");
+});
+
+it("warns, without blocking the save, when the chosen BD does not cover every shop", async () => {
+  mocks.candidates.data = {
+    affiliateAssignableBusinessDevelopers: [
+      { id: "bd-b", displayName: "Bob", uncoveredShopIds: ["shop-b"] },
+    ],
+  };
+  view(null);
+  fireEvent.click(screen.getByRole("button", { name: "Assign BD" }));
+  fireEvent.click(screen.getByRole("button", { name: "Business developer" }));
+  fireEvent.click(screen.getByText("Bob"));
+  expect(
+    screen.getByText(
+      i18n.t("ecommerce.affiliateStaff.allocateUncoveredWarning", { shops: "Shop B" }),
+    ),
+  ).toBeTruthy();
+  expect((screen.getByRole("button", { name: "Assign" }) as HTMLButtonElement).disabled).toBe(
+    false,
+  );
+});
+
+it("shows the owner-changed message and refreshes when someone else changed the BD", async () => {
+  const onChanged = vi.fn().mockResolvedValue(undefined);
+  view("bd-a", onChanged);
+  mocks.assign.mockRejectedValue({
+    errors: [{ extensions: { code: "AFFILIATE_CREATOR_OWNER_CHANGED" } }],
+    message: "English",
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Change BD" }));
+  fireEvent.click(screen.getByRole("button", { name: "Business developer" }));
+  fireEvent.click(screen.getByText("Bob"));
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Assign" }));
+  });
+  await waitFor(() =>
+    expect(mocks.toast).toHaveBeenCalledWith(
+      i18n.t("ecommerce.affiliateStaff.ownerChanged"),
+      "error",
+    ),
+  );
+  expect(onChanged).toHaveBeenCalledTimes(1);
 });

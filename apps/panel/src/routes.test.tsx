@@ -155,7 +155,7 @@ describe("permission-scope navigation", () => {
     ).toEqual(["/commerce/affiliate", ...affiliateWorkspace, ...basePages]);
   });
 
-  it("gives a team lead the four read-only BD workbench pages and no supervision, analytics or product knowledge", () => {
+  it("gives a team lead the four BD workbench pages and no supervision, analytics or product knowledge", () => {
     const lead = { isOwner: false, permissionScopes: [GQL.PermissionScope.AffiliateTeamLead] };
     const permitted = ROUTES.filter(
       (route) => route.navLabelKey && !route.navHidden && canSeeRoute(route, lead),
@@ -178,14 +178,17 @@ describe("permission-scope navigation", () => {
     ).toEqual(["/commerce/affiliate", ...permitted.filter((path) => path.startsWith("/commerce/"))]);
   });
 
-  it("gives a region admin the Creator list and nothing else in Affiliate", () => {
+  it("gives a region admin the same four pages; the gate decides by permission", () => {
     const admin = { isOwner: false, permissionScopes: [GQL.PermissionScope.AffiliateRegionAdmin] };
     const permitted = ROUTES.filter(
       (route) => route.navLabelKey && !route.navHidden && canSeeRoute(route, admin),
     ).map((route) => route.path);
 
     expect(permitted.filter((path) => path.startsWith("/commerce/"))).toEqual([
+      "/commerce/affiliate/attention",
+      "/commerce/affiliate/manual-workbench",
       "/commerce/affiliate/creators",
+      "/commerce/affiliate/history",
     ]);
   });
 

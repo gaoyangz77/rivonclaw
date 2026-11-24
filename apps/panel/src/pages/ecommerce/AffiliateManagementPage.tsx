@@ -108,7 +108,6 @@ import { useAffiliateStaffDirectory } from "../../hooks/useAffiliateStaffDirecto
 import {
   affiliateAccessCreatorTab,
   affiliateAccessMaySeeCreatorTab,
-  creatorWithinShopScope,
 } from "../../lib/affiliate-access.js";
 import {
   affiliateStaffDeveloperOptions,
@@ -1111,7 +1110,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   const user = entityStore.currentUser;
   // Derived on every render so it follows the signed-in user (ADR 085).
   const businessDeveloperOnly = isBusinessDeveloperOnly(user);
-  // Team lead (ADR-112): read-only over the subtree. The BD roster is not theirs to read.
+  // Staff (ADR-112, ADR-113) work from what their permissions allow. The BD roster is not theirs to read.
   const access = useAffiliateAccess();
   const staffAccess = access.kind === "STAFF";
   const staffDirectory = useAffiliateStaffDirectory(access);
@@ -1198,9 +1197,18 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
     }
   }, [businessDeveloperData, entityStore.affiliateWorkspace]);
 
+  // Both facets contribute: a region admin holding VIEW reads this page too (ADR-113).
+  const staffDevelopers = mergeAffiliateStaffDevelopers(
+    staffDirectory.teamDevelopers,
+    staffDirectory.regionDevelopers,
+  );
   const businessDeveloperOptions = staffAccess
-    ? affiliateStaffDeveloperOptions(staffDirectory.teamDevelopers, {
-        all: t("ecommerce.affiliateStaff.allMyTeam"),
+    ? affiliateStaffDeveloperOptions(staffDevelopers, {
+        all: t(
+          access.isTeamLead && !access.isRegionAdmin
+            ? "ecommerce.affiliateStaff.allMyTeam"
+            : "ecommerce.affiliateWorkspace.allBusinessDevelopers",
+        ),
         publicPool: {
           value: AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE,
           label: t("ecommerce.affiliateWorkspace.publicCreatorsFilter"),
@@ -1623,7 +1631,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
                 className="affiliate-status-select"
                 disabled={
                   staffAccess
-                    ? staffDirectory.loading && staffDirectory.teamDevelopers.length === 0
+                    ? staffDirectory.loading && staffDevelopers.length === 0
                     : businessDevelopersLoading && businessDeveloperOptions.length === 1
                 }
               />
@@ -2084,7 +2092,7 @@ function AffiliateEscalationDetailModal({
 }) {
   const { t } = useTranslation();
   const { showToast } = useToast();
-  // Answering the Agent is daily work: staff read the question and nothing more (ADR-112).
+  // Answering the Agent is daily work: staff do it only with the OPERATE permission (ADR-113).
   const access = useAffiliateAccess();
   // One free-text answer, sent as `decision`: staff say what they decided and
   // what the Agent should do next in the same breath, exactly as they would to
@@ -2181,7 +2189,7 @@ function AffiliateEscalationDetailModal({
             labelKey="ecommerce.affiliateWorkspace.escalations.copyRelationshipId"
           />
         </div>
-        {access.readOnly ? (
+        {!access.canOperate ? (
           <TkAlert tone="info">{t("ecommerce.affiliateStaff.escalationReadOnly")}</TkAlert>
         ) : (
           <form
@@ -3447,9 +3455,6 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     ...staffDevelopers.map((developer) => [developer.id, developer] as const),
     ...businessDeveloperById,
   ]);
-  // The ids of the shops this login reads: a region admin may allocate a Creator only
-  // when every shop of it is in this set.
-  const scopeShopIds = new Set(entityStore.shops.map((shop) => shop.id));
 
   const { data: projectionHealthData, refetch: refetchProjectionHealth } = useQuery<
     { affiliateOperationalProjectionHealth: GQL.AffiliateOperationalProjectionHealthPayload },
@@ -3457,8 +3462,8 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   >(AFFILIATE_OPERATIONAL_PROJECTION_HEALTH_QUERY, {
     variables: { shopId: selectedShopId },
     fetchPolicy: "cache-and-network",
-    // A region admin may not read projection health (ADR-112).
-    skip: !user || !selectedShopId || (staffAccess && !access.isTeamLead),
+    // Projection health is a work view: staff read it with VIEW (ADR-113).
+    skip: !user || !selectedShopId || (staffAccess && !access.canView),
   });
   const projectionHealth = projectionHealthData?.affiliateOperationalProjectionHealth;
   const projectionHistoryIncomplete =
@@ -3789,9 +3794,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
                 onOpenRelationship={(relationship) => setSelectedRelationship(relationship)}
                 scopeShopId={selectedShopId}
                 allocation={
-                  access.canAllocate
-                    ? { scopeShopIds, onChanged: async () => void (await refetch()) }
-                    : null
+                  access.canAllocate ? { onChanged: async () => void (await refetch()) } : null
                 }
               />
             ))}
@@ -3862,8 +3865,8 @@ function CreatorRelationshipCompactCard({
   /** Null when the viewer may not open the BD roster detail (a BD-only member or staff). */
   onOpenBusinessDeveloper: ((businessDeveloperId: string) => void) | null;
   onOpenRelationship: (item: CreatorRelationshipDetailItem) => void;
-  /** A region admin (ADR-112) allocates from the card; null for everyone else. */
-  allocation: { scopeShopIds: ReadonlySet<string>; onChanged: () => Promise<unknown> } | null;
+  /** A staff login holding ALLOCATE (ADR-113) allocates from the card; null for everyone else. */
+  allocation: { onChanged: () => Promise<unknown> } | null;
 }) {
   const { t } = useTranslation();
   const profile = item.creatorProfile;
@@ -4121,9 +4124,7 @@ function CreatorRelationshipCompactCard({
             {businessDeveloperLabel}
           </span>
         )}
-        {allocation &&
-        item.creatorRelation?.id &&
-        creatorWithinShopScope(relationshipShopIds, allocation.scopeShopIds) ? (
+        {allocation && item.creatorRelation?.id ? (
           <AffiliateAllocationControl
             creatorRelationshipId={item.creatorRelation.id}
             businessDeveloperId={item.creatorRelation.businessDeveloperId ?? null}
@@ -6547,8 +6548,8 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   // A business developer reads collaborations but does not create, edit or remove them,
   // nor change shop-wide open collaboration settings (ADR 085).
   const access = useAffiliateAccess();
-  // Staff logins (ADR-112) read collaborations as well and change none.
-  const canManageCollaborations = !isBusinessDeveloperOnly(user) && !access.readOnly;
+  // Staff logins (ADR-112) read collaborations with VIEW and change none, whatever they hold (ADR-113).
+  const canManageCollaborations = !isBusinessDeveloperOnly(user) && access.canManageCollaborations;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const [selectedShopId, setSelectedShopId] = useState("");
@@ -7118,8 +7119,8 @@ export function AffiliateMessageTargetCollaborationCard({ part, creatorRelations
   onRefresh: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
-  // Loading a card refreshes it from the platform, a write the Backend refuses staff (ADR-112).
-  const readOnly = useAffiliateAccess().readOnly;
+  // Loading a card refreshes it from the platform, a write that needs OPERATE for staff (ADR-113).
+  const readOnly = !useAffiliateAccess().canOperate;
   const [detailOpen, setDetailOpen] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -7178,7 +7179,7 @@ export function AffiliateMessageEntityCard({ part, creatorRelationshipId, shopId
   part: GQL.AffiliateHistoryPart; creatorRelationshipId: string; shopId: string; onRefresh: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
-  const readOnly = useAffiliateAccess().readOnly;
+  const readOnly = !useAffiliateAccess().canOperate;
   const [refresh, { loading }] = useMutation(REFRESH_AFFILIATE_MESSAGE_CARDS_MUTATION);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const prefix = "ecommerce.affiliateWorkspace.messageCards.";
@@ -7876,7 +7877,8 @@ export const AgentWorkBundleDetailModal = observer(function AgentWorkBundleDetai
   onIgnore: (proposal: GQL.ActionProposal) => Promise<boolean>;
 }) {
   const { t } = useTranslation();
-  // Deciding on a proposal is daily work, which staff logins do not do (ADR-112).
+  // Deciding on a proposal is daily work: staff do it only with OPERATE, and each
+  // proposal's `viewerCanApprove` still decides its own approve button (ADR-113).
   const access = useAffiliateAccess();
   const currentProjection = proposalProjectionSnapshot(affiliateWorkspace, bundle.proposal.id);
   const proposal = currentProjection
@@ -7888,7 +7890,7 @@ export const AgentWorkBundleDetailModal = observer(function AgentWorkBundleDetai
     sensitive: false,
   };
   const isPending = proposal.status === GQL.ActionProposalStatus.Pending;
-  const canDecide = isPending && !access.readOnly;
+  const canDecide = isPending && access.canOperate;
   const titleId = `affiliate-agent-work-detail-${proposal.id}`;
   const relationshipId =
     proposal.creatorRelationshipId ?? proposal.sourceWorkBoundary?.creatorRelationshipId ?? null;
@@ -10854,11 +10856,9 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     entityStore.shops.map((shop) => [shop.id, shop.region ?? null] as const),
   );
   const creatorShopIds = rawShopStates.map((state) => state.shopId);
-  // A region admin allocates a Creator only when every shop of it is in the admin's scope.
-  const canAllocateCreator =
-    access.canAllocate &&
-    Boolean(relationshipId) &&
-    creatorWithinShopScope(creatorShopIds, new Set(entityStore.shops.map((shop) => shop.id)));
+  // Staff allocate with ALLOCATE; the picker lists only the BDs they may name for
+  // this Creator and the Backend refuses a Creator outside their reach (ADR-113).
+  const canAllocateCreator = access.canAllocate && Boolean(relationshipId);
   const ownerOptions = ownerAssignmentCandidates<
     (typeof affiliateWorkspace.businessDevelopers)[number]
   >(
@@ -12093,7 +12093,12 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     }}
                   />
                 ) : null}
-                {relationshipOwnerId && canEditCreatorConfiguration && relationshipId ? (
+                {/* Release is allocation. Staff get it from the allocation control above, and only with
+                    ALLOCATE (ADR-113), so this standalone button is for supervisors and BDs. */}
+                {relationshipOwnerId &&
+                canEditCreatorConfiguration &&
+                !staffAccess &&
+                relationshipId ? (
                   <AffiliateReleaseCreatorButton
                     creatorRelationshipId={relationshipId}
                     businessDeveloperId={relationshipOwnerId}
@@ -12103,6 +12108,8 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     }}
                   />
                 ) : null}
+                {/* Protection decides automatic assignment and stays admin-only for staff, whatever the flag says (ADR-113). */}
+                {!staffAccess ? (
                 <div className="affiliate-relationship-protection-control">
                   <span>{t("ecommerce.affiliateWorkspace.relationshipAiParticipation")}</span>
                   <strong>
@@ -12126,6 +12133,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     <small>{relationshipProtection.note}</small>
                   ) : null}
                 </div>
+                ) : null}
                 {relationshipOwner?.agentAssistanceMode ===
                 GQL.AffiliateAgentAssistanceMode.HumanOnly ? (
                   <small>
@@ -12199,7 +12207,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                 systemTags={relationship?.systemTags ?? []}
                 lastChange={lastManualTagChange}
                 lastSystemTagChange={lastSystemTagChange}
-                canEditTagDefinitions={!businessDeveloperOnly}
+                canEditTagDefinitions={!businessDeveloperOnly && !staffAccess}
                 onChanged={() => {
                   void refetchRelationshipDetail();
                   if (timelineVisible) void refetchRelationshipTimeline();

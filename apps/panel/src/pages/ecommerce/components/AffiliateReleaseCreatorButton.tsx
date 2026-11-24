@@ -5,6 +5,8 @@ import type { GQL } from "@rivonclaw/core";
 import { RELEASE_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION } from "../../../api/shops-queries.js";
 import { TkButton, TkConfirmDialog } from "../../../components/design-system/index.js";
 import { useToast } from "../../../components/Toast.js";
+import { AFFILIATE_CREATOR_OWNER_CHANGED } from "../../../lib/affiliate-allocation.js";
+import { graphQLErrorCode } from "../../../lib/graphql-error-code.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 
 export function AffiliateReleaseCreatorButton({
@@ -39,6 +41,12 @@ export function AffiliateReleaseCreatorButton({
       await onReleased();
       showToast(t("ecommerce.affiliateWorkspace.creatorReleased"), "success");
     } catch (error) {
+      if (graphQLErrorCode(error) === AFFILIATE_CREATOR_OWNER_CHANGED) {
+        // Someone changed the owner after the user looked: show the current one.
+        showToast(t("ecommerce.affiliateStaff.ownerChanged"), "error");
+        await onReleased();
+        return;
+      }
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
     }
   }

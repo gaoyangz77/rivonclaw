@@ -1,19 +1,19 @@
 /**
- * Pure rules for the admin team-structure editor (ADR-112): the hierarchy
- * tree, parent-picker candidates, eligible-member filtering and the refusal
- * codes the Backend can return. Everything works on plain objects read from the
+ * Pure rules for the admin team-structure editor (ADR-112, ADR-113): the
+ * hierarchy tree, parent-picker candidates, eligible-member filtering, the
+ * permission sets of the profiles and the refusal codes the Backend can return. Everything works on plain objects read from the
  * query result; nothing here touches React or the entity store.
  */
-import type { GQL } from "@rivonclaw/core";
+import { GQL } from "@rivonclaw/core";
 import { graphQLErrorCode } from "../../lib/graphql-error-code.js";
 
 export type TeamLeadProfile = Pick<
   GQL.AffiliateTeamLeadProfile,
-  "id" | "memberUserId" | "displayName" | "parentLeadId" | "archivedAt"
+  "id" | "memberUserId" | "displayName" | "parentLeadId" | "permissions" | "archivedAt"
 >;
 export type RegionAdminProfile = Pick<
   GQL.AffiliateRegionAdminProfile,
-  "id" | "memberUserId" | "displayName" | "regions" | "shopIds" | "archivedAt"
+  "id" | "memberUserId" | "displayName" | "regions" | "shopIds" | "permissions" | "archivedAt"
 >;
 export type TeamBusinessDeveloper = Pick<
   GQL.AffiliateTeamBusinessDeveloper,
@@ -50,6 +50,59 @@ export interface TeamTree {
   /** BDs with no parent, or whose parent lead is archived or unknown. */
   unparentedBusinessDevelopers: TeamBusinessDeveloper[];
   archivedLeads: TeamLeadProfile[];
+}
+
+/** What a staff profile may do inside its reach (ADR-113), in the order the editor lists them. */
+export const AFFILIATE_STAFF_PERMISSIONS: readonly GQL.AffiliateStaffPermission[] = [
+  GQL.AffiliateStaffPermission.View,
+  GQL.AffiliateStaffPermission.Operate,
+  GQL.AffiliateStaffPermission.Allocate,
+];
+
+/**
+ * The permissions a new profile of this role starts with. They are the Backend's
+ * role defaults, so a profile the admin saves untouched behaves like one created
+ * without a permission list.
+ */
+export function defaultStaffPermissions(
+  role: "TEAM_LEAD" | "REGION_ADMIN",
+): GQL.AffiliateStaffPermission[] {
+  return role === "TEAM_LEAD"
+    ? [GQL.AffiliateStaffPermission.View]
+    : [GQL.AffiliateStaffPermission.Allocate];
+}
+
+/**
+ * The set after one checkbox changed. `OPERATE` implies `VIEW`: ticking it ticks
+ * `VIEW`, and unticking `VIEW` unticks `OPERATE`, so the draft is never a set
+ * the Backend would refuse.
+ */
+export function toggleStaffPermission(
+  current: readonly GQL.AffiliateStaffPermission[],
+  permission: GQL.AffiliateStaffPermission,
+  checked: boolean,
+): GQL.AffiliateStaffPermission[] {
+  const next = new Set(current);
+  if (checked) {
+    next.add(permission);
+    if (permission === GQL.AffiliateStaffPermission.Operate) {
+      next.add(GQL.AffiliateStaffPermission.View);
+    }
+  } else {
+    next.delete(permission);
+    if (permission === GQL.AffiliateStaffPermission.View) {
+      next.delete(GQL.AffiliateStaffPermission.Operate);
+    }
+  }
+  return AFFILIATE_STAFF_PERMISSIONS.filter((candidate) => next.has(candidate));
+}
+
+/** Whether two permission lists name the same set, whatever their order. */
+export function sameStaffPermissions(
+  a: readonly GQL.AffiliateStaffPermission[],
+  b: readonly GQL.AffiliateStaffPermission[],
+): boolean {
+  return a.length === b.length && a.every((permission) => b.includes(permission));
 }
 
 function byDisplayName<T extends { displayName: string }>(a: T, b: T): number {

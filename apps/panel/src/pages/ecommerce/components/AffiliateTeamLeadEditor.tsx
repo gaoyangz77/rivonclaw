@@ -11,21 +11,25 @@ import {
 import { Select } from "../../../components/inputs/Select.js";
 import { openPanelRoute } from "../../../lib/open-route.js";
 import {
+  defaultStaffPermissions,
   displayNameAfterMemberPick,
   liveParentLeadId,
   memberLabel,
   parentLeadCandidates,
+  sameStaffPermissions,
   unboundEligibleMembers,
   type TeamStructure,
 } from "../affiliate-team-structure.js";
 import type { TeamLeadSaveInput } from "../hooks/useAffiliateTeamStructure.js";
+import { AffiliateStaffPermissionsField } from "./AffiliateStaffPermissionsField.js";
 import "./AffiliateTeamStructure.css";
 
 /** Where the owner assigns the Team Lead / Region Admin roles to members. */
 export const ACCOUNT_MEMBERS_ROUTE = "/account/profile";
 
 /**
- * Creates or edits one team lead profile (ADR-112). Mounted only while open, so
+ * Creates or edits one team lead profile (ADR-112) and the permissions it holds
+ * (ADR-113). Mounted only while open, so
  * the primitive draft below is seeded once from the structure and then belongs
  * to the user until save or cancel. `leadId` is the only thing it keeps from
  * the structure; the profile itself is re-read from the structure each render.
@@ -53,6 +57,10 @@ export function AffiliateTeamLeadEditor({
   const [memberUserId, setMemberUserId] = useState("");
   const [displayName, setDisplayName] = useState(lead?.displayName ?? "");
   const [parentLeadId, setParentLeadId] = useState<string>(storedParentId ?? "");
+  // A new lead starts on the role default; an existing one on what it holds.
+  const [permissions, setPermissions] = useState(
+    () => lead?.permissions ?? defaultStaffPermissions("TEAM_LEAD"),
+  );
 
   const members = unboundEligibleMembers(structure.eligibleTeamLeadMembers);
 
@@ -72,7 +80,10 @@ export function AffiliateTeamLeadEditor({
   const name = displayName.trim();
   const nameChanged = !lead || name !== lead.displayName;
   const parentChanged = (parentLeadId || null) !== storedParentId;
-  const canSave = Boolean(name) && (lead ? nameChanged || parentChanged : Boolean(memberUserId));
+  const permissionsChanged = !lead || !sameStaffPermissions(permissions, lead.permissions);
+  const canSave =
+    Boolean(name) &&
+    (lead ? nameChanged || parentChanged || permissionsChanged : Boolean(memberUserId));
 
   return (
     <Modal
@@ -96,8 +107,10 @@ export function AffiliateTeamLeadEditor({
             memberUserId: lead ? undefined : memberUserId,
             displayName: name,
             parentLeadId: parentLeadId || null,
+            permissions,
             displayNameChanged: nameChanged,
             parentLeadIdChanged: parentChanged,
+            permissionsChanged,
           });
         }}
       >
@@ -166,6 +179,7 @@ export function AffiliateTeamLeadEditor({
               ]}
             />
           </label>
+          <AffiliateStaffPermissionsField value={permissions} onChange={setPermissions} />
           <div className="tk-v1-modal-actions">
             <TkButton type="button" onClick={onClose} disabled={saving}>
               {t("common.cancel")}

@@ -2,7 +2,8 @@ import { gql } from "@apollo/client/core";
 
 /**
  * Admin-side team structure (ADR-112): the team-lead tree, region admin
- * profiles, and the members an admin may bind a profile to. Every operation
+ * profiles with the permissions each holds (ADR-113), and the members an admin
+ * may bind a profile to. Every operation
  * here is admin-only on the Backend.
  */
 
@@ -12,6 +13,7 @@ export const AFFILIATE_TEAM_LEAD_PROFILE_FIELDS_FRAGMENT = gql`
     memberUserId
     displayName
     parentLeadId
+    permissions
     archivedAt
   }
 `;
@@ -23,6 +25,7 @@ export const AFFILIATE_REGION_ADMIN_PROFILE_FIELDS_FRAGMENT = gql`
     displayName
     regions
     shopIds
+    permissions
     archivedAt
   }
 `;
