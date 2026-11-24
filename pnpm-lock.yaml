@@ -267,6 +267,103 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.6.0)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.9.0)
 
+  extensions-merchant/rivonclaw-cloud-tools:
+    dependencies:
+      '@rivonclaw/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+      adm-zip:
+        specifier: ^0.5.16
+        version: 0.5.16
+      pdfjs-dist:
+        specifier: 5.7.284
+        version: 5.7.284
+    devDependencies:
+      '@rivonclaw/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@sinclair/typebox':
+        specifier: ^0.34.0
+        version: 0.34.52
+      '@types/adm-zip':
+        specifier: ^0.5.7
+        version: 0.5.7
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.9
+      oxlint:
+        specifier: ^1.43.0
+        version: 1.43.0
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@22.19.9)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.9.0)
+
+  extensions-merchant/rivonclaw-cs:
+    dependencies:
+      '@rivonclaw/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@rivonclaw/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.9
+      oxlint:
+        specifier: ^1.43.0
+        version: 1.43.0
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@22.19.9)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.9.0)
+
+  extensions-merchant/rivonclaw-ecom:
+    dependencies:
+      '@rivonclaw/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@rivonclaw/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.9
+      oxlint:
+        specifier: ^1.43.0
+        version: 1.43.0
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@22.19.9)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.9.0)
+
+  extensions-merchant/rivonclaw-local-tools:
+    dependencies:
+      '@rivonclaw/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@rivonclaw/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.9
+      oxlint:
+        specifier: ^1.43.0
+        version: 1.43.0
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+
   extensions/channel-weixin:
     dependencies:
       '@tencent-weixin/openclaw-weixin':
@@ -2903,6 +3000,9 @@ packages:
 
   '@silvia-odwyer/photon-node@0.3.4':
     resolution: {integrity: sha512-bnly4BKB3KDTFxrUIcgCLbaeVVS8lrAkri1pEzskpmxu9MdfGQTy8b8EgcD83ywD3RPMsIulY8xJH5Awa+t9fA==}
+
+  '@sinclair/typebox@0.34.52':
+    resolution: {integrity: sha512-XiMQh7qqVlxZzcVD+kkGMNGMzcTrDMLWI7S4x7z1MkCkbDPrekpZXEUK0eZqZFMuHQg2a2DZOcDIh9o5v3Gonw==}
 
   '@sindresorhus/is@4.6.0':
     resolution: {integrity: sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw==}
@@ -10279,6 +10379,8 @@ snapshots:
     optional: true
 
   '@silvia-odwyer/photon-node@0.3.4': {}
+
+  '@sinclair/typebox@0.34.52': {}
 
   '@sindresorhus/is@4.6.0': {}
 
