@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.9.61",
+    "date": "2026-11-24",
+    "en": [
+      "The retired 爪聊 mobile chat is removed from the channels page, and its leftover settings are cleaned up automatically on upgrade; the channel picker now leads with WeChat and Feishu",
+      "Team lead and region admin access is now set per person with View, Operate and Allocate permissions, and assigning a Creator warns when the chosen BD does not cover all of its shops",
+      "Sample applications show whether they came from a Campaign invitation or your own target invitation",
+      "Consistent wording on the models and channels pages"
+    ],
+    "zh": [
+      "已停用的爪聊从渠道页移除，升级时自动清理遗留设置；渠道选择改为优先展示微信和飞书",
+      "组长和站点管理员改为按人勾选查看、操作、分配权限；分配达人时，若所选 BD 没有覆盖该达人的全部店铺会给出提醒",
+      "申样卡片会标明来自推广计划邀约还是自己的定邀",
+      "统一模型页和渠道页的文案"
+    ]
+  },
+  {
     "version": "1.9.60",
     "date": "2026-11-20",
     "en": [
