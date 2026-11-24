@@ -23,7 +23,7 @@ async function navigateToChannels(window: import("@playwright/test").Page) {
   const channelsBtn = window.getByRole("button", { name: "Channels", exact: true });
   await channelsBtn.click();
   await expect(channelsBtn).toHaveAttribute("aria-current", "page");
-  const channelTitle = window.getByRole("heading", { name: "Messaging", exact: true });
+  const channelTitle = window.getByRole("heading", { name: "Channels", exact: true });
   await expect(channelTitle).toBeVisible({ timeout: 15_000 });
 }
 

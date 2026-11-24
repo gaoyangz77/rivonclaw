@@ -371,6 +371,7 @@ export default {
     noProviders: "Belum ada penyedia yang dikonfigurasi. Tambahkan satu di bawah.",
     configuredTitle: "Penyedia yang Dikonfigurasi",
     "label_rivonclaw-pro": "TK Copilot AI",
+    cloudModelName: "Andalan",
     label_openai: "OpenAI",
     label_anthropic: "Anthropic",
     label_claude: "Claude (Berlangganan)",
@@ -535,7 +536,7 @@ export default {
   channels: {
     title: "Pesan",
     description: "Hubungkan platform perpesanan ke agen AI Anda.",
-    statusSubtitle: "Status dari gateway OpenClaw (penyegaran otomatis setiap 30 detik)",
+    statusSubtitle: "Status koneksi (penyegaran otomatis setiap 30 detik)",
     emptyState: "Belum ada saluran yang dikonfigurasi.",
     emptyStateTitle: "Tidak ada saluran yang dikonfigurasi",
     emptyStateDescription:

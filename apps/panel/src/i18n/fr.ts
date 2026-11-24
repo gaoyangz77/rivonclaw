@@ -375,6 +375,7 @@ export default {
     noProviders: "Aucun fournisseur n'est encore configuré. Ajoutez-en un ci-dessous.",
     configuredTitle: "Fournisseurs configurés",
     "label_rivonclaw-pro": "TK Copilot AI",
+    cloudModelName: "Phare",
     label_openai: "OpenAI",
     label_anthropic: "Anthropic",
     label_claude: "Claude (Abonnement)",
@@ -541,7 +542,7 @@ export default {
   channels: {
     title: "Messagerie",
     description: "Connectez les plateformes de messagerie à votre agent IA.",
-    statusSubtitle: "Statut de la passerelle OpenClaw (actualisation automatique toutes les 30 s)",
+    statusSubtitle: "Statut des connexions (actualisation automatique toutes les 30 s)",
     emptyState: "Aucun canal configuré pour l'instant.",
     emptyStateTitle: "Aucun canal configuré",
     emptyStateDescription:

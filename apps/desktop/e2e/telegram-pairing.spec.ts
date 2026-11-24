@@ -34,7 +34,7 @@ test.describe("Telegram Pairing Flow", () => {
     await channelsBtn.click();
     await expect(channelsBtn).toHaveAttribute("aria-current", "page");
 
-    const channelTitle = window.getByRole("heading", { name: "Messaging", exact: true });
+    const channelTitle = window.getByRole("heading", { name: "Channels", exact: true });
     await expect(channelTitle).toBeVisible({ timeout: 15_000 });
 
     const telegramRows = window

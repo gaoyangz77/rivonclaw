@@ -370,6 +370,7 @@ export default {
     noProviders: "Nessun provider ancora configurato. Aggiungine uno qui sotto.",
     configuredTitle: "Provider configurati",
     "label_rivonclaw-pro": "TK Copilot AI",
+    cloudModelName: "Ammiraglia",
     label_openai: "OpenAI",
     label_anthropic: "Anthropic",
     label_claude: "Claude (Abbonamento)",
@@ -542,7 +543,7 @@ export default {
   channels: {
     title: "Messaggistica",
     description: "Connetti le piattaforme di messaggistica al tuo agente AI.",
-    statusSubtitle: "Stato dal gateway OpenClaw (si aggiorna automaticamente ogni 30 secondi)",
+    statusSubtitle: "Stato delle connessioni (si aggiorna automaticamente ogni 30 secondi)",
     emptyState: "Nessun canale ancora configurato.",
     emptyStateTitle: "Nessun canale configurato",
     emptyStateDescription:

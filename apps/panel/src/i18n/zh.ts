@@ -357,6 +357,7 @@ export default {
     noProviders: "暂无已配置的提供商，请在下方添加。",
     configuredTitle: "已配置的提供商",
     "label_rivonclaw-pro": "TK匠 AI",
+    cloudModelName: "旗舰模型",
     label_openai: "OpenAI",
     label_anthropic: "Anthropic",
     label_claude: "Claude（订阅）",
@@ -501,9 +502,9 @@ export default {
     refreshModels: "刷新模型列表",
   },
   channels: {
-    title: "消息",
+    title: "渠道",
     description: "将消息平台连接到你的 AI 代理。",
-    statusSubtitle: "OpenClaw 网关状态（每 30 秒自动刷新）",
+    statusSubtitle: "连接状态（每 30 秒自动刷新）",
     emptyState: "暂未配置通道。",
     emptyStateTitle: "未配置通道",
     emptyStateDescription:

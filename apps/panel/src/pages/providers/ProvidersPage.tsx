@@ -346,9 +346,8 @@ export const ProvidersPage = observer(function ProvidersPage() {
                     )}
                   </div>
                   <div className="key-details">
-                    {k.provider === "rivonclaw-pro" ? (
-                      <span className="key-label">{t("providers.label_rivonclaw-pro")}</span>
-                    ) : editingLabelId === k.id ? (
+                    {/* The TK匠 AI card is already named in its header; its label line stays empty. */}
+                    {k.provider === "rivonclaw-pro" ? null : editingLabelId === k.id ? (
                       <input
                         className="key-label-input"
                         value={editLabelValue}
@@ -387,7 +386,7 @@ export const ProvidersPage = observer(function ProvidersPage() {
                       </span>
                     )}
                     {k.provider === "rivonclaw-pro" ? (
-                      <div className="cloud-model-name">Flagship</div>
+                      <div className="cloud-model-name">{t("providers.cloudModelName")}</div>
                     ) : k.authType === "custom" && k.customModelsJson ? (
                       <Select
                         value={k.model}

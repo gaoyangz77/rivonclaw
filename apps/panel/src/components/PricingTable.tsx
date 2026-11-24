@@ -38,7 +38,10 @@ export function PricingTable({
 
   const data = pricingList?.find((p) => p.provider === provider) ?? null;
   const currencySymbol = data?.currency === "CNY" ? "¥" : "$";
-  const providerLabel = getProviderMeta(provider as LLMProvider)?.label ?? provider;
+  // The localized name, as the provider picker shows it; the catalogue's English label is the fallback.
+  const providerLabel = t(`providers.label_${provider}`, {
+    defaultValue: getProviderMeta(provider as LLMProvider)?.label ?? provider,
+  });
 
   return (
     <TkPanel padding="none" clip className="section-card pricing-card">
@@ -155,7 +158,10 @@ export function SubscriptionPricingTable({
 
   const result = findSubscription(pricingList, provider);
   const plans: GQL.Plan[] = result?.sub.plans ?? [];
-  const providerLabel = getProviderMeta(provider as LLMProvider)?.label ?? provider;
+  // The localized name, as the provider picker shows it; the catalogue's English label is the fallback.
+  const providerLabel = t(`providers.label_${provider}`, {
+    defaultValue: getProviderMeta(provider as LLMProvider)?.label ?? provider,
+  });
 
   return (
     <TkPanel padding="none" clip className="section-card pricing-card">

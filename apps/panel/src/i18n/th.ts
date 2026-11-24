@@ -358,6 +358,7 @@ export default {
     noProviders: "ยังไม่มีการกำหนดค่าผู้ให้บริการ เพิ่มหนึ่งรายการด้านล่าง",
     configuredTitle: "ผู้ให้บริการที่กำหนดค่าไว้",
     "label_rivonclaw-pro": "TK Copilot AI",
+    cloudModelName: "รุ่นเรือธง",
     label_openai: "OpenAI",
     label_anthropic: "Anthropic",
     label_claude: "Claude (สมัครสมาชิก)",
@@ -508,7 +509,7 @@ export default {
   channels: {
     title: "การส่งข้อความ",
     description: "เชื่อมต่อแพลตฟอร์มการส่งข้อความกับตัวแทน AI ของคุณ",
-    statusSubtitle: "สถานะจากเกตเวย์ OpenClaw (รีเฟรชอัตโนมัติทุกๆ 30 วินาที)",
+    statusSubtitle: "สถานะการเชื่อมต่อ (รีเฟรชอัตโนมัติทุกๆ 30 วินาที)",
     emptyState: "ยังไม่มีการกำหนดค่าช่อง",
     emptyStateTitle: "ไม่มีช่องที่กำหนดค่าไว้",
     emptyStateDescription:
