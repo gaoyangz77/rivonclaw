@@ -115,12 +115,15 @@ function humanizeEnum(value: string): string {
  * - "Refundable sample": the Creator bought it and the seller refunds later, so
  *   there is no review and TikTok lists it on its own seller-center tab, not
  *   among free samples. Inferred by the backend and sticky.
- * A partner wins if both were ever present.
+ * - "Campaign" / "Target invitation": the application came through a Campaign's
+ *   or the seller's own target collaboration (ADR-114); hovering names it.
+ * A partner wins, then a refundable sample, then the target source.
  */
 export function AffiliateSampleOriginBadge({
   sampleApplication,
 }: {
-  sampleApplication: Pick<GQL.SampleApplicationRecord, "partnerName" | "sampleType">;
+  sampleApplication: Pick<GQL.SampleApplicationRecord, "partnerName" | "sampleType"> &
+    Partial<Pick<GQL.SampleApplicationRecord, "sourceCollaboration">>;
 }) {
   const { t } = useTranslation();
   const partner = sampleApplication.partnerName?.trim();
@@ -144,7 +147,42 @@ export function AffiliateSampleOriginBadge({
       </span>
     );
   }
+  const source = sampleApplication.sourceCollaboration;
+  if (source?.type === GQL.AffiliateCollaborationType.Target) {
+    return (
+      <span className="affiliate-sample-origin-badge" title={affiliateSampleSourceLabel(source, t) ?? undefined}>
+        <TkBadge tone="info">
+          {t(
+            source.campaignId
+              ? "ecommerce.affiliateWorkspace.sampleSource.campaignBadge"
+              : "ecommerce.affiliateWorkspace.sampleSource.targetBadge",
+          )}
+        </TkBadge>
+      </span>
+    );
+  }
   return null;
+}
+
+/**
+ * The target collaboration a Sample Application came through (ADR-114), as one
+ * readable line: a Campaign invitation names the Campaign, a seller's own
+ * target invitation names the collaboration. Absent link → null; "no link" is
+ * never shown as self-initiated, because open collaborations cannot be ruled out.
+ */
+export function affiliateSampleSourceLabel(
+  source: GQL.SampleApplicationRecord["sourceCollaboration"],
+  t: TFunction,
+): string | null {
+  if (source?.type !== GQL.AffiliateCollaborationType.Target) return null;
+  if (source.campaignId) {
+    return t("ecommerce.affiliateWorkspace.sampleSource.campaign", {
+      name: source.campaignName?.trim() || source.campaignId,
+    });
+  }
+  return t("ecommerce.affiliateWorkspace.sampleSource.target", {
+    name: source.name?.trim() || source.platformCollaborationId,
+  });
 }
 
 type SampleReviewResultRecord = Pick<

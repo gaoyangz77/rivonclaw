@@ -126,6 +126,7 @@ import {
   AffiliateSampleShopIdentity,
   SampleReviewResult,
   AffiliateSampleOriginBadge,
+  affiliateSampleSourceLabel,
   affiliateSampleStatusLabel,
 } from "./components/AffiliateSampleReview.js";
 import { AffiliateActorLabel } from "../../components/ecommerce/AffiliateActorLabel.js";
@@ -9758,6 +9759,7 @@ export function SampleApplicationSummaryCard({
   const carrier = sampleOrder?.carrier ?? sampleApplication.carrier;
   const status = affiliateSampleStatusLabel(sampleApplication, t);
   const partnerName = sampleApplication.partnerName?.trim();
+  const sourceLabel = affiliateSampleSourceLabel(sampleApplication.sourceCollaboration, t);
   const detailFields = [
     {
       label: t("ecommerce.affiliateWorkspace.sampleApplication.applicationId"),
@@ -9767,6 +9769,13 @@ export function SampleApplicationSummaryCard({
       label: t("ecommerce.affiliateWorkspace.sampleApplication.status"),
       value: status,
     },
+    // Only an application linked to a target collaboration has a known source.
+    ...(sourceLabel
+      ? [{
+          label: t("ecommerce.affiliateWorkspace.sampleSource.label"),
+          value: sourceLabel,
+        }]
+      : []),
     // Only a partner-managed application has a service provider to show.
     ...(partnerName
       ? [{

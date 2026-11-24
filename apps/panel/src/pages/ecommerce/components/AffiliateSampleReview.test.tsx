@@ -8,6 +8,7 @@ import { runtimeStatusStore } from "../../../store/runtime-status-store.js";
 import {
   AffiliateSampleIgnoreButton,
   AffiliateSampleOriginBadge,
+  affiliateSampleSourceLabel,
   AffiliateSampleShopIdentity,
   affiliateSampleStatusLabel,
 } from "./AffiliateSampleReview.js";
@@ -160,6 +161,50 @@ describe("partner-managed sample application", () => {
       <AffiliateSampleOriginBadge sampleApplication={{ sampleType: GQL.AffiliateSampleApplicationType.FreeSample }} />,
     );
     expect(free.container.firstChild).toBeNull();
+  });
+});
+
+describe("target collaboration source", () => {
+  const campaignSource = {
+    affiliateCollaborationId: "c1",
+    type: GQL.AffiliateCollaborationType.Target,
+    platformCollaborationId: "7709030149057251124",
+    name: "Nov invite",
+    campaignId: "camp-1",
+    campaignName: "Black Friday",
+  };
+
+  it("marks a Campaign invitation and names the Campaign on hover", () => {
+    render(<AffiliateSampleOriginBadge sampleApplication={{ sourceCollaboration: campaignSource }} />);
+    const badge = screen.getByText("推广计划");
+    expect(badge.closest("[title]")?.getAttribute("title")).toBe("推广计划「Black Friday」定邀");
+  });
+
+  it("marks the seller's own target invitation and names the collaboration", () => {
+    const source = { ...campaignSource, campaignId: null, campaignName: null };
+    render(<AffiliateSampleOriginBadge sampleApplication={{ sourceCollaboration: source }} />);
+    expect(screen.getByText("定邀").closest("[title]")?.getAttribute("title")).toBe("定向合作「Nov invite」");
+  });
+
+  it("falls back to ids and shows nothing without a link", () => {
+    const t = i18n.getFixedT("zh");
+    expect(affiliateSampleSourceLabel({ ...campaignSource, campaignName: " " }, t)).toBe("推广计划「camp-1」定邀");
+    expect(
+      affiliateSampleSourceLabel({ ...campaignSource, campaignId: null, campaignName: null, name: null }, t),
+    ).toBe("定向合作「7709030149057251124」");
+    expect(affiliateSampleSourceLabel(null, t)).toBeNull();
+    const view = render(<AffiliateSampleOriginBadge sampleApplication={{ sourceCollaboration: null }} />);
+    expect(view.container.firstChild).toBeNull();
+  });
+
+  it("keeps the partner marker first", () => {
+    render(
+      <AffiliateSampleOriginBadge
+        sampleApplication={{ partnerName: "BXMedia", sourceCollaboration: campaignSource }}
+      />,
+    );
+    expect(screen.getByText("服务商")).toBeTruthy();
+    expect(screen.queryByText("推广计划")).toBeNull();
   });
 });
 

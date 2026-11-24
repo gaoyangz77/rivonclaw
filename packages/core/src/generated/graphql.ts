@@ -5167,6 +5167,17 @@ export interface AffiliateSampleShipmentDecisionOriginDailyPoint {
   samplesShipped: Scalars["Int"]["output"];
 }
 
+/** The collaboration a Sample Application came through, confirmed by TikTok (ADR-114). For a Campaign collaboration it also names the Campaign. An application with no source is not necessarily self-initiated: open collaborations are not checked. */
+export interface AffiliateSampleSourceCollaboration {
+  affiliateCollaborationId: Scalars["ID"]["output"];
+  /** Set only when a Campaign created the collaboration. */
+  campaignId?: Maybe<Scalars["ID"]["output"]>;
+  campaignName?: Maybe<Scalars["String"]["output"]>;
+  name?: Maybe<Scalars["String"]["output"]>;
+  platformCollaborationId: Scalars["String"]["output"];
+  type: AffiliateCollaborationType;
+}
+
 /** Why a Sample Application reached the terminal state that opened seller follow-up work. Frozen by the Backend from the transition event; consumers read it verbatim and never re-derive it. UNDETERMINED means the platform did not say, and no cause may be presented to the Creator. */
 export const AffiliateSampleTerminalCause = {
   ApprovalWindowExpired: "APPROVAL_WINDOW_EXPIRED",
@@ -17268,6 +17279,8 @@ export interface SampleApplicationRecord {
   skuImageUrl?: Maybe<Scalars["String"]["output"]>;
   /** SKU name the Creator applied for, e.g. a size/length variant. */
   skuName?: Maybe<Scalars["String"]["output"]>;
+  /** The target collaboration this application came through, confirmed by TikTok after the application arrived (ADR-114). Null when none is known; that does not mean the Creator applied on their own, because open collaborations are not checked. */
+  sourceCollaboration?: Maybe<AffiliateSampleSourceCollaboration>;
   trackingNumber?: Maybe<Scalars["String"]["output"]>;
   updatedAt: Scalars["DateTimeISO"]["output"];
   userId: Scalars["ID"]["output"];
