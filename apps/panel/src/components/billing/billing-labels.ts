@@ -37,6 +37,24 @@ export function billingEnumLabel(
   return t(`billing.enums.${group}.${value}`, { defaultValue: humanizeEnum(value) });
 }
 
+/**
+ * Where an entitlement comes from, as the seller understands it. A trial is a
+ * subscription in TRIALING status, and the backend files its grant under
+ * SUBSCRIPTION (`upsertSubscriptionGrant` in server/backend/src/billing/
+ * EntitlementService.ts), so the raw source alone would label a free trial as
+ * a paid subscription.
+ */
+export function entitlementSourceLabel(
+  t: TFunction,
+  entitlement: BillingEntitlementStatus | null | undefined,
+): string {
+  const source =
+    entitlement?.subscription?.status === GQL.BillingSubscriptionStatus.Trialing
+      ? GQL.EntitlementGrantSource.Trial
+      : entitlement?.source;
+  return billingEnumLabel(t, "entitlementSource", source);
+}
+
 export function entitlementStatusLabel(
   t: TFunction,
   entitlement: BillingEntitlementStatus | null,

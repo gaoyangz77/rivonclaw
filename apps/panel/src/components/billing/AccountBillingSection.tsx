@@ -18,6 +18,7 @@ import {
   billingEnumLabel,
   billingPlanDisplayName,
   checkoutProviderFromBillingProvider,
+  entitlementSourceLabel,
   entitlementStatusLabel,
   isAccountServiceEntitlement,
   findPlanDefinition,
@@ -223,7 +224,7 @@ function AccountSubscriptionDetailModal({
           />
           <BillingMetaItem
             label={t("billing.source")}
-            value={billingEnumLabel(t, "entitlementSource", entitlement?.source)}
+            value={entitlementSourceLabel(t, entitlement)}
           />
           <BillingMetaItem
             label={t("billing.validUntil")}
@@ -435,7 +436,7 @@ function EntitlementSummary({
         <div className="billing-meta-grid">
           <BillingMetaItem
             label={t("billing.source")}
-            value={billingEnumLabel(t, "entitlementSource", entitlement?.source)}
+            value={entitlementSourceLabel(t, entitlement)}
           />
           <BillingMetaItem
             label={t("billing.renewalMode")}
@@ -667,7 +668,7 @@ function ShopServiceDetailModal({
           />
           <BillingMetaItem
             label={t("billing.source")}
-            value={billingEnumLabel(t, "entitlementSource", entitlement?.source)}
+            value={entitlementSourceLabel(t, entitlement)}
           />
           <BillingMetaItem
             label={t("billing.validUntil")}

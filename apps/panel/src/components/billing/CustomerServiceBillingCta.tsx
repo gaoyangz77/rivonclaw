@@ -13,6 +13,7 @@ import {
   billingPlanDisplayName,
   checkoutProviderFromBillingProvider,
   customerServicePlan,
+  entitlementSourceLabel,
   entitlementStatusLabel,
   shouldShowRenewalReminder,
   isAccountServiceEntitlement,
@@ -160,7 +161,7 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
           <div className="cs-billing-access-meta">
             <div className="cs-billing-metric">
               <span>{t("billing.source")}</span>
-              <strong>{billingEnumLabel(t, "entitlementSource", entitlement?.source)}</strong>
+              <strong>{entitlementSourceLabel(t, entitlement)}</strong>
             </div>
             {subscription && (
               <>
