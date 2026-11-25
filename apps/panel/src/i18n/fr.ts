@@ -1086,8 +1086,7 @@ export default {
       accentGray: "Gris Ardoise",
       privacyMode: "Mode de confidentialité",
       privacyModeHint:
-        "Floute le code QR d'association du téléphone, les noms de boutiques ainsi que les noms et images de produits. Les alias de boutique restent visibles. Utile pour le partage d'écran ou la diffusion en direct.",
-      clickToReveal: "Cliquez pour révéler",
+        "Floute les noms de boutiques ainsi que les noms et images de produits. Les alias de boutique restent visibles. Utile pour le partage d'écran ou la diffusion en direct.",
       showAgentName: "Afficher le nom de l'agent dans la barre latérale",
       showAgentNameHint:
         "Affichez le nom de l'agent dans l'en-tête de la barre latérale au lieu du nom de marque de l'application.",

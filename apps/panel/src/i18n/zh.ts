@@ -1010,8 +1010,7 @@ export default {
       accentGray: "石板灰",
       privacyMode: "隐私模式",
       privacyModeHint:
-        "遮盖手机绑定二维码、店铺名称、以及商品名称和商品图片。店铺别名照常显示。适合直播或屏幕共享时使用。",
-      clickToReveal: "点击显示",
+        "遮盖店铺名称以及商品名称和商品图片。店铺别名照常显示。适合直播或屏幕共享时使用。",
       showAgentName: "在侧边栏显示 Agent 名称",
       showAgentNameHint: "在侧边栏顶部显示 Agent 名称，而非应用品牌名。",
     },

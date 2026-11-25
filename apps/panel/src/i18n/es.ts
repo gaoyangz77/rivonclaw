@@ -1078,8 +1078,7 @@ export default {
       accentGray: "Gris pizarra",
       privacyMode: "Modo de privacidad",
       privacyModeHint:
-        "Difumina el código QR de vinculación del teléfono, los nombres de las tiendas y los nombres e imágenes de los productos. Los alias de tienda siguen visibles. Útil para compartir pantalla o transmitir en vivo.",
-      clickToReveal: "Haga clic para revelar",
+        "Difumina los nombres de las tiendas y los nombres e imágenes de los productos. Los alias de tienda siguen visibles. Útil para compartir pantalla o transmitir en vivo.",
       showAgentName: "Mostrar el nombre del agente en la barra lateral",
       showAgentNameHint:
         "Muestre el nombre del agente en el encabezado de la barra lateral en lugar del nombre de la marca de la aplicación.",

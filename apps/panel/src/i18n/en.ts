@@ -1057,8 +1057,7 @@ export default {
       accentGray: "Slate Gray",
       privacyMode: "Privacy Mode",
       privacyModeHint:
-        "Blur the phone-binding QR code, shop names, and product names and images. Shop aliases stay visible. Useful for screen sharing or live streaming.",
-      clickToReveal: "Click to reveal",
+        "Blur shop names and product names and images. Shop aliases stay visible. Useful for screen sharing or live streaming.",
       showAgentName: "Show Agent Name in Sidebar",
       showAgentNameHint:
         "Display the agent's name in the sidebar header instead of the app brand name.",

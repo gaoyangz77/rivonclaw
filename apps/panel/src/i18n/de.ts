@@ -1087,8 +1087,7 @@ export default {
       accentGray: "Schiefergrau",
       privacyMode: "Datenschutzmodus",
       privacyModeHint:
-        "Macht den QR-Code für die Handy-Kopplung, Shop-Namen sowie Produktnamen und Produktbilder unscharf. Shop-Aliasnamen bleiben sichtbar. Nützlich für die Bildschirmfreigabe oder Live-Streaming.",
-      clickToReveal: "Klicken Sie hier, um es anzuzeigen",
+        "Macht Shop-Namen sowie Produktnamen und Produktbilder unscharf. Shop-Aliasnamen bleiben sichtbar. Nützlich für die Bildschirmfreigabe oder Live-Streaming.",
       showAgentName: "Agentennamen in der Seitenleiste anzeigen",
       showAgentNameHint:
         "Zeigen Sie den Namen des Agenten in der Kopfzeile der Seitenleiste anstelle des Markennamens der App an.",

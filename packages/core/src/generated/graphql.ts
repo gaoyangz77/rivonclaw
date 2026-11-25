@@ -12098,11 +12098,6 @@ export interface GenerateAffiliateCampaignMessageTemplateInput {
   shopId: Scalars["ID"]["input"];
 }
 
-export interface GeneratePairingResult {
-  code: Scalars["String"]["output"];
-  qrUrl?: Maybe<Scalars["String"]["output"]>;
-}
-
 /** Google ID token and optional existing-account link proof. */
 export interface GoogleLoginInput {
   /** Whether Google may create a new TK Copilot account. */
@@ -13071,8 +13066,6 @@ export interface Mutation {
    * @deprecated Use the Desktop Campaign AI endpoint and validateAffiliateCampaignMessageTemplateSuggestion.
    */
   generateAffiliateCampaignMessageTemplate: AffiliateCampaignMessageTemplateSuggestion;
-  /** Generate a 6-character pairing code for QR display */
-  generatePairingCode: GeneratePairingResult;
   /** Authenticate a desktop client with Google and return a TK Copilot token pair */
   googleLogin: AuthPayload;
   /** Admin-only: grant complimentary service time. Stripe subscriptions are extended through Stripe trial_end; prepaid/manual subscriptions are extended locally. */
@@ -13250,8 +13243,6 @@ export interface Mutation {
   upsertExpertProfile: ExpertProfile;
   /** Strictly validate a Desktop-local AI first-touch template against Campaign safety rules. */
   validateAffiliateCampaignMessageTemplateSuggestion: AffiliateCampaignMessageTemplateSuggestion;
-  /** Verify a pairing code from mobile and create relay token */
-  verifyPairingCode: VerifyPairingResult;
   /** Authenticate a browser with Google and store the refresh token in an HttpOnly cookie */
   webGoogleLogin: WebAuthPayload;
   /** Log in from a browser and store the rotating refresh token in an HttpOnly cookie */
@@ -13956,10 +13947,6 @@ export interface MutationGenerateAffiliateCampaignMessageTemplateArgs {
   input: GenerateAffiliateCampaignMessageTemplateInput;
 }
 
-export interface MutationGeneratePairingCodeArgs {
-  desktopDeviceId: Scalars["String"]["input"];
-}
-
 export interface MutationGoogleLoginArgs {
   input: GoogleLoginInput;
 }
@@ -14380,11 +14367,6 @@ export interface MutationUpsertExpertProfileArgs {
 
 export interface MutationValidateAffiliateCampaignMessageTemplateSuggestionArgs {
   input: ValidateAffiliateCampaignMessageTemplateSuggestionInput;
-}
-
-export interface MutationVerifyPairingCodeArgs {
-  mobileDeviceId: Scalars["String"]["input"];
-  pairingCode: Scalars["String"]["input"];
 }
 
 export interface MutationWebGoogleLoginArgs {
@@ -15496,8 +15478,6 @@ export interface Query {
   mediaAssetsByUri: Array<MediaAssetRef>;
   /** Check Microsoft Graph OAuth/webhook readiness and summarize seller Outlook subscription health. */
   microsoftGraphConnectorStatus: MicrosoftGraphConnectorStatus;
-  /** Get PWA install URL (base URL without pairing code) */
-  mobileInstallUrl: Scalars["String"]["output"];
   pendingAffiliateEscalationNotifications: Array<AffiliateEscalationView>;
   pendingTikTokShopClaim?: Maybe<PendingTikTokShopClaimView>;
   /** Poll an authenticated user's remote persistent-result preparation job. */
@@ -15572,12 +15552,8 @@ export interface Query {
   systemRunProfiles: Array<RunProfile>;
   /** Get tool specifications for dynamic client-side registration (filtered by enrolled modules) */
   toolSpecs: Array<ToolSpec>;
-  /** Batch-verify relay access tokens */
-  verifyRelayTokens: Array<RelayTokenResult>;
   /** Verify whether the authenticated user has access to the given shops */
   verifyShopAccess: VerifyShopAccessResult;
-  /** Long-poll for pairing completion (30s timeout) */
-  waitForPairing: WaitPairingResult;
   /** List WhatsApp account bindings for the authenticated seller account. */
   whatsAppAccountBindings: Array<WhatsAppAccountBinding>;
   /** Check Evolution API connector readiness and summarize seller-visible WhatsApp account/proxy state. */
@@ -16643,16 +16619,8 @@ export interface QuerySystemRunProfilesArgs {
   moduleId?: InputMaybe<Scalars["String"]["input"]>;
 }
 
-export interface QueryVerifyRelayTokensArgs {
-  tokens: Array<Scalars["String"]["input"]>;
-}
-
 export interface QueryVerifyShopAccessArgs {
   shopIds: Array<Scalars["String"]["input"]>;
-}
-
-export interface QueryWaitForPairingArgs {
-  code: Scalars["String"]["input"];
 }
 
 export interface QueryWhatsAppAccountBindingsArgs {
@@ -16973,13 +16941,6 @@ export interface RegistrationEmailCodeResponse {
   expiresAt: Scalars["DateTimeISO"]["output"];
   remainingDailyRequests: Scalars["Int"]["output"];
   token: Scalars["String"]["output"];
-}
-
-export interface RelayTokenResult {
-  desktopDeviceId?: Maybe<Scalars["String"]["output"]>;
-  mobileDeviceId?: Maybe<Scalars["String"]["output"]>;
-  pairingId?: Maybe<Scalars["String"]["output"]>;
-  valid: Scalars["Boolean"]["output"];
 }
 
 export interface RemoveAffiliateOpenCollaborationInput {
@@ -19042,27 +19003,10 @@ export interface ValidateAffiliateCampaignMessageTemplateSuggestionInput {
   text: Scalars["String"]["input"];
 }
 
-export interface VerifyPairingResult {
-  accessToken: Scalars["String"]["output"];
-  desktopDeviceId: Scalars["String"]["output"];
-  pairingId: Scalars["String"]["output"];
-  relayUrl: Scalars["String"]["output"];
-}
-
 /** Result of shop access verification */
 export interface VerifyShopAccessResult {
   authorized: Array<Scalars["String"]["output"]>;
   unauthorized: Array<Scalars["String"]["output"]>;
-}
-
-export interface WaitPairingResult {
-  accessToken?: Maybe<Scalars["String"]["output"]>;
-  desktopDeviceId?: Maybe<Scalars["String"]["output"]>;
-  mobileDeviceId?: Maybe<Scalars["String"]["output"]>;
-  paired: Scalars["Boolean"]["output"];
-  pairingId?: Maybe<Scalars["String"]["output"]>;
-  reason?: Maybe<Scalars["String"]["output"]>;
-  relayUrl?: Maybe<Scalars["String"]["output"]>;
 }
 
 /** Canonical warehouse identity used by inventory management */

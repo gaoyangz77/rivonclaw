@@ -1080,8 +1080,7 @@ export default {
       accentGray: "Grigio ardesia",
       privacyMode: "Modalità privacy",
       privacyModeHint:
-        "Sfoca il codice QR di associazione del telefono, i nomi dei negozi e i nomi e le immagini dei prodotti. Gli alias dei negozi restano visibili. Utile per la condivisione dello schermo o lo streaming live.",
-      clickToReveal: "Fare clic per rivelare",
+        "Sfoca i nomi dei negozi e i nomi e le immagini dei prodotti. Gli alias dei negozi restano visibili. Utile per la condivisione dello schermo o lo streaming live.",
       showAgentName: "Mostra il nome dell'agente nella barra laterale",
       showAgentNameHint:
         "Visualizza il nome dell'agente nell'intestazione della barra laterale invece del nome del marchio dell'app.",

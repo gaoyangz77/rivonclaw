@@ -1063,8 +1063,7 @@ export default {
       accentGray: "Batu Tulis Abu-abu",
       privacyMode: "Modus Privasi",
       privacyModeHint:
-        "Mengaburkan kode QR penautan ponsel, nama toko, serta nama dan gambar produk. Alias toko tetap terlihat. Berguna untuk berbagi layar atau streaming langsung.",
-      clickToReveal: "Klik untuk mengungkapkan",
+        "Mengaburkan nama toko serta nama dan gambar produk. Alias toko tetap terlihat. Berguna untuk berbagi layar atau streaming langsung.",
       showAgentName: "Tampilkan Nama Agen di Sidebar",
       showAgentNameHint: "Tampilkan nama agen di header sidebar, bukan nama merek aplikasi.",
     },
