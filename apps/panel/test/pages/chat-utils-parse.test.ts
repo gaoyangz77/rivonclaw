@@ -689,4 +689,63 @@ describe("mergeChatMessagesDedup", () => {
     expect(result[0].idempotencyKey).toBe("image-send-2");
     expect(result[0].images).toEqual([image]);
   });
+
+  // Real `chat.history` entry captured from the pinned gateway (OpenClaw 2026.9.3)
+  // after a Panel `chat.send` with idempotencyKey ce3bfd34-...: the user turn comes
+  // back keyed `<runId>:user`, not the bare run id the optimistic bubble carries.
+  const RUN_ID = "ce3bfd34-d3b6-466c-930f-7c735fe6044f";
+  const rawGatewayUserTurn = {
+    role: "user",
+    content: "帮我写一下Brightloom Home店铺的客服提示词",
+    timestamp: 1795592248888,
+    idempotencyKey: `${RUN_ID}:user`,
+    __openclaw: {
+      senderIsOwner: true,
+      idempotencyKey: `${RUN_ID}:user`,
+      seq: 1,
+    },
+  };
+
+  it("merges the optimistic user bubble with the gateway's <runId>:user history entry", () => {
+    const history = parseRawMessages([rawGatewayUserTurn]);
+    const optimistic: ChatMessage[] = [
+      {
+        role: "user",
+        text: "帮我写一下Brightloom Home店铺的客服提示词",
+        timestamp: 1795592248900,
+        idempotencyKey: RUN_ID,
+      },
+    ];
+
+    const result = mergeChatMessagesDedup(history, optimistic);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].role).toBe("user");
+  });
+
+  it("keeps two sends of identical text apart when their run ids differ", () => {
+    const history = parseRawMessages([rawGatewayUserTurn]);
+    const secondSend: ChatMessage[] = [
+      {
+        role: "user",
+        text: "帮我写一下Brightloom Home店铺的客服提示词",
+        timestamp: 1795592250000,
+        idempotencyKey: "0b1c7e0e-0000-4000-8000-000000000002",
+      },
+    ];
+
+    expect(mergeChatMessagesDedup(history, secondSend)).toHaveLength(2);
+  });
+
+  it("does not collapse assistant messages that share a run id prefix", () => {
+    const first: ChatMessage = {
+      role: "assistant",
+      text: "first",
+      timestamp: 1,
+      idempotencyKey: `${RUN_ID}:assistant`,
+    };
+    const second: ChatMessage = { ...first, text: "second", timestamp: 2, idempotencyKey: RUN_ID };
+
+    expect(mergeChatMessagesDedup([first], [second])).toHaveLength(2);
+  });
 });

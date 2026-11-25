@@ -310,4 +310,116 @@ describe("ChatGatewayController tool events", () => {
       }),
     ]);
   });
+
+  describe("first tool call history patch", () => {
+    // On the first tool start the Panel flushes whatever streamed text it has, which can
+    // be short of what the gateway's throttle buffer held. It then re-reads
+    // `chat.history` and replaces the flushed bubble with the full persisted text,
+    // anchored on this run's user turn.
+    const RUN_ID = "ce3bfd34-d3b6-466c-930f-7c735fe6044f";
+    const PREVIOUS_RUN_ID = "0b1c7e0e-0000-4000-8000-000000000002";
+    const TRUNCATED = "我先查一下这个订单的";
+    const FULL = "我先查一下这个订单的物流状态，稍等。";
+
+    // `chat.history` shape from the pinned gateway (OpenClaw 2026.9.3) while a run is
+    // tooling: a sent user turn is persisted as `<clientRunId>:user`
+    // (buildRunUserTurnIdempotencyKey) and a settled final reply under the bare run id.
+    function gatewayHistory(currentUserTurnRunId: string) {
+      return {
+        messages: [
+          {
+            role: "user",
+            content: "订单 577341290410316286 发货了吗",
+            timestamp: 1795592200000,
+            idempotencyKey: `${PREVIOUS_RUN_ID}:user`,
+            __openclaw: { senderIsOwner: true, idempotencyKey: `${PREVIOUS_RUN_ID}:user`, seq: 1 },
+          },
+          {
+            role: "assistant",
+            content: [{ type: "text", text: "请稍等，我帮你看看。" }],
+            timestamp: 1795592201000,
+            idempotencyKey: PREVIOUS_RUN_ID,
+          },
+          {
+            role: "user",
+            content: "帮我查一下它的物流",
+            timestamp: 1795592248888,
+            idempotencyKey: `${currentUserTurnRunId}:user`,
+            __openclaw: {
+              senderIsOwner: true,
+              idempotencyKey: `${currentUserTurnRunId}:user`,
+              seq: 3,
+            },
+          },
+          {
+            role: "assistant",
+            content: [
+              { type: "text", text: FULL },
+              {
+                type: "toolCall",
+                id: "call-order",
+                name: "ecom_get_order",
+                arguments: { orderId: "577341290410316286" },
+              },
+            ],
+            timestamp: 1795592250000,
+          },
+        ],
+      };
+    }
+
+    function startStreamedRunAndTool(history: ReturnType<typeof gatewayHistory>) {
+      const store = createChatStore();
+      const controller = new ChatGatewayController(store);
+      const sessionKey = store.activeSessionKey;
+      const session = store.getOrCreateSession(sessionKey);
+      session.runState.beginLocalRun(RUN_ID, sessionKey);
+      session.runState.appendDelta(RUN_ID, TRUNCATED);
+      const request = vi.fn().mockResolvedValue(history);
+      (controller as any).client = { request };
+
+      (controller as any).handleEvent({
+        event: "agent",
+        payload: {
+          runId: RUN_ID,
+          sessionKey,
+          stream: "tool",
+          data: {
+            phase: "start",
+            name: "ecom_get_order",
+            toolCallId: "call-order",
+            args: { orderId: "577341290410316286" },
+          },
+        },
+      });
+
+      expect(request).toHaveBeenCalledWith("chat.history", { sessionKey, limit: 100 });
+      return session;
+    }
+
+    const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
+    const assistantTexts = (session: ReturnType<typeof startStreamedRunAndTool>) =>
+      session.messages.filter((msg) => msg.role === "assistant").map((msg) => msg.text);
+
+    it("restores the full text when the run's user turn is keyed `<runId>:user`", async () => {
+      const session = startStreamedRunAndTool(gatewayHistory(RUN_ID));
+      expect(assistantTexts(session)).toEqual([TRUNCATED]);
+
+      await flushPromises();
+
+      expect(assistantTexts(session)).toEqual([FULL]);
+      expect(session.runState.getRun(RUN_ID)?.flushedOffset).toBe(FULL.length);
+    });
+
+    it("keeps the streamed text when history does not yet hold this run's user turn", async () => {
+      const session = startStreamedRunAndTool(
+        gatewayHistory("ffffffff-0000-4000-8000-000000000003"),
+      );
+
+      await flushPromises();
+
+      expect(assistantTexts(session)).toEqual([TRUNCATED]);
+      expect(session.runState.getRun(RUN_ID)?.flushedOffset).toBe(TRUNCATED.length);
+    });
+  });
 });

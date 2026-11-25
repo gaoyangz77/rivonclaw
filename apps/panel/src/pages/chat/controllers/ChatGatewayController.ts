@@ -58,6 +58,7 @@ import {
   cleanMessageText,
   isHiddenSession,
   mergeChatMessagesDedup,
+  messageIdentityKey,
 } from "../chat-utils.js";
 
 // ---------------------------------------------------------------------------
@@ -650,15 +651,12 @@ export class ChatGatewayController {
                 }>("chat.history", { sessionKey, limit: 100 })
                 .then((res) => {
                   if (!res?.messages) return;
-                  let anchor = -1;
-                  for (let i = 0; i < res.messages.length; i++) {
-                    if (
-                      (res.messages[i] as { idempotencyKey?: string }).idempotencyKey === runKey
-                    ) {
-                      anchor = i;
-                      break;
-                    }
-                  }
+                  // Anchor on this run's user turn. The gateway persists it as
+                  // `<runId>:user`, and the run's final reply under the bare run id,
+                  // so match the user role through the shared identity rule.
+                  const anchor = res.messages.findIndex(
+                    (msg) => msg.role === "user" && messageIdentityKey(msg) === runKey,
+                  );
                   if (anchor === -1) return;
                   for (let i = res.messages.length - 1; i > anchor; i--) {
                     if (res.messages[i].role !== "assistant") continue;

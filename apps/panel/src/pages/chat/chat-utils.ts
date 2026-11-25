@@ -1018,6 +1018,30 @@ function isDuplicateImageMessage(a: ChatMessage, b: ChatMessage): boolean {
   return areMessageTimestampsNear(a, b, IMAGE_MESSAGE_DEDUPE_WINDOW_MS);
 }
 
+const GATEWAY_USER_TURN_KEY_SUFFIX = ":user";
+
+/**
+ * The gateway records a sent user turn under `<clientRunId>:user`
+ * (`buildRunUserTurnIdempotencyKey`, vendor/openclaw/src/sessions/user-turn-transcript.ts),
+ * while the optimistic bubble the Panel appends on send carries the bare
+ * `clientRunId` it passed to `chat.send`. Both name the same turn, so a user
+ * message's identity is its run id. Two sends that merely share text have
+ * different run ids and stay separate. Other roles keep their key verbatim: a
+ * run can hold several assistant messages that must not collapse into one.
+ *
+ * Accepts raw `chat.history` entries as well as parsed `ChatMessage`s.
+ */
+export function messageIdentityKey(message: {
+  role?: string;
+  idempotencyKey?: string;
+}): string | undefined {
+  const key = message.idempotencyKey;
+  if (message.role === "user" && key?.endsWith(GATEWAY_USER_TURN_KEY_SUFFIX)) {
+    return key.slice(0, -GATEWAY_USER_TURN_KEY_SUFFIX.length);
+  }
+  return key;
+}
+
 function areNearDuplicateMessages(a: ChatMessage, b: ChatMessage): boolean {
   if (isToolMessage(a) || isToolMessage(b)) {
     return (
@@ -1025,7 +1049,9 @@ function areNearDuplicateMessages(a: ChatMessage, b: ChatMessage): boolean {
     );
   }
   if (a.role !== b.role) return false;
-  if (a.idempotencyKey && b.idempotencyKey) return a.idempotencyKey === b.idempotencyKey;
+  if (a.idempotencyKey && b.idempotencyKey) {
+    return messageIdentityKey(a) === messageIdentityKey(b);
+  }
   if (isDuplicateImageMessage(a, b)) return true;
   if (hasMessageImages(a) || hasMessageImages(b)) return false;
   const aText = normalizeMessageTextForDedupe(a.text);
