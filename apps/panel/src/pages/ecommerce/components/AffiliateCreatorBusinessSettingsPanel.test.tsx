@@ -42,6 +42,8 @@ function settings(overrides: Record<string, unknown> = {}) {
     releaseBeforeSampleExpiryHours: null,
     enabledCreatorAssignmentTriggers: DEFAULT_TRIGGERS,
     creatorAssignmentTriggersCustomized: false,
+    bdCampaignSampleAssignmentDays: null,
+    effectiveBdCampaignSampleAssignmentDays: 7,
     ...overrides,
   };
 }
@@ -75,7 +77,7 @@ it("defaults all three rules to unchecked and keeps save disabled while nothing 
   expect(checkbox(AUTO_CLAIM).checked).toBe(false);
   expect(checkbox(AUTO_RELEASE).checked).toBe(false);
   expect(checkbox(DEADLINE_RELEASE).checked).toBe(false);
-  expect(screen.queryByRole("spinbutton")).toBeNull();
+  expect(screen.queryByRole("spinbutton", { name: "截止前（小时）" })).toBeNull();
   expect(checkbox(AUTO_CLAIM).disabled).toBe(false);
   expect(saveButton().disabled).toBe(true);
   expect(screen.getByText("以下规则对本卖家账号下的所有店铺生效，默认均为关闭。")).toBeTruthy();
@@ -271,7 +273,7 @@ it("sends null when a persisted deadline release is switched off", async () => {
   const onResult = vi.fn();
   renderPanel([deadlineMock(null, onResult)]);
   fireEvent.click(checkbox(DEADLINE_RELEASE));
-  expect(screen.queryByRole("spinbutton")).toBeNull();
+  expect(screen.queryByRole("spinbutton", { name: "截止前（小时）" })).toBeNull();
   expect(saveButton().disabled).toBe(false);
   fireEvent.click(saveButton());
   await waitFor(() =>
@@ -448,4 +450,72 @@ it("disables restore while on defaults, and only clears the draft without a muta
   expect(checkbox(TRIGGER_NAMES.PLATFORM_ACTION).checked).toBe(false);
   expect(saveButton().disabled).toBe(true);
   expect(restoreButton().disabled).toBe(true);
+});
+
+const bdCampaignDaysInput = () =>
+  screen.getByRole("spinbutton", { name: "BD 自建推广计划的申样归属天数" }) as HTMLInputElement;
+const INVALID_BD_CAMPAIGN_DAYS = "请输入 0–30 之间的整数";
+
+function bdCampaignDaysMock(days: number, onResult = vi.fn()) {
+  const result = () => {
+    onResult();
+    return {
+      data: {
+        setAffiliateCreatorBusinessSettings: settings({
+          bdCampaignSampleAssignmentDays: days,
+          effectiveBdCampaignSampleAssignmentDays: days,
+        }),
+      },
+    };
+  };
+  return {
+    request: {
+      query: SET_AFFILIATE_CREATOR_BUSINESS_SETTINGS_MUTATION,
+      variables: {
+        input: {
+          autoClaimOnSampleApproval: false,
+          autoReleaseOnSampleRejection: false,
+          releaseBeforeSampleExpiryHours: null,
+          bdCampaignSampleAssignmentDays: days,
+        },
+      },
+    },
+    result,
+  };
+}
+
+it("shows the effective BD Campaign window and leaves it out of a save that did not change it", () => {
+  renderPanel();
+  expect(bdCampaignDaysInput().value).toBe("7");
+  expect(saveButton().disabled).toBe(true);
+});
+
+it("sends an edited BD Campaign window, including 0 to turn the rule off", async () => {
+  for (const days of [3, 0]) {
+    cleanup();
+    workspace = AffiliateWorkspaceModel.create({ operationalSettings: settings() });
+    state.store = { affiliateWorkspace: workspace };
+    const onResult = vi.fn();
+    renderPanel([bdCampaignDaysMock(days, onResult)]);
+    fireEvent.change(bdCampaignDaysInput(), { target: { value: String(days) } });
+    expect(saveButton().disabled).toBe(false);
+    fireEvent.click(saveButton());
+    await waitFor(() =>
+      expect(workspace.operationalSettings?.effectiveBdCampaignSampleAssignmentDays).toBe(days),
+    );
+    expect(onResult).toHaveBeenCalledOnce();
+    expect(saveButton().disabled).toBe(true);
+  }
+});
+
+it("disables save with an inline hint while the BD Campaign window is not an integer from 0 to 30", () => {
+  renderPanel();
+  for (const value of ["31", "-1", "2.5", ""]) {
+    fireEvent.change(bdCampaignDaysInput(), { target: { value } });
+    expect(saveButton().disabled).toBe(true);
+    expect(screen.getByText(INVALID_BD_CAMPAIGN_DAYS)).toBeTruthy();
+  }
+  fireEvent.change(bdCampaignDaysInput(), { target: { value: "30" } });
+  expect(saveButton().disabled).toBe(false);
+  expect(screen.queryByText(INVALID_BD_CAMPAIGN_DAYS)).toBeNull();
 });

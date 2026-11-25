@@ -4303,8 +4303,12 @@ export interface AffiliateOperationalSettings {
   autoClaimOnSampleApproval: Scalars["Boolean"]["output"];
   /** When a Business Developer rejects or ignores a Sample Application of a Creator they own that has no collaboration progress, release the Creator to the public pool (default off). */
   autoReleaseOnSampleRejection: Scalars["Boolean"]["output"];
+  /** The seller's own window, in days (0–30), in which a new Sample Application from a Business Developer's own Campaign assigns the Creator to that Business Developer. Null while the default applies; 0 means off. */
+  bdCampaignSampleAssignmentDays?: Maybe<Scalars["Int"]["output"]>;
   /** True when the seller chose their own selection of assignment scenarios; false while the defaults apply. */
   creatorAssignmentTriggersCustomized: Scalars["Boolean"]["output"];
+  /** The window in force: the stored value, or the default of 7 days while there is none. 0 means the rule is off. */
+  effectiveBdCampaignSampleAssignmentDays: Scalars["Int"]["output"];
   /** Scenarios in force in which a new business fact about an unassigned, unprotected Creator triggers random Business Developer assignment. The seller's own selection, or the defaults (Creator inbound message, Sample Application, partner-managed Sample Application) while they have none. Empty means never assign automatically. */
   enabledCreatorAssignmentTriggers: Array<AffiliateCreatorAssignmentTrigger>;
   id: Scalars["ID"]["output"];
@@ -17374,6 +17378,8 @@ export interface SetAffiliateCampaignStatusInput {
 export interface SetAffiliateCreatorBusinessSettingsInput {
   autoClaimOnSampleApproval: Scalars["Boolean"]["input"];
   autoReleaseOnSampleRejection: Scalars["Boolean"]["input"];
+  /** Absent leaves the stored window unchanged; null restores the default of 7 days; an integer from 0 to 30 sets it (0 turns the rule off). */
+  bdCampaignSampleAssignmentDays?: InputMaybe<Scalars["Int"]["input"]>;
   /** Absent leaves the stored selection unchanged; null restores the defaults; a list sets exactly those scenarios (an empty list means never assign automatically). */
   creatorAssignmentTriggers?: InputMaybe<Array<AffiliateCreatorAssignmentTrigger>>;
   /** Absent leaves the stored value unchanged; null turns the safeguard off; an integer from 1 to 142 sets it. */

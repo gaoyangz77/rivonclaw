@@ -36,6 +36,10 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
             "For a new Creator assigned to an individual BD: if a sample application is still unreviewed within the set number of hours before TikTok's review deadline, the system checks hourly and releases the Creator to the public pool so another BD can review it. Protected Creators are not affected.",
           deadlineReleaseHours: "Hours before the deadline",
           deadlineReleaseHoursInvalid: "Enter a whole number between 1 and 142",
+          bdCampaignDays: "Days a BD's own Campaign keeps its sample applicants",
+          bdCampaignDaysHint:
+            "When a Creator reached by a Campaign that a BD created applies for a sample of that Campaign's product within this many days, and the Creator is in the public pool and not protected, the Creator is assigned to that BD instead of a random one. 0 turns this off. Default 7.",
+          bdCampaignDaysInvalid: "Enter a whole number between 0 and 30",
           exclusions:
             "Reviews done with the main account, by AI on its own, or by the automatic pre-filter rules do not trigger the first two rules. The deadline release does not depend on any review decision.",
           saved: "Creator business rules saved.",
@@ -78,6 +82,10 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
             "分配给个人 BD 的新达人，如果有申样在审核截止前设定的小时数内仍未审核，系统每小时检查一次，把达人释放到公海，交给其他 BD 审核。受保护的达人不受影响。",
           deadlineReleaseHours: "截止前（小时）",
           deadlineReleaseHoursInvalid: "请输入 1–142 之间的整数",
+          bdCampaignDays: "BD 自建推广计划的申样归属天数",
+          bdCampaignDaysHint:
+            "BD 自己创建的推广计划触达达人后，达人在这个天数内申请该推广计划产品的样品，且达人在公海、未被保护，就直接分配给这个 BD，不走随机分配。填 0 关闭，默认 7 天。",
+          bdCampaignDaysInvalid: "请输入 0–30 之间的整数",
           exclusions:
             "使用主账号审核、AI 自行审核，以及自动预筛规则完成的审核，都不会触发前两条规则。申样临期未审释放不依赖任何审核结果。",
           saved: "达人业务配置已保存。",
@@ -124,6 +132,10 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
             "Für einen neuen Creator, der einem einzelnen BD zugewiesen ist: Ist ein Musterantrag in der eingestellten Stundenzahl vor Ablauf der TikTok-Prüffrist noch nicht geprüft, prüft das System stündlich und gibt den Creator in den öffentlichen Pool frei, damit ein anderer BD ihn prüfen kann. Geschützte Creator sind nicht betroffen.",
           deadlineReleaseHours: "Stunden vor Fristende",
           deadlineReleaseHoursInvalid: "Bitte eine ganze Zahl zwischen 1 und 142 eingeben",
+          bdCampaignDays: "Tage, in denen Musteranfragen aus der eigenen Kampagne eines BD an diesen BD gehen",
+          bdCampaignDaysHint:
+            "Wenn ein Creator, den eine von einem BD erstellte Kampagne erreicht hat, innerhalb dieser Anzahl Tage ein Muster eines Produkts dieser Kampagne anfragt und sich im öffentlichen Pool befindet und nicht geschützt ist, wird er diesem BD zugewiesen statt zufällig. 0 schaltet dies aus. Standard: 7.",
+          bdCampaignDaysInvalid: "Bitte eine ganze Zahl zwischen 0 und 30 eingeben",
           exclusions:
             "Prüfungen über das Hauptkonto, durch die KI allein oder durch die automatischen Vorfilterregeln lösen die ersten beiden Regeln nicht aus. Die Freigabe vor Fristende hängt von keiner Prüfentscheidung ab.",
           saved: "Creator-Geschäftsregeln gespeichert.",
@@ -171,6 +183,10 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
             "Para un creador nuevo asignado a un BD individual: si una solicitud de muestra sigue sin revisar dentro del número de horas indicado antes del plazo de revisión de TikTok, el sistema comprueba cada hora y devuelve el creador al grupo público para que otro BD lo revise. Los creadores protegidos no se ven afectados.",
           deadlineReleaseHours: "Horas antes del plazo",
           deadlineReleaseHoursInvalid: "Introduce un número entero entre 1 y 142",
+          bdCampaignDays: "Días en que las solicitudes de muestra de la campaña propia de un BD van a ese BD",
+          bdCampaignDaysHint:
+            "Si un creador alcanzado por una campaña creada por un BD solicita una muestra de un producto de esa campaña dentro de este número de días, y está en el grupo público y no protegido, se asigna a ese BD en lugar de a uno aleatorio. 0 lo desactiva. Valor predeterminado: 7.",
+          bdCampaignDaysInvalid: "Introduce un número entero entre 0 y 30",
           exclusions:
             "Las revisiones hechas con la cuenta principal, por la IA por sí sola o por las reglas de prefiltrado automático no activan las dos primeras reglas. La devolución por plazo no depende de ninguna decisión de revisión.",
           saved: "Reglas de negocio de creadores guardadas.",
@@ -218,6 +234,10 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
             "Pour un nouveau créateur attribué à un BD individuel : si une demande d’échantillon n’est toujours pas examinée dans le nombre d’heures défini avant l’échéance d’examen de TikTok, le système vérifie chaque heure et remet le créateur dans le pool public afin qu’un autre BD l’examine. Les créateurs protégés ne sont pas concernés.",
           deadlineReleaseHours: "Heures avant l’échéance",
           deadlineReleaseHoursInvalid: "Saisissez un nombre entier entre 1 et 142",
+          bdCampaignDays: "Jours pendant lesquels les demandes d'échantillon issues de la campagne d'un BD lui reviennent",
+          bdCampaignDaysHint:
+            "Si un créateur contacté par une campagne créée par un BD demande un échantillon d'un produit de cette campagne dans ce nombre de jours, et qu'il est dans le pool public et non protégé, il est attribué à ce BD plutôt qu'au hasard. 0 désactive cette règle. Par défaut : 7.",
+          bdCampaignDaysInvalid: "Saisissez un nombre entier entre 0 et 30",
           exclusions:
             "Les examens effectués avec le compte principal, par l’IA seule ou par les règles de préfiltrage automatique ne déclenchent pas les deux premières règles. La remise à l’échéance ne dépend d’aucune décision d’examen.",
           saved: "Règles métier créateurs enregistrées.",
@@ -263,6 +283,10 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
             "Untuk kreator baru yang ditetapkan ke BD perorangan: jika permintaan sampel masih belum ditinjau dalam jumlah jam yang ditetapkan sebelum batas waktu peninjauan TikTok, sistem memeriksa setiap jam dan melepaskan kreator ke pool publik agar BD lain dapat meninjaunya. Kreator yang dilindungi tidak terpengaruh.",
           deadlineReleaseHours: "Jam sebelum batas waktu",
           deadlineReleaseHoursInvalid: "Masukkan bilangan bulat antara 1 dan 142",
+          bdCampaignDays: "Hari permintaan sampel dari kampanye milik BD diberikan ke BD tersebut",
+          bdCampaignDaysHint:
+            "Jika kreator yang dijangkau kampanye buatan BD meminta sampel produk kampanye itu dalam jumlah hari ini, dan kreator ada di kolam publik serta tidak dilindungi, kreator diberikan ke BD tersebut, bukan secara acak. 0 menonaktifkan aturan ini. Bawaan: 7.",
+          bdCampaignDaysInvalid: "Masukkan bilangan bulat antara 0 dan 30",
           exclusions:
             "Peninjauan yang dilakukan dengan akun utama, oleh AI sendiri, atau oleh aturan penyaring awal otomatis tidak memicu dua aturan pertama. Pelepasan menjelang batas waktu tidak bergantung pada keputusan peninjauan apa pun.",
           saved: "Aturan bisnis kreator disimpan.",
@@ -309,6 +333,10 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
             "Per un nuovo creator assegnato a un singolo BD: se una richiesta di campione non è ancora stata esaminata entro il numero di ore impostato prima della scadenza di revisione di TikTok, il sistema controlla ogni ora e restituisce il creator al pool pubblico perché un altro BD lo esamini. I creator protetti non sono interessati.",
           deadlineReleaseHours: "Ore prima della scadenza",
           deadlineReleaseHoursInvalid: "Inserisci un numero intero tra 1 e 142",
+          bdCampaignDays: "Giorni in cui le richieste di campioni dalla campagna di un BD vanno a quel BD",
+          bdCampaignDaysHint:
+            "Se un creator raggiunto da una campagna creata da un BD richiede un campione di un prodotto di quella campagna entro questo numero di giorni, ed è nel pool pubblico e non protetto, viene assegnato a quel BD invece che a caso. 0 disattiva la regola. Predefinito: 7.",
+          bdCampaignDaysInvalid: "Inserisci un numero intero tra 0 e 30",
           exclusions:
             "Le revisioni fatte con l’account principale, dall’IA da sola o dalle regole di prefiltro automatico non attivano le prime due regole. La restituzione alla scadenza non dipende da alcuna decisione di revisione.",
           saved: "Regole business creator salvate.",
@@ -352,6 +380,10 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
             "สำหรับครีเอเตอร์ใหม่ที่มอบหมายให้ BD รายบุคคล: หากคำขอตัวอย่างยังไม่ได้ตรวจสอบภายในจำนวนชั่วโมงที่ตั้งไว้ก่อนกำหนดตรวจสอบของ TikTok ระบบจะตรวจสอบทุกชั่วโมงและปล่อยครีเอเตอร์สู่ส่วนกลางเพื่อให้ BD คนอื่นตรวจสอบ ครีเอเตอร์ที่ได้รับการป้องกันไม่ได้รับผลกระทบ",
           deadlineReleaseHours: "ชั่วโมงก่อนถึงกำหนด",
           deadlineReleaseHoursInvalid: "กรอกจำนวนเต็มระหว่าง 1 ถึง 142",
+          bdCampaignDays: "จำนวนวันที่คำขอตัวอย่างจากแคมเปญของ BD จะมอบให้ BD นั้น",
+          bdCampaignDaysHint:
+            "หากครีเอเตอร์ที่แคมเปญซึ่ง BD สร้างเองได้ติดต่อไป ขอตัวอย่างสินค้าของแคมเปญนั้นภายในจำนวนวันนี้ และครีเอเตอร์อยู่ในพูลสาธารณะและไม่ได้รับการคุ้มครอง ครีเอเตอร์จะถูกมอบให้ BD นั้นแทนการสุ่ม ใส่ 0 เพื่อปิด ค่าเริ่มต้น 7 วัน",
+          bdCampaignDaysInvalid: "กรอกจำนวนเต็มระหว่าง 0 ถึง 30",
           exclusions:
             "การตรวจสอบด้วยบัญชีหลัก โดย AI เพียงลำพัง หรือโดยกฎคัดกรองล่วงหน้าอัตโนมัติ จะไม่ทำให้สองกฎแรกทำงาน การปล่อยก่อนถึงกำหนดไม่ขึ้นกับผลการตรวจสอบใดๆ",
           saved: "บันทึกกฎธุรกิจครีเอเตอร์แล้ว",

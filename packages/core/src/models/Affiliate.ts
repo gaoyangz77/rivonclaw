@@ -165,6 +165,11 @@ export const AffiliateOperationalSettingsModel = types.model("AffiliateOperation
   // list: the defaults while `creatorAssignmentTriggersCustomized` is false.
   enabledCreatorAssignmentTriggers: types.optional(types.array(types.string), []),
   creatorAssignmentTriggersCustomized: types.optional(types.boolean, false),
+  // ADR-119: days after a BD's own Campaign reached a Creator in which that Creator's
+  // new Sample Application assigns them to the BD (0 = off). Stored value is null while
+  // the backend default applies; the effective value is what is in force.
+  bdCampaignSampleAssignmentDays: types.maybeNull(types.integer),
+  effectiveBdCampaignSampleAssignmentDays: types.optional(types.integer, 7),
   id: types.identifier,
   userId: types.string,
   onboardingCompletedAt: types.maybeNull(types.string),

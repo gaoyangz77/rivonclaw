@@ -22,6 +22,10 @@ const RELEASE_HOURS_MIN = 1;
 const RELEASE_HOURS_MAX = 142;
 const RELEASE_HOURS_DEFAULT = 72;
 
+// ADR-119: the backend accepts 0..30 days; 0 turns the BD Campaign assignment off.
+const BD_CAMPAIGN_DAYS_MIN = 0;
+const BD_CAMPAIGN_DAYS_MAX = 30;
+
 // Display order of the assignment scenarios. The default selection is owned by the backend.
 const ASSIGNMENT_TRIGGERS = [
   "CREATOR_INBOUND",
@@ -77,14 +81,29 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
     const [triggersDraft, setTriggersDraft] = useState<string[] | null>(null);
     const triggers = triggersDraft ?? persistedTriggers;
     const triggersDirty = triggersDraft != null && !sameSet(triggersDraft, persistedTriggers);
-    const dirty = rulesDirty || triggersDirty;
+    // The effective window in force; the backend resolves its default.
+    const persistedBdCampaignDays = settings?.effectiveBdCampaignSampleAssignmentDays ?? null;
+    const [bdCampaignDaysDraft, setBdCampaignDaysDraft] = useState<string | null>(null);
+    const bdCampaignDaysText = bdCampaignDaysDraft ?? String(persistedBdCampaignDays ?? "");
+    const bdCampaignDaysValue = Number(bdCampaignDaysText);
+    const bdCampaignDaysInvalid = !(
+      bdCampaignDaysText.trim() !== "" &&
+      Number.isInteger(bdCampaignDaysValue) &&
+      bdCampaignDaysValue >= BD_CAMPAIGN_DAYS_MIN &&
+      bdCampaignDaysValue <= BD_CAMPAIGN_DAYS_MAX
+    );
+    const bdCampaignDaysDirty =
+      bdCampaignDaysDraft != null &&
+      !bdCampaignDaysInvalid &&
+      bdCampaignDaysValue !== persistedBdCampaignDays;
+    const dirty = rulesDirty || triggersDirty || bdCampaignDaysDirty;
     const [saveSettings, { loading: saving }] = useMutation<
       { setAffiliateCreatorBusinessSettings: GQL.AffiliateOperationalSettings },
       { input: GQL.SetAffiliateCreatorBusinessSettingsInput }
     >(SET_AFFILIATE_CREATOR_BUSINESS_SETTINGS_MUTATION);
 
     async function save() {
-      if (!loaded || !dirty || hoursInvalid || saving) return;
+      if (!loaded || !dirty || hoursInvalid || bdCampaignDaysInvalid || saving) return;
       try {
         const result = await saveSettings({
           variables: {
@@ -92,6 +111,10 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
               autoClaimOnSampleApproval: autoClaim,
               autoReleaseOnSampleRejection: autoRelease,
               releaseBeforeSampleExpiryHours: releaseHours,
+              // Absent leaves the stored window unchanged.
+              ...(bdCampaignDaysDirty
+                ? { bdCampaignSampleAssignmentDays: bdCampaignDaysValue }
+                : {}),
               // Absent leaves the stored selection unchanged.
               ...(triggersDirty
                 ? { creatorAssignmentTriggers: triggers as GQL.AffiliateCreatorAssignmentTrigger[] }
@@ -109,6 +132,7 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
         setDeadlineReleaseDraft(null);
         setReleaseHoursDraft(null);
         setTriggersDraft(null);
+        setBdCampaignDaysDraft(null);
         showToast(t("ecommerce.affiliateTeam.creatorBusiness.saved"), "success");
       } catch {
         showToast(t("ecommerce.affiliateTeam.creatorBusiness.saveFailed"), "error");
@@ -159,7 +183,7 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
             <TkButton
               variant="primary"
               loading={saving}
-              disabled={!loaded || !dirty || hoursInvalid}
+              disabled={!loaded || !dirty || hoursInvalid || bdCampaignDaysInvalid}
               onClick={() => void save()}
             >
               {t("common.save")}
@@ -208,6 +232,24 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
             />
           )}
           <p className="form-hint">{t("ecommerce.affiliateTeam.creatorBusiness.exclusions")}</p>
+          <TkField
+            className="affiliate-creator-business-bd-campaign-days"
+            type="number"
+            inputMode="numeric"
+            min={BD_CAMPAIGN_DAYS_MIN}
+            max={BD_CAMPAIGN_DAYS_MAX}
+            step={1}
+            label={t("ecommerce.affiliateTeam.creatorBusiness.bdCampaignDays")}
+            hint={t("ecommerce.affiliateTeam.creatorBusiness.bdCampaignDaysHint")}
+            error={
+              loaded && bdCampaignDaysInvalid
+                ? t("ecommerce.affiliateTeam.creatorBusiness.bdCampaignDaysInvalid")
+                : undefined
+            }
+            value={bdCampaignDaysText}
+            disabled={!loaded || saving}
+            onChange={(event) => setBdCampaignDaysDraft(event.target.value)}
+          />
           <TkFormGroup
             className="affiliate-creator-business-triggers"
             title={t("ecommerce.affiliateTeam.creatorBusiness.triggers.title")}

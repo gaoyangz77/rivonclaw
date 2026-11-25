@@ -4,6 +4,12 @@
   margin-block: var(--tk-v1-space-2) var(--tk-v1-space-4);
 }
 
+/* ADR-119 window: its hint explains the rule, so it gets more width than the hours field. */
+.affiliate-creator-business-bd-campaign-days {
+  max-width: 560px;
+  margin-block: var(--tk-v1-space-4) 0;
+}
+
 /* Assignment scenarios: a checkbox column with a muted hint under each label. */
 .affiliate-creator-business-triggers {
   margin-top: var(--tk-v1-space-4);
