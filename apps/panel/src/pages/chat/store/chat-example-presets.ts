@@ -17,9 +17,9 @@ export const ECOMMERCE_PRESET: Record<string, Record<ExampleKey, string>> = {
     example1: "Check if there are any pending customer service conversations",
     example2:
       "Review all pending CS conversations — mark trivial ones as read, escalate the rest to a human agent",
-    example3: "Use the cs-setup skill to help me write store prompt guidelines",
+    example3: "Help me write the customer service prompt for my store",
     example4:
-      "Use the cs-optimize skill to review and audit yesterday's customer service conversations",
+      "Review and audit yesterday's customer service conversations",
     example5:
       "Check which orders have return/refund requests and whether the return shipping has been completed",
     example6: "Summarize our store's recent customer service performance",
@@ -27,8 +27,8 @@ export const ECOMMERCE_PRESET: Record<string, Record<ExampleKey, string>> = {
   zh: {
     example1: "看看有哪些待处理的客服对话",
     example2: "待处理的客服对话你帮过过一遍，没必要处理的直接标记为已读，有必要处理的就派客服处理",
-    example3: "使用cs-setup技能帮我写一下店铺提示词",
-    example4: "使用cs-optimize技能帮我回顾审核一下过去一天的客服对话",
+    example3: "帮我写一下店铺的客服提示词",
+    example4: "帮我回顾审核一下过去一天的客服对话",
     example5: "看看店铺有哪些退货退款订单，并且看看退货的物流完成了没",
     example6: "帮我总结一下最近店铺的客服表现",
   },
@@ -36,9 +36,9 @@ export const ECOMMERCE_PRESET: Record<string, Record<ExampleKey, string>> = {
     example1: "Pruefe, ob es ausstehende Kundendienstgespraeche gibt",
     example2:
       "Pruefe alle ausstehenden Kundendienstgespraeche, markiere einfache Faelle als gelesen und eskaliere den Rest an einen menschlichen Agenten",
-    example3: "Nutze den cs-setup Skill, um mir Shop-Prompt-Richtlinien zu schreiben",
+    example3: "Hilf mir, den Kundenservice-Prompt fuer meinen Shop zu schreiben",
     example4:
-      "Nutze den cs-optimize Skill, um die Kundendienstgespraeche von gestern zu pruefen und zu auditieren",
+      "Pruefe und auditiere die Kundendienstgespraeche von gestern",
     example5:
       "Pruefe, welche Bestellungen Rueckgabe- oder Erstattungsanfragen haben und ob der Rueckversand abgeschlossen ist",
     example6: "Fasse die aktuelle Kundendienstleistung unseres Shops zusammen",
@@ -48,9 +48,9 @@ export const ECOMMERCE_PRESET: Record<string, Record<ExampleKey, string>> = {
     example2:
       "Revisa todas las conversaciones de atencion al cliente pendientes, marca como leidas las simples y escala el resto a un agente humano",
     example3:
-      "Usa la habilidad cs-setup para ayudarme a escribir las directrices de prompt de la tienda",
+      "Ayudame a escribir el prompt de atencion al cliente de mi tienda",
     example4:
-      "Usa la habilidad cs-optimize para revisar y auditar las conversaciones de atencion al cliente de ayer",
+      "Revisa y audita las conversaciones de atencion al cliente de ayer",
     example5:
       "Comprueba que pedidos tienen solicitudes de devolucion o reembolso y si el envio de devolucion se completo",
     example6: "Resume el rendimiento reciente de atencion al cliente de nuestra tienda",
@@ -60,9 +60,9 @@ export const ECOMMERCE_PRESET: Record<string, Record<ExampleKey, string>> = {
     example2:
       "Passe en revue toutes les conversations de service client en attente, marque les cas simples comme lus et escalade le reste a un agent humain",
     example3:
-      "Utilise la competence cs-setup pour m'aider a rediger les consignes de prompt de la boutique",
+      "Aide-moi a rediger le prompt du service client de ma boutique",
     example4:
-      "Utilise la competence cs-optimize pour examiner et auditer les conversations de service client d'hier",
+      "Examine et audite les conversations de service client d'hier",
     example5:
       "Verifie quelles commandes ont des demandes de retour ou de remboursement et si l'expedition de retour est terminee",
     example6: "Resume les performances recentes du service client de notre boutique",
@@ -71,9 +71,9 @@ export const ECOMMERCE_PRESET: Record<string, Record<ExampleKey, string>> = {
     example1: "Periksa apakah ada percakapan layanan pelanggan yang masih tertunda",
     example2:
       "Tinjau semua percakapan CS yang tertunda, tandai yang sederhana sebagai sudah dibaca, lalu eskalasikan sisanya ke agen manusia",
-    example3: "Gunakan skill cs-setup untuk membantu saya menulis panduan prompt toko",
+    example3: "Bantu saya menulis prompt layanan pelanggan untuk toko saya",
     example4:
-      "Gunakan skill cs-optimize untuk meninjau dan mengaudit percakapan layanan pelanggan kemarin",
+      "Tinjau dan audit percakapan layanan pelanggan kemarin",
     example5:
       "Periksa pesanan mana yang memiliki permintaan retur atau refund dan apakah pengiriman retur sudah selesai",
     example6: "Ringkas performa layanan pelanggan terbaru toko kami",
@@ -82,9 +82,9 @@ export const ECOMMERCE_PRESET: Record<string, Record<ExampleKey, string>> = {
     example1: "Controlla se ci sono conversazioni di assistenza clienti in sospeso",
     example2:
       "Rivedi tutte le conversazioni CS in sospeso, segna come lette quelle semplici ed escala le altre a un agente umano",
-    example3: "Usa la skill cs-setup per aiutarmi a scrivere le linee guida dei prompt del negozio",
+    example3: "Aiutami a scrivere il prompt del servizio clienti del mio negozio",
     example4:
-      "Usa la skill cs-optimize per rivedere e verificare le conversazioni di assistenza clienti di ieri",
+      "Rivedi e verifica le conversazioni di assistenza clienti di ieri",
     example5:
       "Controlla quali ordini hanno richieste di reso o rimborso e se la spedizione di reso e stata completata",
     example6: "Riassumi le prestazioni recenti dell'assistenza clienti del nostro negozio",
@@ -93,8 +93,8 @@ export const ECOMMERCE_PRESET: Record<string, Record<ExampleKey, string>> = {
     example1: "ตรวจสอบว่ามีบทสนทนาฝ่ายบริการลูกค้าที่ยังค้างอยู่หรือไม่",
     example2:
       "ตรวจทานบทสนทนา CS ที่ค้างอยู่ทั้งหมด ทำเครื่องหมายรายการง่าย ๆ ว่าอ่านแล้ว และส่งต่อรายการที่เหลือให้เจ้าหน้าที่",
-    example3: "ใช้สกิล cs-setup ช่วยฉันเขียนแนวทาง prompt ของร้านค้า",
-    example4: "ใช้สกิล cs-optimize เพื่อตรวจทานและ audit บทสนทนาฝ่ายบริการลูกค้าของเมื่อวาน",
+    example3: "ช่วยเขียนพรอมต์บริการลูกค้าของร้านให้หน่อย",
+    example4: "ช่วยตรวจทานบทสนทนาฝ่ายบริการลูกค้าของเมื่อวาน",
     example5: "ตรวจสอบว่าออเดอร์ใดมีคำขอคืนสินค้าหรือคืนเงิน และการจัดส่งคืนเสร็จแล้วหรือยัง",
     example6: "สรุปประสิทธิภาพฝ่ายบริการลูกค้าล่าสุดของร้านเรา",
   },
