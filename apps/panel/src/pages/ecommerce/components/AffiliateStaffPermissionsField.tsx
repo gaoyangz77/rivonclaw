@@ -1,7 +1,12 @@
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { TkBadge } from "../../../components/design-system/index.js";
-import { AFFILIATE_STAFF_PERMISSIONS, toggleStaffPermission } from "../affiliate-team-structure.js";
+import {
+  AFFILIATE_STAFF_PERMISSIONS,
+  staffPermissionsForRole,
+  toggleStaffPermission,
+  type StaffProfileRole,
+} from "../affiliate-team-structure.js";
 import "./AffiliateTeamStructure.css";
 
 /** Translation keys of one permission: its checkbox label, its hint and its short tree label. */
@@ -24,19 +29,26 @@ const PERMISSION_COPY: Record<
     hint: "ecommerce.affiliateTeam.permissionAllocateHint",
     short: "ecommerce.affiliateTeam.permissionAllocateShort",
   },
+  [GQL.AffiliateStaffPermission.Campaign]: {
+    label: "ecommerce.affiliateTeam.permissionCampaign",
+    hint: "ecommerce.affiliateTeam.permissionCampaignHint",
+    short: "ecommerce.affiliateTeam.permissionCampaignShort",
+  },
 };
 
 /**
- * The three permission checkboxes of a staff profile (ADR-113), shared by the
- * team lead and region admin editors. The value is a primitive draft the editor
+ * The permission checkboxes of a staff profile (ADR-113, ADR-118), shared by the
+ * team lead and region admin editors; the role decides which ones exist. The value is a primitive draft the editor
  * owns; `OPERATE` and `VIEW` are coupled here so the draft is never a set the
  * Backend would refuse.
  */
 export function AffiliateStaffPermissionsField({
+  role,
   value,
   onChange,
   disabled = false,
 }: {
+  role: StaffProfileRole;
   value: readonly GQL.AffiliateStaffPermission[];
   onChange: (next: GQL.AffiliateStaffPermission[]) => void;
   disabled?: boolean;
@@ -46,7 +58,7 @@ export function AffiliateStaffPermissionsField({
     <fieldset className="affiliate-staff-permissions" disabled={disabled}>
       <legend>{t("ecommerce.affiliateTeam.permissionsLabel")}</legend>
       <small className="form-hint">{t("ecommerce.affiliateTeam.permissionsHint")}</small>
-      {AFFILIATE_STAFF_PERMISSIONS.map((permission) => (
+      {staffPermissionsForRole(role).map((permission) => (
         <label className="affiliate-staff-permissions-option" key={permission}>
           <input
             type="checkbox"

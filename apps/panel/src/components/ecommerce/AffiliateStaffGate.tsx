@@ -6,11 +6,12 @@ import type { GQL } from "@rivonclaw/core";
 import { AFFILIATE_VIEWER_CAPABILITIES_QUERY } from "../../api/affiliate-staff-queries.js";
 import { AffiliateAccessContext } from "../../hooks/useAffiliateAccess.js";
 import {
+  AFFILIATE_BUSINESS_DEVELOPER_ACCESS,
   affiliateAccessMaySeeSurface,
   resolveAffiliateStaffAccess,
   type AffiliateStaffSurface,
 } from "../../lib/affiliate-access.js";
-import { isAffiliateStaffOnly } from "../../lib/permission-scope.js";
+import { isAffiliateStaffOnly, isBusinessDeveloperOnly } from "../../lib/permission-scope.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { TkAlert, TkButton, TkEmptyState, TkLoadingState } from "../design-system/index.js";
 import "./AffiliateStaffGate.css";
@@ -19,8 +20,10 @@ import "./AffiliateStaffGate.css";
  * Decides what a team lead or region admin sees of an Affiliate page (ADR-112),
  * and gives everything below it their access through `useAffiliateAccess`.
  *
- * A supervisor or BD passes straight through with no provider, so their pages
- * behave exactly as before. A staff login is held on a loading state until the
+ * A supervisor passes straight through with no provider, so their pages behave
+ * exactly as before. A BD is read from its scopes (no request needed) and gets
+ * the BD access, which differs from the supervisor default only in the Campaign
+ * strategies it may use (ADR-118). A staff login is held on a loading state until the
  * Backend has said which profile it holds, because the scope alone cannot tell
  * a lead from a role that nobody linked to a profile.
  */
@@ -48,7 +51,15 @@ export const AffiliateStaffGate = observer(function AffiliateStaffGate({
     [capabilities],
   );
 
-  if (!staffOnly) return <>{children}</>;
+  if (!staffOnly) {
+    return isBusinessDeveloperOnly(user) ? (
+      <AffiliateAccessContext.Provider value={AFFILIATE_BUSINESS_DEVELOPER_ACCESS}>
+        {children}
+      </AffiliateAccessContext.Provider>
+    ) : (
+      <>{children}</>
+    );
+  }
 
   if (!capabilities) {
     return error ? (

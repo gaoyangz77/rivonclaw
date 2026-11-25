@@ -57,7 +57,22 @@ export const AFFILIATE_STAFF_PERMISSIONS: readonly GQL.AffiliateStaffPermission[
   GQL.AffiliateStaffPermission.View,
   GQL.AffiliateStaffPermission.Operate,
   GQL.AffiliateStaffPermission.Allocate,
+  GQL.AffiliateStaffPermission.Campaign,
 ];
+
+export type StaffProfileRole = "TEAM_LEAD" | "REGION_ADMIN";
+
+/**
+ * The permissions the editor offers a profile of this role. `CAMPAIGN` (ADR-118)
+ * belongs to region admins only: the Backend refuses it on a team lead profile,
+ * so the editor never offers it there.
+ */
+export function staffPermissionsForRole(role: StaffProfileRole): GQL.AffiliateStaffPermission[] {
+  return AFFILIATE_STAFF_PERMISSIONS.filter(
+    (permission) =>
+      role === "REGION_ADMIN" || permission !== GQL.AffiliateStaffPermission.Campaign,
+  );
+}
 
 /**
  * The permissions a new profile of this role starts with. They are the Backend's
@@ -65,7 +80,7 @@ export const AFFILIATE_STAFF_PERMISSIONS: readonly GQL.AffiliateStaffPermission[
  * without a permission list.
  */
 export function defaultStaffPermissions(
-  role: "TEAM_LEAD" | "REGION_ADMIN",
+  role: StaffProfileRole,
 ): GQL.AffiliateStaffPermission[] {
   return role === "TEAM_LEAD"
     ? [GQL.AffiliateStaffPermission.View]

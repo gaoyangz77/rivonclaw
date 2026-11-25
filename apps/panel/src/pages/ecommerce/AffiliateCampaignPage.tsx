@@ -6,6 +6,13 @@ import { useTranslation } from "react-i18next";
 import panelI18n from "../../i18n/index.js";
 import { formatShortDateTime } from "../../lib/format-datetime.js";
 import { GQL } from "@rivonclaw/core";
+import { useAffiliateAccess } from "../../hooks/useAffiliateAccess.js";
+import { affiliateAccessMaySearchCampaigns } from "../../lib/affiliate-access.js";
+import {
+  campaignCreatorLabel,
+  campaignStrategyOffered,
+  defaultCampaignStrategy,
+} from "./affiliate-campaign-access.js";
 import { useWorkspaceTab } from "../../lib/workspace-tab-context.js";
 import {
   CheckIcon,
@@ -94,7 +101,7 @@ import {
   AFFILIATE_CAMPAIGN_CREATOR_LIST_SUMMARY_QUERY,
   PREVIEW_AFFILIATE_CAMPAIGN_GUIDANCE_INTERPRETATION_MUTATION,
   AFFILIATE_CAMPAIGN_SCREENING_BREAKDOWN_QUERY,
-  AFFILIATE_PRODUCT_SUMMARIES_QUERY,
+  AFFILIATE_CAMPAIGN_PRODUCT_SUMMARIES_QUERY,
   AFFILIATE_MARKETPLACE_RULE_CAPABILITIES_QUERY,
   DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION,
   DUPLICATE_AFFILIATE_CAMPAIGN_MUTATION,
@@ -577,6 +584,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const privacyMode = usePrivacyMode();
+  // What this login may do with Campaigns (ADR-118). The search-only helpers below
+  // are refused by the Backend for a BD, so they are never requested for one.
+  const access = useAffiliateAccess();
+  const searchCampaignsAllowed = affiliateAccessMaySearchCampaigns(access);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [form, setForm] = useState<CampaignForm>(emptyForm);
@@ -663,14 +674,17 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   // resolved at user scope, so the answer is the same for every Campaign here.
   const aiReadinessQuery = useQuery<{
     affiliateCampaignAiReadiness: GQL.AffiliateCampaignAiReadiness;
-  }>(AFFILIATE_CAMPAIGN_AI_READINESS_QUERY, { fetchPolicy: "cache-and-network" });
+  }>(AFFILIATE_CAMPAIGN_AI_READINESS_QUERY, {
+    fetchPolicy: "cache-and-network",
+    skip: !searchCampaignsAllowed,
+  });
   const aiReadiness = aiReadinessQuery.data?.affiliateCampaignAiReadiness ?? null;
   const aiReadinessLoading = aiReadinessQuery.loading && !aiReadiness;
   const capabilitiesQuery = useQuery<{
     affiliateMarketplaceCreatorRuleCapabilities: GQL.AffiliateMarketplaceCreatorRuleCapabilities;
   }>(AFFILIATE_MARKETPLACE_RULE_CAPABILITIES_QUERY, {
     variables: { shopId: form.shopId },
-    skip: !form.shopId,
+    skip: !form.shopId || !searchCampaignsAllowed,
     fetchPolicy: "cache-and-network",
   });
   const summaryQuery = useQuery<{ affiliateCampaignSummary: GQL.AffiliateCampaignSummary }>(
@@ -758,7 +772,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     };
   }>(AFFILIATE_CAMPAIGN_SEARCH_PLAN_SUMMARIES_QUERY, {
     variables: { input: { campaignId: selectedCampaignId, limit: 20 } },
-    skip: !selectedCampaignId,
+    skip: !selectedCampaignId || !searchCampaignsAllowed,
     ...campaignDetailPollingOptions(workspaceTab.active, selectedCampaignId),
   });
   const searchPlanPageQueryKey = selectedCampaignId;
@@ -916,15 +930,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       productId: product.productId,
     })) ?? [];
   const { data: selectedCampaignProductData } = useQuery<
-    { affiliateProductSummaries: GQL.AffiliateRelationshipProductSummary[] },
+    { affiliateCampaignProductSummaries: GQL.AffiliateRelationshipProductSummary[] },
     { input: GQL.AffiliateProductSummaryBatchInput }
-  >(AFFILIATE_PRODUCT_SUMMARIES_QUERY, {
+  >(AFFILIATE_CAMPAIGN_PRODUCT_SUMMARIES_QUERY, {
     variables: { input: { refs: selectedCampaignProductRefs } },
     skip: selectedCampaignProductRefs.length === 0,
     fetchPolicy: "cache-first",
   });
   const selectedCampaignProductSummaries =
-    selectedCampaignProductData?.affiliateProductSummaries ?? [];
+    selectedCampaignProductData?.affiliateCampaignProductSummaries ?? [];
   const editingCampaign = campaigns.find((campaign) => campaign.id === editingCampaignId) ?? null;
   const summary = summaryQuery.data?.affiliateCampaignSummary;
   const latestExecution = summary?.latestExecution;
@@ -1059,7 +1073,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     };
   });
   const openCreate = () => {
-    setForm(emptyForm);
+    setForm({ ...emptyForm, strategy: defaultCampaignStrategy(access.campaignStrategies) });
     setTargetStepAttempted(false);
     setSellerContactEmailEdited(false);
     setProductPreviews({});
@@ -1945,6 +1959,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 <col className="affiliate-campaign-col-status" />
                 <col className="affiliate-campaign-col-target" />
                 <col className="affiliate-campaign-col-boundary" />
+                <col className="affiliate-campaign-col-creator" />
                 <col className="affiliate-campaign-col-product" />
                 <col className="affiliate-campaign-col-open" />
               </colgroup>
@@ -1955,6 +1970,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <th>{t("ecommerce.affiliateCampaign.statusLabel")}</th>
                   <th>{t("ecommerce.affiliateCampaign.dailyTarget")}</th>
                   <th>{t("ecommerce.affiliateCampaign.selectionBoundary")}</th>
+                  <th>{t("ecommerce.affiliateCampaign.createdByLabel")}</th>
                   <th>{t("ecommerce.affiliateCampaign.product")}</th>
                   <th aria-label={t("ecommerce.affiliateCampaign.openDetail")} />
                 </tr>
@@ -1962,7 +1978,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               <tbody>
                 {visibleCampaigns.length === 0 && (
                   <tr className="affiliate-campaign-directory-empty-row">
-                    <td colSpan={7}>{t("ecommerce.affiliateCampaign.noCampaignsForStatus")}</td>
+                    <td colSpan={8}>{t("ecommerce.affiliateCampaign.noCampaignsForStatus")}</td>
                   </tr>
                 )}
                 {visibleCampaigns.map((campaign) => {
@@ -2015,6 +2031,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           {campaignStrategyLabel(campaign.selectionPolicy.strategy, t)}
                         </strong>
                         <small>{campaignRuleSummary(campaign, t)}</small>
+                      </td>
+                      <td>
+                        {campaignCreatorLabel(campaign, t)}
                       </td>
                       <td>
                         <ProductTableCell
@@ -2175,6 +2194,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   </span>
                   <span className="affiliate-campaign-modal-policy-pill">
                     {campaignStrategyLabel(selectedCampaign.selectionPolicy.strategy, t)}
+                  </span>
+                  <span className="affiliate-campaign-modal-policy-pill">
+                    {t("ecommerce.affiliateCampaign.createdByValue", {
+                      creator: campaignCreatorLabel(selectedCampaign, t),
+                    })}
                   </span>
                   <span
                     className={`affiliate-campaign-modal-readiness${
@@ -3173,6 +3197,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               </section>
               <section className="affiliate-campaign-wizard-fields">
                 <div className="affiliate-campaign-strategy-picker">
+                  {campaignStrategyOffered(
+                    access.campaignStrategies,
+                    GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules,
+                  ) && (
                   <div className="affiliate-campaign-strategy-option">
                     <button
                       type="button"
@@ -3195,6 +3223,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       <i>{t("ecommerce.affiliateCampaign.strategyRuleOrder")}</i>
                     </button>
                   </div>
+                  )}
+                  {campaignStrategyOffered(
+                    access.campaignStrategies,
+                    GQL.AffiliateCampaignSelectionStrategy.AiPreApproval,
+                  ) && (
                   <div className="affiliate-campaign-strategy-option">
                     <button
                       type="button"
@@ -3220,6 +3253,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       label={t("ecommerce.affiliateCampaign.screening.aiModeTooltip")}
                     />
                   </div>
+                  )}
+                  {campaignStrategyOffered(
+                    access.campaignStrategies,
+                    GQL.AffiliateCampaignSelectionStrategy.CreatorList,
+                  ) && (
                   <div className="affiliate-campaign-strategy-option">
                     <button
                       type="button"
@@ -3238,6 +3276,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       <i>{t("ecommerce.affiliateCampaign.creatorList.strategyOrder")}</i>
                     </button>
                   </div>
+                  )}
                 </div>
                 {!formIsCreatorList && (
                 <div className="affiliate-campaign-provider-notes">
@@ -5363,6 +5402,7 @@ export const CAMPAIGN_ERROR_MESSAGE_KEYS: ReadonlyArray<readonly [string, string
   ["CAMPAIGN_RECONFIGURATION_REQUIRED", "errors.reconfigurationRequired"],
   ["CAMPAIGN_SEARCH_PHRASES_REQUIRED", "invalidSearchPhrases"],
   ["CAMPAIGN_CREATOR_LIST_REQUIRED", "creatorList.errors.required"],
+  ["CAMPAIGN_STRATEGY_NOT_ALLOWED", "errors.strategyNotAllowed"],
   ["CAMPAIGN_CREATOR_LIST_TOO_LARGE", "creatorList.errors.tooLarge"],
   ["CAMPAIGN_CREATOR_LIST_USERNAME_INVALID", "creatorList.errors.usernameInvalid"],
   ["CAMPAIGN_CREATOR_LIST_NOT_ALLOWED", "creatorList.errors.notAllowed"],

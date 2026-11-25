@@ -57,9 +57,24 @@ export interface AffiliateAccess {
   creatorDetailTabs: readonly AffiliateCreatorDetailTab[] | null;
   /** Whether the Creator's contact routes may be read. */
   canReadCreatorContacts: boolean;
+  /**
+   * The Campaign selection strategies this login may create and manage
+   * Campaigns with (ADR-118). Empty means no Campaign access at all. A
+   * supervisor holds all three, a BD only the Creator list, and a staff login
+   * all three when its region admin profile holds `CAMPAIGN`. The strategies
+   * that search the Creator Marketplace are the ones that need the search-only
+   * helpers (AI readiness, rule capabilities, search plans, guidance preview).
+   */
+  campaignStrategies: readonly GQL.AffiliateCampaignSelectionStrategy[];
 }
 
-/** Supervisors and BDs: nothing is hidden on their behalf by this value. */
+const ALL_CAMPAIGN_STRATEGIES: readonly GQL.AffiliateCampaignSelectionStrategy[] = [
+  GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules,
+  GQL.AffiliateCampaignSelectionStrategy.AiPreApproval,
+  GQL.AffiliateCampaignSelectionStrategy.CreatorList,
+];
+
+/** Supervisors: nothing is hidden on their behalf by this value. */
 export const AFFILIATE_FULL_ACCESS: AffiliateAccess = {
   kind: GQL.AffiliateViewerKind.Supervisor,
   isTeamLead: false,
@@ -70,9 +85,21 @@ export const AFFILIATE_FULL_ACCESS: AffiliateAccess = {
   canManageCollaborations: true,
   creatorDetailTabs: null,
   canReadCreatorContacts: true,
+  campaignStrategies: ALL_CAMPAIGN_STRATEGIES,
 };
 
-export type AffiliateStaffSurface = "WORKBENCH" | "HISTORY" | "CREATORS";
+/**
+ * A BD sees its pages like a supervisor does, except that it creates Creator-list
+ * Campaigns only (ADR-118). It is a separate value so a BD can never inherit the
+ * full strategy set from the supervisor default.
+ */
+export const AFFILIATE_BUSINESS_DEVELOPER_ACCESS: AffiliateAccess = {
+  ...AFFILIATE_FULL_ACCESS,
+  kind: GQL.AffiliateViewerKind.BusinessDeveloper,
+  campaignStrategies: [GQL.AffiliateCampaignSelectionStrategy.CreatorList],
+};
+
+export type AffiliateStaffSurface = "WORKBENCH" | "HISTORY" | "CREATORS" | "CAMPAIGNS";
 
 const BASE_CREATOR_DETAIL_TABS: readonly AffiliateCreatorDetailTab[] = [
   "profile",
@@ -94,6 +121,9 @@ type AffiliateViewerCapabilitiesFacts = Pick<
 export function resolveAffiliateStaffAccess(
   capabilities: AffiliateViewerCapabilitiesFacts,
 ): AffiliateAccess | null {
+  if (capabilities.kind === GQL.AffiliateViewerKind.BusinessDeveloper) {
+    return AFFILIATE_BUSINESS_DEVELOPER_ACCESS;
+  }
   if (capabilities.kind !== GQL.AffiliateViewerKind.Staff) return AFFILIATE_FULL_ACCESS;
   const { isTeamLead, isRegionAdmin } = capabilities;
   if (!isTeamLead && !isRegionAdmin) return null;
@@ -113,6 +143,12 @@ export function resolveAffiliateStaffAccess(
     canManageCollaborations: false,
     creatorDetailTabs: canView ? null : BASE_CREATOR_DETAIL_TABS,
     canReadCreatorContacts: canView,
+    // Judged on the region admin facet alone: a team lead profile never holds it.
+    campaignStrategies: capabilities.regionAdminPermissions.includes(
+      GQL.AffiliateStaffPermission.Campaign,
+    )
+      ? ALL_CAMPAIGN_STRATEGIES
+      : [],
   };
 }
 
@@ -121,9 +157,22 @@ export function affiliateAccessMaySeeSurface(
   access: AffiliateAccess,
   surface: AffiliateStaffSurface,
 ): boolean {
+  if (surface === "CAMPAIGNS") return access.campaignStrategies.length > 0;
   if (access.kind !== GQL.AffiliateViewerKind.Staff) return true;
   // The Creator list is the base read of every live profile; the work views need `VIEW`.
   return surface === "CREATORS" ? true : access.canView;
+}
+
+/**
+ * Whether this access may create or manage Campaigns that search the Creator
+ * Marketplace. Only then does the Campaign page call the search-only helpers
+ * (AI readiness, rule capabilities, search plans, guidance preview): the Backend
+ * refuses them for a BD.
+ */
+export function affiliateAccessMaySearchCampaigns(access: AffiliateAccess): boolean {
+  return access.campaignStrategies.some(
+    (strategy) => strategy !== GQL.AffiliateCampaignSelectionStrategy.CreatorList,
+  );
 }
 
 /**

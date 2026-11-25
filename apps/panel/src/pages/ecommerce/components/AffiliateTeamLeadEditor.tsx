@@ -179,7 +179,7 @@ export function AffiliateTeamLeadEditor({
               ]}
             />
           </label>
-          <AffiliateStaffPermissionsField value={permissions} onChange={setPermissions} />
+          <AffiliateStaffPermissionsField role="TEAM_LEAD" value={permissions} onChange={setPermissions} />
           <div className="tk-v1-modal-actions">
             <TkButton type="button" onClick={onClose} disabled={saving}>
               {t("common.cancel")}

@@ -89,6 +89,10 @@ const en = {
   permissionViewShort: "View",
   permissionOperateShort: "Operate",
   permissionAllocateShort: "Allocate",
+  permissionCampaign: "Create Campaigns",
+  permissionCampaignHint:
+    "Can create and manage Campaigns for the sites and shops they cover, with all three strategies.",
+  permissionCampaignShort: "Campaigns",
   permissionNoneShort: "Creator list only",
 };
 
@@ -170,6 +174,10 @@ const zh: Copy = {
   permissionViewShort: "查看",
   permissionOperateShort: "操作",
   permissionAllocateShort: "分配",
+  permissionCampaign: "创建 campaign",
+  permissionCampaignHint:
+    "可以创建和管理所负责站点/店铺的 campaign（三种都可以）",
+  permissionCampaignShort: "campaign",
   permissionNoneShort: "仅达人列表",
 };
 
@@ -261,6 +269,10 @@ const de: Copy = {
   permissionViewShort: "Ansehen",
   permissionOperateShort: "Bearbeiten",
   permissionAllocateShort: "Zuweisen",
+  permissionCampaign: "Kampagnen erstellen",
+  permissionCampaignHint:
+    "Darf Kampagnen für die zugeordneten Sites und Shops erstellen und verwalten, mit allen drei Strategien.",
+  permissionCampaignShort: "Kampagnen",
   permissionNoneShort: "Nur Creator-Liste",
 };
 
@@ -350,6 +362,10 @@ const es: Copy = {
   permissionViewShort: "Ver",
   permissionOperateShort: "Operar",
   permissionAllocateShort: "Asignar",
+  permissionCampaign: "Crear campañas",
+  permissionCampaignHint:
+    "Puede crear y gestionar campañas de los sitios y tiendas que cubre, con las tres estrategias.",
+  permissionCampaignShort: "Campañas",
   permissionNoneShort: "Solo lista de creadores",
 };
 
@@ -440,6 +456,10 @@ const fr: Copy = {
   permissionViewShort: "Consulter",
   permissionOperateShort: "Gérer",
   permissionAllocateShort: "Attribuer",
+  permissionCampaign: "Créer des campagnes",
+  permissionCampaignHint:
+    "Peut créer et gérer les campagnes des sites et boutiques qu'il couvre, avec les trois stratégies.",
+  permissionCampaignShort: "Campagnes",
   permissionNoneShort: "Liste des créateurs seulement",
 };
 
@@ -529,6 +549,10 @@ const id: Copy = {
   permissionViewShort: "Lihat",
   permissionOperateShort: "Operasi",
   permissionAllocateShort: "Alokasi",
+  permissionCampaign: "Membuat kampanye",
+  permissionCampaignHint:
+    "Dapat membuat dan mengelola kampanye untuk situs dan toko yang dicakup, dengan ketiga strategi.",
+  permissionCampaignShort: "Kampanye",
   permissionNoneShort: "Hanya daftar Creator",
 };
 
@@ -620,6 +644,10 @@ const it: Copy = {
   permissionViewShort: "Visualizza",
   permissionOperateShort: "Gestisci",
   permissionAllocateShort: "Assegna",
+  permissionCampaign: "Creare campagne",
+  permissionCampaignHint:
+    "Può creare e gestire le campagne dei siti e dei negozi che copre, con tutte e tre le strategie.",
+  permissionCampaignShort: "Campagne",
   permissionNoneShort: "Solo elenco creator",
 };
 
@@ -699,6 +727,10 @@ const th: Copy = {
   permissionViewShort: "ดู",
   permissionOperateShort: "ดำเนินการ",
   permissionAllocateShort: "จัดสรร",
+  permissionCampaign: "สร้างแคมเปญ",
+  permissionCampaignHint:
+    "สร้างและจัดการแคมเปญของไซต์และร้านค้าที่ดูแล ได้ทั้งสามกลยุทธ์",
+  permissionCampaignShort: "แคมเปญ",
   permissionNoneShort: "เฉพาะรายการ Creator",
 };
 

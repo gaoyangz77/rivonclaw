@@ -507,7 +507,12 @@ const en = {
   activating: "Activating…",
   createFailed: "Campaign creation did not return a campaign.",
   created: "Campaign activated.",
+  createdByLabel: "Created by",
+  createdByAdmin: "Admin",
+  createdByValue: "Created by {{creator}}",
   errors: {
+    strategyNotAllowed:
+      "Your account can only create Creator-list campaigns. Choose the Creator list strategy.",
     shopUnavailable:
       "This shop could not be found. It may have been unlinked or its authorization may have expired. Refresh the shop list and try again.",
     campaignNotFound: "This campaign no longer exists. It may have been deleted. Refresh the list.",
@@ -1151,7 +1156,12 @@ const zh = {
   activating: "正在启用…",
   createFailed: "后端没有返回新建的推广计划。",
   created: "推广计划已启用。",
+  createdByLabel: "创建人",
+  createdByAdmin: "管理员",
+  createdByValue: "创建人：{{creator}}",
   errors: {
+    strategyNotAllowed:
+      "你的账号只能创建达人名单推广计划，请选择达人名单方式。",
     shopUnavailable: "找不到该店铺，可能已解绑或授权已失效。请刷新店铺列表后重试。",
     campaignNotFound: "这个推广计划已不存在，可能已被删除。请刷新列表。",
     shopMarketUnavailable:
@@ -1539,7 +1549,12 @@ const operationalCopy = {
     targetCollaborationQuotaRecoveredAt: "Erste erfolgreiche Erstellung um {{time}}",
     targetCollaborationQuotaScheduled:
       "Geplant · wartet auf TikTok-Kapazität für Zielkooperationen",
+    createdByLabel: "Erstellt von",
+    createdByAdmin: "Admin",
+    createdByValue: "Erstellt von {{creator}}",
     errors: {
+      strategyNotAllowed:
+        "Dein Konto kann nur Kampagnen mit Creator-Liste erstellen. Wähle die Strategie Creator-Liste.",
       shopUnavailable:
         "Dieser Shop wurde nicht gefunden. Er wurde eventuell getrennt oder seine Autorisierung ist abgelaufen. Aktualisiere die Shop-Liste und versuche es erneut.",
       campaignNotFound:
@@ -1805,7 +1820,12 @@ const operationalCopy = {
     targetCollaborationQuotaRecoveredAt: "Primera creación correcta registrada a las {{time}}",
     targetCollaborationQuotaScheduled:
       "Programado · esperando capacidad de colaboración dirigida de TikTok",
+    createdByLabel: "Creada por",
+    createdByAdmin: "Administrador",
+    createdByValue: "Creada por {{creator}}",
     errors: {
+      strategyNotAllowed:
+        "Tu cuenta solo puede crear campañas con lista de creators. Elige la estrategia de lista de creators.",
       shopUnavailable:
         "No se encontró esta tienda. Puede que se haya desvinculado o que su autorización haya caducado. Actualiza la lista de tiendas e inténtalo de nuevo.",
       campaignNotFound:
@@ -2069,7 +2089,12 @@ const operationalCopy = {
     targetCollaborationQuotaRecoveredAt: "Première création réussie enregistrée à {{time}}",
     targetCollaborationQuotaScheduled:
       "Planifié · en attente de capacité TikTok pour la collaboration ciblée",
+    createdByLabel: "Créée par",
+    createdByAdmin: "Administrateur",
+    createdByValue: "Créée par {{creator}}",
     errors: {
+      strategyNotAllowed:
+        "Votre compte ne peut créer que des campagnes avec liste de créateurs. Choisissez la stratégie liste de créateurs.",
       shopUnavailable:
         "Cette boutique est introuvable. Elle a peut-être été dissociée ou son autorisation a expiré. Actualisez la liste des boutiques et réessayez.",
       campaignNotFound:
@@ -2332,7 +2357,12 @@ const operationalCopy = {
     targetCollaborationQuotaRecovered: "Pembuatan kolaborasi target telah pulih",
     targetCollaborationQuotaRecoveredAt: "Pembuatan pertama yang berhasil tercatat pada {{time}}",
     targetCollaborationQuotaScheduled: "Terjadwal · menunggu kapasitas kolaborasi target TikTok",
+    createdByLabel: "Dibuat oleh",
+    createdByAdmin: "Admin",
+    createdByValue: "Dibuat oleh {{creator}}",
     errors: {
+      strategyNotAllowed:
+        "Akun Anda hanya dapat membuat kampanye daftar kreator. Pilih strategi daftar kreator.",
       shopUnavailable:
         "Toko ini tidak ditemukan. Mungkin sudah diputus atau otorisasinya kedaluwarsa. Muat ulang daftar toko lalu coba lagi.",
       campaignNotFound: "Kampanye ini sudah tidak ada; mungkin sudah dihapus. Muat ulang daftar.",
@@ -2594,7 +2624,12 @@ const operationalCopy = {
     targetCollaborationQuotaRecoveredAt: "Prima creazione riuscita registrata alle {{time}}",
     targetCollaborationQuotaScheduled:
       "Pianificato · in attesa di capacità TikTok per la collaborazione mirata",
+    createdByLabel: "Creata da",
+    createdByAdmin: "Amministratore",
+    createdByValue: "Creata da {{creator}}",
     errors: {
+      strategyNotAllowed:
+        "Il tuo account può creare solo campagne con elenco di creator. Scegli la strategia elenco di creator.",
       shopUnavailable:
         "Questo negozio non è stato trovato. Potrebbe essere stato scollegato o la sua autorizzazione potrebbe essere scaduta. Aggiorna l’elenco dei negozi e riprova.",
       campaignNotFound:
@@ -2840,7 +2875,12 @@ const operationalCopy = {
     targetCollaborationQuotaRecovered: "การสร้างความร่วมมือแบบกำหนดเป้าหมายกลับมาแล้ว",
     targetCollaborationQuotaRecoveredAt: "บันทึกการสร้างสำเร็จครั้งแรกเมื่อ {{time}}",
     targetCollaborationQuotaScheduled: "จัดกำหนดการแล้ว · รอความจุความร่วมมือแบบกำหนดเป้าหมายของ TikTok",
+    createdByLabel: "สร้างโดย",
+    createdByAdmin: "ผู้ดูแล",
+    createdByValue: "สร้างโดย {{creator}}",
     errors: {
+      strategyNotAllowed:
+        "บัญชีของคุณสร้างได้เฉพาะแคมเปญแบบรายชื่อครีเอเตอร์ โปรดเลือกกลยุทธ์รายชื่อครีเอเตอร์",
       shopUnavailable:
         "ไม่พบร้านค้านี้ อาจถูกยกเลิกการเชื่อมต่อหรือการอนุญาตหมดอายุ โปรดรีเฟรชรายการร้านค้าแล้วลองอีกครั้ง",
       campaignNotFound: "แคมเปญนี้ไม่มีอยู่แล้ว อาจถูกลบไปแล้ว โปรดรีเฟรชรายการ",

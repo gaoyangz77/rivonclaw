@@ -34,13 +34,13 @@ import {
   AffiliateManagementPage,
 } from "./pages/ecommerce/AffiliateManagementPage.js";
 import {
+  AffiliateCampaignRoute,
   AffiliateCreatorsRoute,
   AffiliateHistoryRoute,
   AffiliateManualWorkbenchRoute,
   AffiliateWorkbenchRoute,
 } from "./pages/ecommerce/AffiliateStaffRoutes.js";
 import { AffiliateTeamPage } from "./pages/ecommerce/AffiliateTeamPage.js";
-import { AffiliateCampaignPage } from "./pages/ecommerce/AffiliateCampaignPage.js";
 import { AffiliateAnalyticsPage } from "./pages/ecommerce/AffiliateAnalyticsPage.js";
 import { CustomerServiceConversationsPage } from "./pages/ecommerce/CustomerServiceConversationsPage.js";
 import { AfterSaleReviewPage } from "./pages/ecommerce/AfterSaleReviewPage.js";
@@ -116,6 +116,17 @@ const AFFILIATE_WORKSPACE_SCOPES: readonly GQL.PermissionScope[] = [
 const AFFILIATE_STAFF_WORKSPACE_SCOPES: readonly GQL.PermissionScope[] = [
   ...AFFILIATE_WORKSPACE_SCOPES,
   GQL.PermissionScope.AffiliateTeamLead,
+  GQL.PermissionScope.AffiliateRegionAdmin,
+];
+
+/**
+ * Campaigns (ADR-118): full Affiliate control, BDs (Creator-list Campaigns only)
+ * and region admins. Whether a region admin holds `CAMPAIGN` is a profile fact the
+ * scope cannot carry, so `AffiliateStaffGate` decides it once the Backend has
+ * answered. A team lead has no Campaign access and is not listed.
+ */
+const AFFILIATE_CAMPAIGN_SCOPES: readonly GQL.PermissionScope[] = [
+  ...AFFILIATE_WORKSPACE_SCOPES,
   GQL.PermissionScope.AffiliateRegionAdmin,
 ];
 
@@ -245,12 +256,12 @@ export const ROUTES: RouteEntry[] = [
   {
     path: "/commerce/affiliate/campaigns",
     pageKey: "ecommerce-affiliate-campaigns",
-    component: AffiliateCampaignPage,
+    component: AffiliateCampaignRoute,
     icon: <AdsIcon />,
     navLabelKey: "nav.affiliateCampaigns",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scopes: AFFILIATE_SUPERVISOR_SCOPES,
+    scopes: AFFILIATE_CAMPAIGN_SCOPES,
   },
   {
     path: "/commerce/affiliate/team",

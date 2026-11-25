@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { GQL } from "@rivonclaw/core";
 import {
+  AFFILIATE_BUSINESS_DEVELOPER_ACCESS,
   AFFILIATE_FULL_ACCESS,
+  affiliateAccessMaySearchCampaigns,
   affiliateAccessCreatorTab,
   affiliateAccessMaySeeCreatorTab,
   affiliateAccessMaySeeSurface,
@@ -9,7 +11,8 @@ import {
   resolveAffiliateStaffAccess,
 } from "./affiliate-access.js";
 
-const { View, Operate, Allocate } = GQL.AffiliateStaffPermission;
+const { View, Operate, Allocate, Campaign } = GQL.AffiliateStaffPermission;
+const { MarketplaceRules, AiPreApproval, CreatorList } = GQL.AffiliateCampaignSelectionStrategy;
 type Permissions = GQL.AffiliateStaffPermission[];
 
 /** A login whose facets hold exactly these permissions; a facet with no list is not held. */
@@ -38,6 +41,7 @@ describe("resolveAffiliateStaffAccess", () => {
       canManageCollaborations: false,
       creatorDetailTabs: null,
       canReadCreatorContacts: true,
+      campaignStrategies: [],
     });
     // The same permissions on the other role give the same capabilities.
     const lead = staff([View, Operate, Allocate], null)!;
@@ -84,21 +88,19 @@ describe("resolveAffiliateStaffAccess", () => {
     expect(staff([Allocate], [View])!.canReadCreatorContacts).toBe(true);
   });
 
-  it("leaves a supervisor or BD unrestricted", () => {
-    for (const kind of [
-      GQL.AffiliateViewerKind.Supervisor,
-      GQL.AffiliateViewerKind.BusinessDeveloper,
-    ]) {
-      expect(
-        resolveAffiliateStaffAccess({
-          kind,
-          isTeamLead: false,
-          isRegionAdmin: false,
-          teamLeadPermissions: [],
-          regionAdminPermissions: [],
-        }),
-      ).toBe(AFFILIATE_FULL_ACCESS);
-    }
+  it("leaves a supervisor unrestricted and a BD to the Creator list only", () => {
+    const resolve = (kind: GQL.AffiliateViewerKind) =>
+      resolveAffiliateStaffAccess({
+        kind,
+        isTeamLead: false,
+        isRegionAdmin: false,
+        teamLeadPermissions: [],
+        regionAdminPermissions: [],
+      });
+    expect(resolve(GQL.AffiliateViewerKind.Supervisor)).toBe(AFFILIATE_FULL_ACCESS);
+    expect(resolve(GQL.AffiliateViewerKind.BusinessDeveloper)).toBe(
+      AFFILIATE_BUSINESS_DEVELOPER_ACCESS,
+    );
     expect(AFFILIATE_FULL_ACCESS).toMatchObject({ canView: true, canOperate: true });
     expect(AFFILIATE_FULL_ACCESS.canManageCollaborations).toBe(true);
   });
@@ -172,5 +174,55 @@ describe("affiliateStaffNoticeKey", () => {
   it("describes the union of both facets and gives supervisors and BDs no notice", () => {
     expect(affiliateStaffNoticeKey(staff([View], [Allocate])!)).toBe("noticeViewAllocate");
     expect(affiliateStaffNoticeKey(AFFILIATE_FULL_ACCESS)).toBeNull();
+  });
+});
+
+describe("Campaign access (ADR-118)", () => {
+  it("gives a supervisor all three strategies and a BD the Creator list alone", () => {
+    expect(AFFILIATE_FULL_ACCESS.campaignStrategies).toEqual([
+      MarketplaceRules,
+      AiPreApproval,
+      CreatorList,
+    ]);
+    expect(AFFILIATE_BUSINESS_DEVELOPER_ACCESS.campaignStrategies).toEqual([CreatorList]);
+    // The BD keeps every other supervisor-level view; only the strategies differ.
+    expect(AFFILIATE_BUSINESS_DEVELOPER_ACCESS).toMatchObject({ canView: true, canOperate: true });
+  });
+
+  it("gives a region admin all three strategies only when its profile holds CAMPAIGN", () => {
+    expect(staff(null, [View, Campaign])!.campaignStrategies).toEqual([
+      MarketplaceRules,
+      AiPreApproval,
+      CreatorList,
+    ]);
+    expect(staff(null, [View, Operate, Allocate])!.campaignStrategies).toEqual([]);
+  });
+
+  it("judges a login that is both team lead and region admin by the region admin facet alone", () => {
+    // A team lead list can never legitimately hold it; even if it appeared it grants nothing.
+    expect(staff([View, Campaign], [Allocate])!.campaignStrategies).toEqual([]);
+    expect(staff([View], [Campaign])!.campaignStrategies).toHaveLength(3);
+  });
+
+  it("never gives a team lead anything", () => {
+    expect(staff([View, Operate, Allocate], null)!.campaignStrategies).toEqual([]);
+  });
+
+  it("opens the Campaign surface to exactly the logins with a strategy", () => {
+    expect(affiliateAccessMaySeeSurface(AFFILIATE_FULL_ACCESS, "CAMPAIGNS")).toBe(true);
+    expect(affiliateAccessMaySeeSurface(AFFILIATE_BUSINESS_DEVELOPER_ACCESS, "CAMPAIGNS")).toBe(true);
+    expect(affiliateAccessMaySeeSurface(staff(null, [Campaign])!, "CAMPAIGNS")).toBe(true);
+    expect(affiliateAccessMaySeeSurface(staff(null, [View, Operate, Allocate])!, "CAMPAIGNS")).toBe(
+      false,
+    );
+    expect(affiliateAccessMaySeeSurface(staff([View, Operate, Allocate], null)!, "CAMPAIGNS")).toBe(
+      false,
+    );
+  });
+
+  it("needs the search-only helpers only for a login that may use a search strategy", () => {
+    expect(affiliateAccessMaySearchCampaigns(AFFILIATE_FULL_ACCESS)).toBe(true);
+    expect(affiliateAccessMaySearchCampaigns(staff(null, [Campaign])!)).toBe(true);
+    expect(affiliateAccessMaySearchCampaigns(AFFILIATE_BUSINESS_DEVELOPER_ACCESS)).toBe(false);
   });
 });

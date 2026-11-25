@@ -1683,6 +1683,10 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--tk-v1-space-3);
 }
+/* A BD is offered the Creator list alone (ADR-118): one option takes the whole row. */
+.affiliate-campaign-strategy-picker:has(> .affiliate-campaign-strategy-option:only-child) {
+  grid-template-columns: minmax(0, 1fr);
+}
 .affiliate-campaign-strategy-option {
   position: relative;
   display: flex;
@@ -2398,29 +2402,32 @@
 
 .affiliate-campaign-directory-table {
   width: 100%;
-  min-width: 920px;
+  min-width: 1020px;
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 12px;
 }
 
 .affiliate-campaign-col-name {
-  width: 25%;
+  width: 22%;
 }
 .affiliate-campaign-col-shop {
-  width: 14%;
+  width: 13%;
 }
 .affiliate-campaign-col-status {
-  width: 9%;
+  width: 8%;
 }
 .affiliate-campaign-col-target {
-  width: 9%;
+  width: 8%;
 }
 .affiliate-campaign-col-boundary {
-  width: 18%;
+  width: 16%;
+}
+.affiliate-campaign-col-creator {
+  width: 11%;
 }
 .affiliate-campaign-col-product {
-  width: 21%;
+  width: 18%;
 }
 .affiliate-campaign-col-open {
   width: 4%;

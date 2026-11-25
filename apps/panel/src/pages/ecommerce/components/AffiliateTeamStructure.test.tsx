@@ -407,6 +407,52 @@ describe("staff permission checkboxes", () => {
     expect(box("Operate business status").checked).toBe(false);
   });
 
+  it("offers Create Campaigns on a region admin profile and never on a team lead profile (ADR-118)", () => {
+    render(
+      <AffiliateTeamLeadEditor
+        structure={structure()}
+        leadId="head"
+        saving={false}
+        onClose={noop}
+        onSave={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("checkbox", { name: /^Create Campaigns/ })).toBeNull();
+    cleanup();
+    render(
+      <AffiliateRegionAdminEditor
+        structure={structure()}
+        adminId="ra1"
+        saving={false}
+        onClose={noop}
+        onSave={vi.fn()}
+      />,
+    );
+    expect(box("Create Campaigns").checked).toBe(false);
+  });
+
+  it("saves CAMPAIGN on a region admin independently of the other permissions", () => {
+    const onSave = vi.fn();
+    render(
+      <AffiliateRegionAdminEditor
+        structure={structure()}
+        adminId="ra1"
+        saving={false}
+        onClose={noop}
+        onSave={onSave}
+      />,
+    );
+    fireEvent.click(box("Create Campaigns"));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "ra1",
+        permissions: ["ALLOCATE", "CAMPAIGN"],
+        permissionsChanged: true,
+      }),
+    );
+  });
+
   it("sends the changed permissions of a lead and marks them changed", () => {
     const onSave = vi.fn();
     render(

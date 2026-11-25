@@ -187,7 +187,7 @@ export const AffiliateRegionAdminEditor = observer(function AffiliateRegionAdmin
             allHint={t("ecommerce.affiliateTeam.regionAdminScopeAllHint")}
             specificHint={t("ecommerce.affiliateTeam.regionAdminScopeSpecificHint")}
           />
-          <AffiliateStaffPermissionsField value={permissions} onChange={setPermissions} />
+          <AffiliateStaffPermissionsField role="REGION_ADMIN" value={permissions} onChange={setPermissions} />
           <div className="tk-v1-modal-actions">
             <TkButton type="button" onClick={onClose} disabled={saving}>
               {t("common.cancel")}

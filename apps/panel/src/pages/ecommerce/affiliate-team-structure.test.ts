@@ -9,6 +9,7 @@ import {
   parentLeadCandidates,
   sameStaffPermissions,
   teamStructureErrorKey,
+  staffPermissionsForRole,
   toggleStaffPermission,
   unboundEligibleMembers,
   type TeamLeadProfile,
@@ -180,6 +181,14 @@ describe("staff permission drafts", () => {
       Operate,
       Allocate,
     ]);
+  });
+
+  it("offers CAMPAIGN to a region admin only and keeps it out of every default (ADR-118)", () => {
+    const { Campaign } = GQL.AffiliateStaffPermission;
+    expect(staffPermissionsForRole("REGION_ADMIN")).toEqual([View, Operate, Allocate, Campaign]);
+    expect(staffPermissionsForRole("TEAM_LEAD")).toEqual([View, Operate, Allocate]);
+    expect(defaultStaffPermissions("REGION_ADMIN")).not.toContain(Campaign);
+    expect(toggleStaffPermission([View, Allocate], Campaign, true)).toEqual([View, Allocate, Campaign]);
   });
 
   it("compares permission sets without regard to order", () => {

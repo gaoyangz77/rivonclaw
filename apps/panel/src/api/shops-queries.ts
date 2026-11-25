@@ -336,6 +336,12 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
     completedAt
     createdAt
     updatedAt
+    createdByBusinessDeveloperId
+    createdBy {
+      kind
+      displayName
+      businessDeveloperId
+    }
   }
 `;
 
@@ -3659,6 +3665,35 @@ export const AFFILIATE_RELATIONSHIP_PLATFORM_COLLABORATIONS_QUERY = gql`
 export const AFFILIATE_PRODUCT_SUMMARIES_QUERY = gql`
   query AffiliateProductSummaries($input: AffiliateProductSummaryBatchInput!) {
     affiliateProductSummaries(input: $input) {
+      shopId
+      product {
+        productId
+        title
+        coverImage
+        status
+        priceMin
+        priceMax
+        skus {
+          skuId
+          skuName
+          sellerSku
+          price
+          currency
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * The products of a Campaign's shop (ADR-118). Campaign access, not `VIEW`, is
+ * what the Campaign page needs: a BD or a region admin holding `CAMPAIGN` reads
+ * its Campaigns' products through this query and never through
+ * `affiliateProductSummaries`.
+ */
+export const AFFILIATE_CAMPAIGN_PRODUCT_SUMMARIES_QUERY = gql`
+  query AffiliateCampaignProductSummaries($input: AffiliateProductSummaryBatchInput!) {
+    affiliateCampaignProductSummaries(input: $input) {
       shopId
       product {
         productId

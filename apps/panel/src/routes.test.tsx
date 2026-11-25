@@ -127,6 +127,8 @@ describe("permission-scope navigation", () => {
       (route) => route.path,
     );
     const affiliateWorkspace = [
+      // Creator-list Campaigns (ADR-118): the page narrows itself to that strategy for a BD.
+      "/commerce/affiliate/campaigns",
       "/commerce/affiliate/attention",
       "/commerce/affiliate/manual-workbench",
       "/commerce/affiliate/creators",
@@ -178,13 +180,14 @@ describe("permission-scope navigation", () => {
     ).toEqual(["/commerce/affiliate", ...permitted.filter((path) => path.startsWith("/commerce/"))]);
   });
 
-  it("gives a region admin the same four pages; the gate decides by permission", () => {
+  it("gives a region admin the four pages plus Campaigns; the gate decides by permission", () => {
     const admin = { isOwner: false, permissionScopes: [GQL.PermissionScope.AffiliateRegionAdmin] };
     const permitted = ROUTES.filter(
       (route) => route.navLabelKey && !route.navHidden && canSeeRoute(route, admin),
     ).map((route) => route.path);
 
     expect(permitted.filter((path) => path.startsWith("/commerce/"))).toEqual([
+      "/commerce/affiliate/campaigns",
       "/commerce/affiliate/attention",
       "/commerce/affiliate/manual-workbench",
       "/commerce/affiliate/creators",
@@ -205,6 +208,7 @@ describe("permission-scope navigation", () => {
     ).map((route) => route.path);
 
     expect(permitted.filter((path) => path.startsWith("/commerce/"))).toEqual([
+      "/commerce/affiliate/campaigns",
       "/commerce/affiliate/attention",
       "/commerce/affiliate/manual-workbench",
       "/commerce/affiliate/creators",
@@ -222,7 +226,6 @@ describe("permission-scope navigation", () => {
     };
     for (const path of [
       "/commerce/affiliate",
-      "/commerce/affiliate/campaigns",
       "/commerce/affiliate/team",
       "/commerce/affiliate/analytics",
       "/commerce/affiliate/intelligence",
@@ -230,6 +233,15 @@ describe("permission-scope navigation", () => {
     ]) {
       expect(canSeeRoute(ROUTES.find((route) => route.path === path)!, staff), path).toBe(false);
     }
+  });
+
+  it("keeps Campaigns away from a team lead and offers them to a region admin and a BD (ADR-118)", () => {
+    const campaigns = ROUTES.find((route) => route.path === "/commerce/affiliate/campaigns")!;
+    const login = (...permissionScopes: GQL.PermissionScope[]) => ({ isOwner: false, permissionScopes });
+    expect(canSeeRoute(campaigns, login(GQL.PermissionScope.AffiliateTeamLead))).toBe(false);
+    expect(canSeeRoute(campaigns, login(GQL.PermissionScope.AffiliateRegionAdmin))).toBe(true);
+    expect(canSeeRoute(campaigns, login(GQL.PermissionScope.AffiliateBusinessDeveloper))).toBe(true);
+    expect(canSeeRoute(campaigns, login(GQL.PermissionScope.Affiliate))).toBe(true);
   });
 
   it("lands a team lead on Needs Attention and a region admin on the Creator list", () => {

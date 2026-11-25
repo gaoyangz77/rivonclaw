@@ -1350,6 +1350,12 @@ export interface AffiliateCampaign {
   completedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
   configRevision: Scalars["Int"]["output"];
   createdAt: Scalars["DateTimeISO"]["output"];
+  /** Who created this Campaign (ADR-118). Null for a Campaign created before the creator was recorded, which the Panel shows as created by an admin. */
+  createdBy?: Maybe<AffiliateActorDisplay>;
+  /** The business developer that created the Campaign, when its creator is one (ADR-118). */
+  createdByBusinessDeveloperId?: Maybe<Scalars["ID"]["output"]>;
+  /** The login that created the Campaign (ADR-118). Null for a Campaign created before it was recorded, which reads as created by an admin. */
+  createdByUserId?: Maybe<Scalars["ID"]["output"]>;
   /** Progress of a Creator-list Campaign's usernames (ADR-106); null for every other strategy. One aggregation per Campaign, so select it in detail views, not list rows. */
   creatorList?: Maybe<AffiliateCampaignCreatorListSummary>;
   dailyOutreachTarget: Scalars["Int"]["output"];
@@ -5347,9 +5353,10 @@ export interface AffiliateShopsCollaborationListPayload {
   truncated: Scalars["Boolean"]["output"];
 }
 
-/** What an Affiliate team lead or region admin profile may do within its reach. VIEW reads the work views (sample requests, conversations, message history, proposals, escalations, collaborations); OPERATE acts on that work and always comes with VIEW; ALLOCATE assigns, reassigns and releases Creators. The base Creator list and detail are open to every live profile whatever it holds. */
+/** What an Affiliate team lead or region admin profile may do within its reach. VIEW reads the work views (sample requests, conversations, message history, proposals, escalations, collaborations); OPERATE acts on that work and always comes with VIEW; ALLOCATE assigns, reassigns and releases Creators; CAMPAIGN (region admin profiles only) creates and manages Campaigns of the shops in reach. The base Creator list and detail are open to every live profile whatever it holds. */
 export const AffiliateStaffPermission = {
   Allocate: "ALLOCATE",
+  Campaign: "CAMPAIGN",
   Operate: "OPERATE",
   View: "VIEW",
 } as const;
@@ -15180,6 +15187,8 @@ export interface Query {
   affiliateCampaignDailyExecutions: Array<AffiliateCampaignDailyExecution>;
   /** Fetch and normalize one owned-shop product for Campaign review without creating persistent draft state. */
   affiliateCampaignProductPreview: AffiliateCampaignProductPreview;
+  /** Read deduplicated Product summaries of the shops the caller may create Campaigns in (ADR-118), for the Campaign page. The work views use affiliateProductSummaries. */
+  affiliateCampaignProductSummaries: Array<AffiliateRelationshipProductSummary>;
   /** Today's latest per-Creator rejection decisions, attributed by recorded evidence, not current Campaign mode. Not cumulative execution attempts. */
   affiliateCampaignScreeningBreakdown: AffiliateCampaignScreeningBreakdown;
   /** Cursor-paginated Creator decisions attributed to one SearchPlan in an owned Campaign. */
@@ -15637,6 +15646,10 @@ export interface QueryAffiliateCampaignDailyExecutionsArgs {
 
 export interface QueryAffiliateCampaignProductPreviewArgs {
   input: ResolveAffiliateCampaignProductInput;
+}
+
+export interface QueryAffiliateCampaignProductSummariesArgs {
+  input: AffiliateProductSummaryBatchInput;
 }
 
 export interface QueryAffiliateCampaignScreeningBreakdownArgs {
