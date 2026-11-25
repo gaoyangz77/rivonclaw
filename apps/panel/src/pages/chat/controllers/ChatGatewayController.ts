@@ -526,13 +526,15 @@ export class ChatGatewayController {
   private refreshAgentName(): void {
     if (!this.client) return;
     this.client
-      .request<{ name?: string }>("agent.identity.get", {
-        sessionKey: this.store.activeSessionKey,
-      })
+      .request<{ name?: string; nameSource?: "agent" | "workspace" | "default" }>(
+        "agent.identity.get",
+        { sessionKey: this.store.activeSessionKey },
+      )
       .then((res) => {
-        if (!this.cancelled && res?.name) {
-          this.store.setAgentName(res.name);
-        }
+        if (this.cancelled) return;
+        // With no configured name the gateway answers its built-in English
+        // placeholder ("Assistant", nameSource "default"); show no name then.
+        this.store.setAgentName(res?.name && res.nameSource !== "default" ? res.name : null);
       })
       .catch(() => {});
   }

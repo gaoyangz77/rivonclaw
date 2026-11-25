@@ -168,6 +168,12 @@ export function KeyModelSelector({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open]);
 
+  // The cloud plan grants one model, served under an English catalogue name
+  // ("Flagship"); show it under the same localized name as ProvidersPage.
+  function modelDisplayName(provider: string, catalogName: string): string {
+    return provider === "rivonclaw-pro" ? t("providers.cloudModelName") : catalogName;
+  }
+
   // Resolve display label for the trigger
   // Whether the user has explicitly locked a model (vs following global default).
   // Controls dropdown highlight only — trigger always shows the concrete model.
@@ -187,7 +193,7 @@ export function KeyModelSelector({
     ? catalog[selectedProvider]?.find((m) => m.id === selectedModel)
     : undefined;
   const modelLabel = hasDisplayValues
-    ? (modelEntry?.name ?? selectedModel)
+    ? modelDisplayName(selectedProvider, modelEntry?.name ?? selectedModel)
     : t("chat.globalDefault", { defaultValue: "Global default" });
   const dropdownIsModalChild = Boolean(triggerRef.current?.closest('[aria-modal="true"]'));
 
@@ -306,7 +312,9 @@ export function KeyModelSelector({
                       className={`key-model-selector-model${hasExplicitSelection && m.id === selectedModel && activeProvider === selectedProvider ? " key-model-selector-model-active" : ""}`}
                       onClick={() => handleSelectModel(activeProvider, m.id)}
                     >
-                      <span className="key-model-selector-model-name">{m.name}</span>
+                      <span className="key-model-selector-model-name">
+                        {modelDisplayName(activeProvider, m.name)}
+                      </span>
                       {effectiveContext != null && effectiveContext > 0 && (
                         <span className="key-model-selector-model-ctx">
                           {formatContextWindow(effectiveContext)}
