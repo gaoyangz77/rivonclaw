@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.9.62",
+    "date": "2026-11-25",
+    "en": [
+      "Region admins can be allowed to create Campaigns, BDs can create Creator-list Campaigns, and each Campaign shows who created it",
+      "New Creator business rule: how many days a BD's own Campaign keeps its sample applicants assigned to that BD (default 7, 0 turns it off)",
+      "A free trial now shows its source as a trial instead of a paid subscription",
+      "Clearer Chinese wording in Customer Service and chat, chat examples written as plain requests, and the chat status bar shows the localized model name",
+      "Fixes a streamed reply that could stay truncated after the first tool call"
+    ],
+    "zh": [
+      "站点管理员可被授权创建推广计划，BD 可以创建达人名单推广计划，推广计划会显示创建人",
+      "达人业务规则新增「BD 自建推广计划的申样归属天数」（默认 7 天，填 0 关闭）",
+      "免费试用的权益来源显示为试用，不再显示为订阅",
+      "客服和对话页的中文表述更通俗，对话示例改为直接说需求，状态栏显示本地化的模型名称",
+      "修复首次调用工具后流式回复可能停在半截的问题"
+    ]
+  },
+  {
     "version": "1.9.61",
     "date": "2026-11-24",
     "en": [
