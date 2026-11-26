@@ -234,6 +234,14 @@ const en = {
   viewInvitationText: "View invitation intro",
   hideInvitationText: "Hide invitation intro",
   invitationText: "Collaboration invitation intro",
+  invitationTextTooltip:
+    "The intro text shown inside the TikTok target-collaboration invitation card. Every invited creator sees the same text.",
+  firstMessageTooltip:
+    "One separate private message sent after the invitation card. It is not part of the card, and a Campaign set to skip direct messages sends none.",
+  reachProtectedCreators: "Reach protected Creators",
+  reachProtectedCreatorsHint:
+    "Protected Creators normally receive no Campaign outreach. When ticked, this Campaign sends them its collaboration invitation (and direct message). Their protection is otherwise unchanged: the AI still does not take over their conversations afterwards.",
+  reachProtectedCreatorsOn: "On: protected Creators are invited too",
   firstTouch: "First touch",
   firstTouchDirectMessage: "Target Collaboration + direct message",
   firstTouchCollaborationOnly: "Target Collaboration only, no direct message",
@@ -346,10 +354,10 @@ const en = {
   completeShopProduct: "Choose a campaign name, shop, and product.",
   stepTargetTitle: "Define the daily operating envelope",
   stepTargetDescription:
-    "Set the planned daily message target and deterministic hard filters. Provider feedback controls the safe effective rate.",
-  dailyTarget: "Daily messages",
+    "Set the planned daily outreach target and deterministic hard filters. Provider feedback controls the safe effective rate.",
+  dailyTarget: "Daily outreach target",
   dailyTargetHint:
-    "This is a planning target, not a claimed TikTok quota. Under-delivery is allowed; bursts after 22:00 are not.",
+    "This is a planning target, not a claimed TikTok quota. One outreach is not always a direct message: a Campaign can send only the collaboration invitation. Under-delivery is allowed; bursts after 22:00 are not.",
   minimumFollowersHint: "Removes unstable low-denominator efficiency scores.",
   followerRangeCompact: "{{minimum}}–{{maximum}} followers",
   providerOrderNoFollowerFloor: "Provider order · no follower floor",
@@ -490,7 +498,7 @@ const en = {
   stepConfirmDescription:
     "Confirm the fixed window, selected product, daily target, and exact published template.",
   shopAndProduct: "Shop & product",
-  messagesPerDay: "{{count}} messages/day",
+  messagesPerDay: "Reach {{count}} creators/day",
   estimatedInterval: "Planned average rate",
   authorizationTitle: "Activation is the sending authorization",
   authorizationBody:
@@ -905,6 +913,14 @@ const zh = {
   viewInvitationText: "查看合作邀约介绍",
   hideInvitationText: "收起合作邀约介绍",
   invitationText: "合作邀约介绍",
+  invitationTextTooltip:
+    "显示在 TikTok 定向合作（定邀）卡片里的介绍文字，达人打开邀请时看到。",
+  firstMessageTooltip:
+    "在定向合作卡片之后，另外单独发给达人的一条私信，不是卡片的一部分；选择只发合作邀请的推广计划不会发送私信。",
+  reachProtectedCreators: "触达保护达人",
+  reachProtectedCreatorsHint:
+    "保护名单里的达人通常不会收到任何推广计划的触达。勾选后，本计划会向名单中的保护达人发送合作邀约（以及私信首信）。他们的保护状态不变：邀约之后 AI 仍不会接手跟进。",
+  reachProtectedCreatorsOn: "已开启：保护达人也会收到邀约",
   firstTouch: "首次触达",
   firstTouchDirectMessage: "定向合作 + 私信",
   firstTouchCollaborationOnly: "仅定向合作，不发私信",
@@ -1012,8 +1028,9 @@ const zh = {
   stepTargetTitle: "定义每日运行边界",
   stepTargetDescription:
     "设定每日计划目标和确定性硬筛选；实际安全速率由 TikTok 返回与风控状态动态控制。",
-  dailyTarget: "每日私信目标",
-  dailyTargetHint: "这是计划目标，不代表 TikTok 官方额度。允许未达目标，但 22:00 后绝不突发补量。",
+  dailyTarget: "每日触达目标",
+  dailyTargetHint:
+    "这是计划目标，不代表 TikTok 官方额度。一次触达不一定发私信：计划也可以只发合作邀约。允许未达目标，但 22:00 后绝不突发补量。",
   minimumFollowersHint: "过滤粉丝基数过低造成的不稳定高性价比分数。",
   followerRangeCompact: "粉丝 {{minimum}}–{{maximum}}",
   providerOrderNoFollowerFloor: "按达人广场顺序 · 不设粉丝下限",
@@ -1139,7 +1156,7 @@ const zh = {
   stepConfirmTitle: "授权自动运行",
   stepConfirmDescription: "确认固定发送窗口、商品、每日目标和将被发布的准确模板。",
   shopAndProduct: "店铺与商品",
-  messagesPerDay: "每天 {{count}} 条",
+  messagesPerDay: "每天触达 {{count}} 位达人",
   estimatedInterval: "计划平均速率",
   authorizationTitle: "启用即表示授权发送",
   authorizationBody:
@@ -1391,6 +1408,20 @@ const operationalCopy = {
     viewInvitationText: "Einladungsvorstellung ansehen",
     hideInvitationText: "Einladungsvorstellung ausblenden",
     invitationText: "Vorstellung in der Einladung",
+    invitationTextTooltip:
+      "Der Vorstellungstext in der TikTok-Karte für die gezielte Zusammenarbeit (Einladung). Alle eingeladenen Creator sehen denselben Text.",
+    firstMessageTooltip:
+      "Eine eigene private Nachricht, die nach der Einladungskarte gesendet wird. Sie ist nicht Teil der Karte; bei Kampagnen ohne Direktnachricht entfällt sie.",
+    reachProtectedCreators: "Geschützte Creator erreichen",
+    reachProtectedCreatorsHint:
+      "Geschützte Creator erhalten normalerweise keine Kampagnenansprache. Mit dem Häkchen sendet diese Kampagne ihnen die Einladung zur Zusammenarbeit (und die Direktnachricht). Ihr Schutz bleibt sonst unverändert: Die KI übernimmt danach weiterhin keine Gespräche.",
+    reachProtectedCreatorsOn: "Ein: Geschützte Creator werden ebenfalls eingeladen",
+    dailyTarget: "Tägliches Kontaktziel",
+    messagesPerDay: "Täglich {{count}} Creator kontaktieren",
+    dailyTargetHint:
+      "Dies ist ein Planungsziel, keine von TikTok zugesagte Quote. Ein Kontakt besteht nicht immer aus einer Direktnachricht. Eine Unterschreitung ist erlaubt; nach 22:00 Uhr gibt es keine Schübe.",
+    stepTargetDescription:
+      "Lege das geplante tägliche Kontaktziel und feste Filter fest. Die sichere effektive Rate richtet sich nach dem Feedback des Anbieters.",
     firstTouch: "Erstkontakt",
     firstTouchDirectMessage: "Zielkooperation + Direktnachricht",
     firstTouchCollaborationOnly: "Nur Zielkooperation, keine Direktnachricht",
@@ -1660,6 +1691,20 @@ const operationalCopy = {
     viewInvitationText: "Ver presentación de la invitación",
     hideInvitationText: "Ocultar presentación de la invitación",
     invitationText: "Presentación de la invitación",
+    invitationTextTooltip:
+      "El texto de presentación que aparece dentro de la tarjeta de invitación de colaboración dirigida de TikTok. Todos los creadores invitados ven el mismo texto.",
+    firstMessageTooltip:
+      "Un mensaje privado aparte que se envía después de la tarjeta de invitación. No forma parte de la tarjeta; si la campaña omite los mensajes directos, no se envía.",
+    reachProtectedCreators: "Contactar creadores protegidos",
+    reachProtectedCreatorsHint:
+      "Los creadores protegidos normalmente no reciben ninguna acción de campaña. Al marcarlo, esta campaña les envía su invitación de colaboración (y el mensaje directo). Su protección no cambia: después, la IA sigue sin encargarse de sus conversaciones.",
+    reachProtectedCreatorsOn: "Activado: también se invita a los creadores protegidos",
+    dailyTarget: "Objetivo diario de contactos",
+    messagesPerDay: "Contactar a {{count}} creadores al día",
+    dailyTargetHint:
+      "Es un objetivo de planificación, no una cuota de TikTok. Un contacto no siempre incluye un mensaje directo. Se permite no alcanzarlo; no hay ráfagas después de las 22:00.",
+    stepTargetDescription:
+      "Define el objetivo diario de contactos previsto y los filtros estrictos. La tasa efectiva segura depende de la respuesta del proveedor.",
     firstTouch: "Primer contacto",
     firstTouchDirectMessage: "Colaboración dirigida + mensaje directo",
     firstTouchCollaborationOnly: "Solo colaboración dirigida, sin mensaje directo",
@@ -1929,6 +1974,20 @@ const operationalCopy = {
     viewInvitationText: "Voir la présentation de l'invitation",
     hideInvitationText: "Masquer la présentation de l'invitation",
     invitationText: "Présentation de l'invitation",
+    invitationTextTooltip:
+      "Le texte de présentation affiché dans la carte d'invitation de collaboration ciblée de TikTok. Tous les créateurs invités voient le même texte.",
+    firstMessageTooltip:
+      "Un message privé distinct, envoyé après la carte d'invitation. Il ne fait pas partie de la carte ; une campagne sans message direct n'en envoie pas.",
+    reachProtectedCreators: "Contacter les créateurs protégés",
+    reachProtectedCreatorsHint:
+      "Les créateurs protégés ne reçoivent normalement aucune prise de contact de campagne. Si vous cochez cette option, cette campagne leur envoie son invitation de collaboration (et son message direct). Leur protection reste inchangée : l'IA ne reprend toujours pas leurs conversations ensuite.",
+    reachProtectedCreatorsOn: "Activé : les créateurs protégés sont aussi invités",
+    dailyTarget: "Objectif quotidien de prises de contact",
+    messagesPerDay: "Contacter {{count}} créateurs par jour",
+    dailyTargetHint:
+      "Il s'agit d'un objectif de planification, pas d'un quota TikTok. Une prise de contact ne comprend pas toujours un message direct. Ne pas l'atteindre est permis ; aucun rattrapage en rafale après 22 h.",
+    stepTargetDescription:
+      "Définissez l'objectif quotidien de prises de contact prévu et les filtres stricts. Le rythme effectif sûr dépend des retours du fournisseur.",
     firstTouch: "Premier contact",
     firstTouchDirectMessage: "Collaboration ciblée + message direct",
     firstTouchCollaborationOnly: "Collaboration ciblée uniquement, sans message direct",
@@ -2201,6 +2260,20 @@ const operationalCopy = {
     viewInvitationText: "Lihat perkenalan undangan",
     hideInvitationText: "Sembunyikan perkenalan undangan",
     invitationText: "Perkenalan undangan kolaborasi",
+    invitationTextTooltip:
+      "Teks perkenalan yang tampil di dalam kartu undangan kolaborasi terarah TikTok. Semua kreator yang diundang melihat teks yang sama.",
+    firstMessageTooltip:
+      "Satu pesan pribadi terpisah yang dikirim setelah kartu undangan. Bukan bagian dari kartu; kampanye yang melewati pesan langsung tidak mengirimnya.",
+    reachProtectedCreators: "Jangkau kreator terlindungi",
+    reachProtectedCreatorsHint:
+      "Kreator terlindungi biasanya tidak menerima jangkauan kampanye apa pun. Jika dicentang, kampanye ini mengirimkan undangan kolaborasi (dan pesan langsungnya) kepada mereka. Perlindungan mereka tetap tidak berubah: AI tetap tidak mengambil alih percakapan mereka setelahnya.",
+    reachProtectedCreatorsOn: "Aktif: kreator terlindungi juga diundang",
+    dailyTarget: "Target jangkauan harian",
+    messagesPerDay: "Menjangkau {{count}} kreator per hari",
+    dailyTargetHint:
+      "Ini target perencanaan, bukan kuota TikTok. Satu jangkauan tidak selalu berupa pesan langsung. Boleh tidak tercapai; tidak ada pengejaran sekaligus setelah pukul 22.00.",
+    stepTargetDescription:
+      "Tetapkan target jangkauan harian yang direncanakan dan filter ketat. Laju efektif yang aman mengikuti umpan balik penyedia.",
     firstTouch: "Kontak pertama",
     firstTouchDirectMessage: "Kolaborasi target + pesan langsung",
     firstTouchCollaborationOnly: "Hanya kolaborasi target, tanpa pesan langsung",
@@ -2464,6 +2537,20 @@ const operationalCopy = {
     viewInvitationText: "Vedi la presentazione nell'invito",
     hideInvitationText: "Nascondi la presentazione nell'invito",
     invitationText: "Presentazione nell'invito",
+    invitationTextTooltip:
+      "Il testo di presentazione mostrato nella scheda di invito alla collaborazione mirata di TikTok. Tutti i creator invitati vedono lo stesso testo.",
+    firstMessageTooltip:
+      "Un messaggio privato separato, inviato dopo la scheda di invito. Non fa parte della scheda; una campagna che salta i messaggi diretti non lo invia.",
+    reachProtectedCreators: "Contatta i creator protetti",
+    reachProtectedCreatorsHint:
+      "I creator protetti di norma non ricevono alcun contatto di campagna. Se selezionata, questa campagna invia loro l'invito alla collaborazione (e il messaggio diretto). La loro protezione resta invariata: in seguito l'IA continua a non prendere in carico le loro conversazioni.",
+    reachProtectedCreatorsOn: "Attivo: vengono invitati anche i creator protetti",
+    dailyTarget: "Obiettivo giornaliero di contatti",
+    messagesPerDay: "Contattare {{count}} creator al giorno",
+    dailyTargetHint:
+      "È un obiettivo di pianificazione, non una quota di TikTok. Un contatto non comprende sempre un messaggio diretto. Non raggiungerlo è consentito; nessun recupero a raffica dopo le 22:00.",
+    stepTargetDescription:
+      "Imposta l'obiettivo giornaliero di contatti previsto e i filtri rigidi. Il ritmo effettivo sicuro dipende dal feedback del provider.",
     firstTouch: "Primo contatto",
     firstTouchDirectMessage: "Collaborazione mirata + messaggio diretto",
     firstTouchCollaborationOnly: "Solo collaborazione mirata, senza messaggio diretto",
@@ -2734,6 +2821,20 @@ const operationalCopy = {
     viewInvitationText: "ดูคำแนะนำในคำเชิญ",
     hideInvitationText: "ซ่อนคำแนะนำในคำเชิญ",
     invitationText: "คำแนะนำในคำเชิญร่วมงาน",
+    invitationTextTooltip:
+      "ข้อความแนะนำที่แสดงในการ์ดคำเชิญความร่วมมือแบบเจาะจงของ TikTok ครีเอเตอร์ที่ได้รับเชิญทุกคนเห็นข้อความเดียวกัน",
+    firstMessageTooltip:
+      "ข้อความส่วนตัวแยกต่างหากที่ส่งหลังการ์ดคำเชิญ ไม่ได้เป็นส่วนหนึ่งของการ์ด และแคมเปญที่ข้ามข้อความส่วนตัวจะไม่ส่ง",
+    reachProtectedCreators: "ติดต่อครีเอเตอร์ที่ได้รับการป้องกัน",
+    reachProtectedCreatorsHint:
+      "ครีเอเตอร์ที่ได้รับการป้องกันโดยปกติจะไม่ได้รับการติดต่อจากแคมเปญใดเลย เมื่อเลือกตัวเลือกนี้ แคมเปญนี้จะส่งคำเชิญความร่วมมือ (และข้อความส่วนตัว) ให้พวกเขา การป้องกันของพวกเขายังคงเดิม: หลังจากนั้น AI จะยังไม่เข้าไปดูแลการสนทนาของพวกเขา",
+    reachProtectedCreatorsOn: "เปิดอยู่: เชิญครีเอเตอร์ที่ได้รับการป้องกันด้วย",
+    dailyTarget: "เป้าหมายการติดต่อรายวัน",
+    messagesPerDay: "ติดต่อครีเอเตอร์ {{count}} คนต่อวัน",
+    dailyTargetHint:
+      "นี่คือเป้าหมายเพื่อการวางแผน ไม่ใช่โควตาของ TikTok การติดต่อหนึ่งครั้งไม่ได้ส่งข้อความส่วนตัวเสมอไป ทำไม่ถึงเป้าได้ แต่จะไม่ส่งเร่งเป็นชุดหลัง 22:00 น.",
+    stepTargetDescription:
+      "กำหนดเป้าหมายการติดต่อรายวันที่วางแผนไว้และตัวกรองที่แน่นอน อัตราที่ปลอดภัยจริงขึ้นกับผลตอบรับจากผู้ให้บริการ",
     firstTouch: "การติดต่อครั้งแรก",
     firstTouchDirectMessage: "ความร่วมมือแบบกำหนดเป้าหมาย + ข้อความส่วนตัว",
     firstTouchCollaborationOnly: "เฉพาะความร่วมมือแบบกำหนดเป้าหมาย ไม่ส่งข้อความส่วนตัว",

@@ -170,6 +170,8 @@ export const AffiliateOperationalSettingsModel = types.model("AffiliateOperation
   // the backend default applies; the effective value is what is in force.
   bdCampaignSampleAssignmentDays: types.maybeNull(types.integer),
   effectiveBdCampaignSampleAssignmentDays: types.optional(types.integer, 7),
+  // ADR-120: seller-wide default Campaign name template; "" means off.
+  campaignNameTemplate: types.optional(types.string, ""),
   id: types.identifier,
   userId: types.string,
   onboardingCompletedAt: types.maybeNull(types.string),

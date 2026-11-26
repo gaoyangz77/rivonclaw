@@ -40,3 +40,36 @@
   font-size: 11px;
   line-height: 1.4;
 }
+
+/* ADR-120 default Campaign name: field, variable chips, then a live preview. */
+.affiliate-creator-business-name {
+  margin-top: var(--tk-v1-space-4);
+}
+
+.affiliate-creator-business-name-input {
+  max-width: 560px;
+}
+
+.affiliate-creator-business-name-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-creator-business-name-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-1);
+  color: var(--tk-v1-fg-muted);
+  font-size: 12px;
+}
+
+.affiliate-creator-business-name-preview code {
+  color: var(--tk-v1-fg-default);
+  font-family: var(--tk-v1-font-mono);
+  overflow-wrap: anywhere;
+}
+
+.affiliate-creator-business-name-preview small {
+  font-size: 11px;
+}

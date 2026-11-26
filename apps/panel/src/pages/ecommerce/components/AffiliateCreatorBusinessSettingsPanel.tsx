@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
@@ -15,6 +15,12 @@ import {
   TkPanelHeader,
   TkSwitch,
 } from "../../../components/design-system/index.js";
+import {
+  CAMPAIGN_NAME_TEMPLATE_VARIABLES,
+  RECOMMENDED_CAMPAIGN_NAME_TEMPLATE,
+  campaignNameTemplateIssue,
+  renderCampaignNameTemplate,
+} from "../affiliate-campaign-name-template.js";
 import "./AffiliateCreatorBusinessSettingsPanel.css";
 
 // TikTok's review window is 144 hours; the backend accepts 1..142 hours before its deadline.
@@ -36,6 +42,19 @@ const ASSIGNMENT_TRIGGERS = [
   "CAMPAIGN_FIRST_TOUCH",
   "PLATFORM_ACTION",
 ] as const satisfies readonly GQL.AffiliateCreatorAssignmentTrigger[];
+
+// ADR-120: the Backend accepts at most 200 characters.
+const CAMPAIGN_NAME_TEMPLATE_MAX_LENGTH = 200;
+
+// The variable chips: one per date format, the other variables by their name.
+const CAMPAIGN_NAME_CHIPS = CAMPAIGN_NAME_TEMPLATE_VARIABLES.map((token) => ({
+  token,
+  nameKey: token.startsWith("date:") ? "date" : token,
+  format: token.startsWith("date:") ? token.slice("date:".length) : null,
+}));
+
+// What the preview renders with: Rosa / 黄海燕 on a product of the seller's, the first Campaign today.
+const CAMPAIGN_NAME_PREVIEW_PRODUCT_ID = "1737647724406212416";
 
 function sameSet(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((item) => b.includes(item));
@@ -96,14 +115,23 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
       bdCampaignDaysDraft != null &&
       !bdCampaignDaysInvalid &&
       bdCampaignDaysValue !== persistedBdCampaignDays;
-    const dirty = rulesDirty || triggersDirty || bdCampaignDaysDirty;
+    // ADR-120: the default Campaign name; "" is off.
+    const persistedNameTemplate = settings?.campaignNameTemplate ?? "";
+    const [nameTemplateDraft, setNameTemplateDraft] = useState<string | null>(null);
+    const nameTemplate = nameTemplateDraft ?? persistedNameTemplate;
+    const nameTemplateIssue = campaignNameTemplateIssue(nameTemplate);
+    const nameTemplateDirty =
+      nameTemplateDraft != null && nameTemplateDraft !== persistedNameTemplate;
+    const nameTemplateInput = useRef<HTMLInputElement | null>(null);
+    const dirty = rulesDirty || triggersDirty || bdCampaignDaysDirty || nameTemplateDirty;
     const [saveSettings, { loading: saving }] = useMutation<
       { setAffiliateCreatorBusinessSettings: GQL.AffiliateOperationalSettings },
       { input: GQL.SetAffiliateCreatorBusinessSettingsInput }
     >(SET_AFFILIATE_CREATOR_BUSINESS_SETTINGS_MUTATION);
 
     async function save() {
-      if (!loaded || !dirty || hoursInvalid || bdCampaignDaysInvalid || saving) return;
+      if (!loaded || !dirty || hoursInvalid || bdCampaignDaysInvalid || nameTemplateIssue || saving)
+        return;
       try {
         const result = await saveSettings({
           variables: {
@@ -119,6 +147,8 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
               ...(triggersDirty
                 ? { creatorAssignmentTriggers: triggers as GQL.AffiliateCreatorAssignmentTrigger[] }
                 : {}),
+              // Absent leaves the stored template unchanged; "" turns it off.
+              ...(nameTemplateDirty ? { campaignNameTemplate: nameTemplate } : {}),
             },
           },
         });
@@ -133,11 +163,47 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
         setReleaseHoursDraft(null);
         setTriggersDraft(null);
         setBdCampaignDaysDraft(null);
+        setNameTemplateDraft(null);
         showToast(t("ecommerce.affiliateTeam.creatorBusiness.saved"), "success");
       } catch {
         showToast(t("ecommerce.affiliateTeam.creatorBusiness.saveFailed"), "error");
       }
     }
+
+    // Inserts a variable where the caret (or selection) sits, then puts the caret after it.
+    function insertNameVariable(token: string) {
+      const input = nameTemplateInput.current;
+      const text = `{{${token}}}`;
+      const start = input?.selectionStart ?? nameTemplate.length;
+      const end = input?.selectionEnd ?? nameTemplate.length;
+      const next = nameTemplate.slice(0, start) + text + nameTemplate.slice(end);
+      if (next.length > CAMPAIGN_NAME_TEMPLATE_MAX_LENGTH) return;
+      setNameTemplateDraft(next);
+      const caret = start + text.length;
+      // The controlled value lands on the next render; the caret can only move after it.
+      requestAnimationFrame(() => {
+        const current = nameTemplateInput.current;
+        if (!current) return;
+        current.focus();
+        current.setSelectionRange(caret, caret);
+      });
+    }
+
+    const namePreview = renderCampaignNameTemplate(nameTemplate, {
+      businessDeveloperName: "黄海燕",
+      businessDeveloperEnglishName: "Rosa",
+      productId: CAMPAIGN_NAME_PREVIEW_PRODUCT_ID,
+      date: new Date(),
+      sequence: 1,
+    });
+    const nameIssueMessage =
+      nameTemplateIssue == null
+        ? undefined
+        : nameTemplateIssue.kind === "unknownVariable"
+          ? t("ecommerce.affiliateTeam.creatorBusiness.campaignName.unknownVariable", {
+              variables: nameTemplateIssue.variables.join(", "),
+            })
+          : t(`ecommerce.affiliateTeam.creatorBusiness.campaignName.${nameTemplateIssue.kind}`);
 
     function toggleTrigger(trigger: string, checked: boolean) {
       const next = triggers.filter((item) => item !== trigger);
@@ -183,7 +249,13 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
             <TkButton
               variant="primary"
               loading={saving}
-              disabled={!loaded || !dirty || hoursInvalid || bdCampaignDaysInvalid}
+              disabled={
+                !loaded ||
+                !dirty ||
+                hoursInvalid ||
+                bdCampaignDaysInvalid ||
+                nameTemplateIssue != null
+              }
               onClick={() => void save()}
             >
               {t("common.save")}
@@ -250,6 +322,66 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
             disabled={!loaded || saving}
             onChange={(event) => setBdCampaignDaysDraft(event.target.value)}
           />
+          <TkFormGroup
+            className="affiliate-creator-business-name"
+            title={t("ecommerce.affiliateTeam.creatorBusiness.campaignName.label")}
+            description={t("ecommerce.affiliateTeam.creatorBusiness.campaignName.hint")}
+          >
+            <TkField
+              ref={nameTemplateInput}
+              className="affiliate-creator-business-name-input"
+              type="text"
+              label={t("ecommerce.affiliateTeam.creatorBusiness.campaignName.label")}
+              hideLabel
+              maxLength={CAMPAIGN_NAME_TEMPLATE_MAX_LENGTH}
+              placeholder={RECOMMENDED_CAMPAIGN_NAME_TEMPLATE}
+              error={nameIssueMessage}
+              value={nameTemplate}
+              disabled={!loaded || saving}
+              onChange={(event) => setNameTemplateDraft(event.target.value)}
+            />
+            <div
+              className="affiliate-creator-business-name-chips"
+              role="group"
+              aria-label={t("ecommerce.affiliateTeam.creatorBusiness.campaignName.variablesTitle")}
+            >
+              {CAMPAIGN_NAME_CHIPS.map((chip) => (
+                <TkButton
+                  key={chip.token}
+                  size="sm"
+                  disabled={!loaded || saving}
+                  title={`{{${chip.token}}}`}
+                  onClick={() => insertNameVariable(chip.token)}
+                >
+                  {chip.format
+                    ? `${t(`ecommerce.affiliateTeam.creatorBusiness.campaignName.variables.${chip.nameKey}`)} ${chip.format}`
+                    : t(
+                        `ecommerce.affiliateTeam.creatorBusiness.campaignName.variables.${chip.nameKey}`,
+                      )}
+                </TkButton>
+              ))}
+              <TkButton
+                size="sm"
+                variant="ghost"
+                disabled={!loaded || saving || nameTemplate === RECOMMENDED_CAMPAIGN_NAME_TEMPLATE}
+                onClick={() => setNameTemplateDraft(RECOMMENDED_CAMPAIGN_NAME_TEMPLATE)}
+              >
+                {t("ecommerce.affiliateTeam.creatorBusiness.campaignName.recommended")}
+              </TkButton>
+            </div>
+            <p className="form-hint">
+              {t("ecommerce.affiliateTeam.creatorBusiness.campaignName.variablesHint")}
+            </p>
+            <div className="affiliate-creator-business-name-preview" aria-live="polite">
+              <span>{t("ecommerce.affiliateTeam.creatorBusiness.campaignName.preview")}</span>
+              {nameTemplateIssue != null ? null : nameTemplate.trim() === "" ? (
+                <em>{t("ecommerce.affiliateTeam.creatorBusiness.campaignName.previewOff")}</em>
+              ) : (
+                <code data-testid="campaign-name-preview">{namePreview}</code>
+              )}
+              <small>{t("ecommerce.affiliateTeam.creatorBusiness.campaignName.previewNote")}</small>
+            </div>
+          </TkFormGroup>
           <TkFormGroup
             className="affiliate-creator-business-triggers"
             title={t("ecommerce.affiliateTeam.creatorBusiness.triggers.title")}

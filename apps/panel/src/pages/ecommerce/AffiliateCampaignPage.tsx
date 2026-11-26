@@ -88,6 +88,11 @@ import {
 import { buildCreatorListTemplateWorkbook } from "./affiliate-campaign-creator-list-template.js";
 import { downloadAffiliateCreatorWorkbook } from "./affiliate-creator-export.js";
 import { useCreatorListDraft } from "./hooks/useCreatorListDraft.js";
+import {
+  defaultCampaignName,
+  useCampaignNamingContext,
+  useFollowedCampaignDefaultName,
+} from "./hooks/useCampaignDefaultName.js";
 import "./components/AffiliateUi.css";
 import { generateAffiliateCampaignMessageTemplate } from "../../api/affiliate-campaign-ai.js";
 import {
@@ -182,12 +187,14 @@ type CampaignForm = {
    * either way so toggling the mode never loses the seller's draft.
    */
   firstTouchMode: GQL.AffiliateCampaignFirstTouchMode;
+  /** ADR-121: a Creator-list Campaign may reach Creators on the protection list. */
+  reachProtectedCreators: boolean;
   outreachPacingMode: GQL.AffiliateCampaignOutreachPacingMode;
 };
 
 export const emptyForm: CampaignForm = {
   shopId: "",
-  products: [{ productId: "", commissionRate: "10", shopAdsCommissionRate: "10" }],
+  products: [{ productId: "", commissionRate: "10", shopAdsCommissionRate: "5" }],
   name: "",
   dailyTarget: "100",
   endDays: "30",
@@ -224,6 +231,7 @@ export const emptyForm: CampaignForm = {
   messageProductName: "",
   collaborationInvitationText: "",
   firstTouchMode: GQL.AffiliateCampaignFirstTouchMode.DirectMessage,
+  reachProtectedCreators: false,
   outreachPacingMode: GQL.AffiliateCampaignOutreachPacingMode.Uniform,
 };
 
@@ -596,6 +604,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [targetStepAttempted, setTargetStepAttempted] = useState(false);
   // Once the seller types an email, choosing another shop must not replace it.
   const [sellerContactEmailEdited, setSellerContactEmailEdited] = useState(false);
+  // ADR-120: a new Campaign's name follows the seller's default template until the seller types one.
+  const [nameEdited, setNameEdited] = useState(false);
   const targetFieldRefs = useRef<
     Partial<Record<CampaignTargetStepField, HTMLInputElement | HTMLTextAreaElement | null>>
   >({});
@@ -843,6 +853,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     { duplicateAffiliateCampaign: GQL.AffiliateCampaign },
     { input: GQL.DuplicateAffiliateCampaignInput }
   >(DUPLICATE_AFFILIATE_CAMPAIGN_MUTATION);
+  const fetchCampaignNamingContext = useCampaignNamingContext();
   const [deleteDraft, deleteDraftState] = useMutation<
     { deleteAffiliateCampaignDraft: boolean },
     { input: GQL.DeleteAffiliateCampaignDraftInput }
@@ -1076,6 +1087,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     setForm({ ...emptyForm, strategy: defaultCampaignStrategy(access.campaignStrategies) });
     setTargetStepAttempted(false);
     setSellerContactEmailEdited(false);
+    setNameEdited(false);
     setProductPreviews({});
     setPendingProductResolution(null);
     setEditingCampaignId("");
@@ -1134,6 +1146,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         campaignLeadProductId(campaign),
       collaborationInvitationText: campaign.collaborationInvitationText,
       firstTouchMode: campaign.firstTouchMode,
+      reachProtectedCreators: campaign.reachProtectedCreators,
       outreachPacingMode:
         campaign.outreachPacingMode ?? GQL.AffiliateCampaignOutreachPacingMode.Uniform,
     });
@@ -1171,6 +1184,13 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   };
 
   const leadProductId = form.products[0]?.productId.trim() ?? "";
+  useFollowedCampaignDefaultName({
+    enabled: wizardOpen && !editingCampaignId && !nameEdited,
+    shopId: form.shopId,
+    productId: leadProductId,
+    onName: (name) => updateForm("name", name),
+    onError: (error) => showToast(campaignErrorMessage(error, t), "error"),
+  });
   const productPreview = leadProductId ? (productPreviews[leadProductId] ?? null) : null;
   /** The product name the message preview names; empty until one is known. */
   const previewProductName = form.messageProductName || productPreview?.title || "";
@@ -1196,7 +1216,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         {
           productId: "",
           commissionRate: "10",
-          shopAdsCommissionRate: "10",
+          shopAdsCommissionRate: "5",
         },
       ],
     }));
@@ -1400,6 +1420,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         // pre-screen. There is no seller-set threshold to send any more.
         selectionPolicy: { strategy: form.strategy },
         firstTouchMode: form.firstTouchMode,
+        // Only a Creator list may reach protected Creators; the Backend refuses it elsewhere.
+        reachProtectedCreators: formIsCreatorList && form.reachProtectedCreators,
         outreachPacingMode: form.outreachPacingMode,
         messageTemplateText: form.templateText.trim(),
         // Always sent, even when empty: an empty string clears a stored note.
@@ -1535,11 +1557,21 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 
   const copyCampaign = async (campaign: GQL.AffiliateCampaign) => {
     try {
+      // ADR-120: the seller's default name for the source's shop and lead product; without a template
+      // (or when it renders to nothing) the copy keeps the "<source> (Copy)" name.
+      const sourceLeadProductId = campaignLeadProductId(campaign).trim();
+      const defaultName = sourceLeadProductId
+        ? defaultCampaignName(
+            await fetchCampaignNamingContext(campaign.shopId, sourceLeadProductId),
+            sourceLeadProductId,
+          )
+        : "";
       const result = await duplicateCampaign({
         variables: {
           input: {
             campaignId: campaign.id,
-            name: t("ecommerce.affiliateCampaign.copyName", { name: campaign.name }),
+            name:
+              defaultName || t("ecommerce.affiliateCampaign.copyName", { name: campaign.name }),
           },
         },
       });
@@ -2237,6 +2269,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       ),
                     )}
                   </span>
+                  {selectedCampaign.reachProtectedCreators && (
+                    <span className="affiliate-campaign-modal-commission affiliate-campaign-modal-first-touch">
+                      {t("ecommerce.affiliateCampaign.reachProtectedCreators")}
+                    </span>
+                  )}
                   {campaignSkipsDirectMessage(selectedCampaign.firstTouchMode) ? (
                     <span className="affiliate-campaign-modal-commission affiliate-campaign-modal-first-touch">
                       {t("ecommerce.affiliateCampaign.noDirectMessage")}
@@ -2357,7 +2394,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       aria-label={t("ecommerce.affiliateCampaign.firstMessage")}
                     >
                       <div className="affiliate-campaign-modal-template-heading">
-                        <span>{t("ecommerce.affiliateCampaign.firstMessage")}</span>
+                        <AffiliateMetricLabel
+                          label={t("ecommerce.affiliateCampaign.firstMessage")}
+                          tooltip={t("ecommerce.affiliateCampaign.firstMessageTooltip")}
+                        />
                         <button type="button" onClick={() => void copyFirstMessage()}>
                           {t("ecommerce.affiliateCampaign.copyFirstMessage")}
                         </button>
@@ -2373,7 +2413,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     aria-label={t("ecommerce.affiliateCampaign.invitationText")}
                   >
                     <div className="affiliate-campaign-modal-template-heading">
-                      <span>{t("ecommerce.affiliateCampaign.invitationText")}</span>
+                      <AffiliateMetricLabel
+                        label={t("ecommerce.affiliateCampaign.invitationText")}
+                        tooltip={t("ecommerce.affiliateCampaign.invitationTextTooltip")}
+                      />
                     </div>
                     <p>{selectedCampaign.collaborationInvitationText}</p>
                   </div>
@@ -2977,7 +3020,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     <span>{t("ecommerce.affiliateCampaign.campaignName")}</span>
                     <input
                       value={form.name}
-                      onChange={(event) => updateForm("name", event.target.value)}
+                      onChange={(event) => {
+                        setNameEdited(true);
+                        updateForm("name", event.target.value);
+                      }}
                       placeholder={t("ecommerce.affiliateCampaign.campaignNamePlaceholder")}
                       maxLength={AFFILIATE_CAMPAIGN_NAME_MAX_LENGTH}
                     />
@@ -3413,6 +3459,23 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     </p>
                   </div>
                 </div>
+                {formIsCreatorList && (
+                  <div className="affiliate-campaign-settings-check">
+                    <label className="affiliate-campaign-check-rule">
+                      <input
+                        type="checkbox"
+                        checked={form.reachProtectedCreators}
+                        onChange={(event) =>
+                          updateForm("reachProtectedCreators", event.target.checked)
+                        }
+                      />
+                      <span>{t("ecommerce.affiliateCampaign.reachProtectedCreators")}</span>
+                    </label>
+                    <p className="form-hint">
+                      {t("ecommerce.affiliateCampaign.reachProtectedCreatorsHint")}
+                    </p>
+                  </div>
+                )}
                 {formIsCreatorList ? (
                   <AffiliateCampaignCreatorListSection
                     draft={creatorListFile.draft}
@@ -3716,7 +3779,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <TkPanelHeader
                     headingLevel={4}
                     eyebrow={t("ecommerce.affiliateCampaign.invitationBlockEyebrow")}
-                    title={t("ecommerce.affiliateCampaign.collaborationInvitationText")}
+                    title={
+                      <AffiliateMetricLabel
+                        label={t("ecommerce.affiliateCampaign.collaborationInvitationText")}
+                        tooltip={t("ecommerce.affiliateCampaign.invitationTextTooltip")}
+                      />
+                    }
                     description={t("ecommerce.affiliateCampaign.invitationBlockDescription")}
                     actions={
                       <TkBadge tone="neutral">
@@ -3783,7 +3851,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <TkPanelHeader
                     headingLevel={4}
                     eyebrow={t("ecommerce.affiliateCampaign.dmBlockEyebrow")}
-                    title={t("ecommerce.affiliateCampaign.dmBlockTitle")}
+                    title={
+                      <AffiliateMetricLabel
+                        label={t("ecommerce.affiliateCampaign.dmBlockTitle")}
+                        tooltip={t("ecommerce.affiliateCampaign.firstMessageTooltip")}
+                      />
+                    }
                     description={t("ecommerce.affiliateCampaign.dmBlockDescription")}
                     actions={
                       <TkBadge tone="accent">
@@ -4008,6 +4081,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   title={t("ecommerce.affiliateCampaign.selectionStrategy")}
                   value={campaignStrategyLabel(form.strategy, t)}
                 />
+                {formIsCreatorList && form.reachProtectedCreators && (
+                  <ConfirmationItem
+                    title={t("ecommerce.affiliateCampaign.reachProtectedCreators")}
+                    value={t("ecommerce.affiliateCampaign.reachProtectedCreatorsOn")}
+                  />
+                )}
                 {formIsCreatorList && (
                   <ConfirmationItem
                     title={t("ecommerce.affiliateCampaign.creatorList.confirmTitle")}

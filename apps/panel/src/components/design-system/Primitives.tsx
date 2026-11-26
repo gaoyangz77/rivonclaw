@@ -563,6 +563,8 @@ export interface TkFieldProps extends Omit<
   hint?: string;
   error?: string;
   prefix?: ReactNode;
+  /** Reaches the input (React 19 passes `ref` as a prop); for callers that must read the caret. */
+  ref?: Ref<HTMLInputElement>;
 }
 
 export function TkField({

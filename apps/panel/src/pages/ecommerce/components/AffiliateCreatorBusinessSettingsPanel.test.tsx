@@ -43,6 +43,7 @@ function settings(overrides: Record<string, unknown> = {}) {
     creatorAssignmentTriggersCustomized: false,
     bdCampaignSampleAssignmentDays: null,
     effectiveBdCampaignSampleAssignmentDays: 7,
+    campaignNameTemplate: "",
     ...overrides,
   };
 }
@@ -521,4 +522,135 @@ it("disables save with an inline hint while the BD Campaign window is not an int
   fireEvent.change(bdCampaignDaysInput(), { target: { value: "30" } });
   expect(saveButton().disabled).toBe(false);
   expect(screen.queryByText(INVALID_BD_CAMPAIGN_DAYS)).toBeNull();
+});
+
+// ADR-120: the default Campaign name template.
+const nameTemplateInput = () =>
+  screen.getByRole("textbox", { name: "推广计划默认名称" }) as HTMLInputElement;
+const preview = () => screen.queryByTestId("campaign-name-preview")?.textContent ?? null;
+const chip = (name: string) => screen.getByRole("button", { name }) as HTMLButtonElement;
+
+function nameTemplateMock(template: string, onResult = vi.fn()) {
+  return {
+    request: {
+      query: SET_AFFILIATE_CREATOR_BUSINESS_SETTINGS_MUTATION,
+      variables: {
+        input: {
+          autoClaimOnSampleApproval: false,
+          autoReleaseOnSampleRejection: false,
+          releaseBeforeSampleExpiryHours: null,
+          campaignNameTemplate: template,
+        },
+      },
+    },
+    result: () => {
+      onResult();
+      return {
+        data: { setAffiliateCreatorBusinessSettings: settings({ campaignNameTemplate: template }) },
+      };
+    },
+  };
+}
+
+it("shows the stored template, a preview with sample values, and keeps save off until it changes", () => {
+  workspace = AffiliateWorkspaceModel.create({
+    operationalSettings: settings({
+      campaignNameTemplate: "{{bd_english_name}}--{{product_id}}--{{sequence}}",
+    }),
+  });
+  state.store = { affiliateWorkspace: workspace };
+  renderPanel();
+  expect(nameTemplateInput().value).toBe("{{bd_english_name}}--{{product_id}}--{{sequence}}");
+  expect(preview()).toBe("Rosa--1737647724406212416--1");
+  expect(saveButton().disabled).toBe(true);
+});
+
+it("says the feature is off for an empty template and renders no preview", () => {
+  renderPanel();
+  expect(nameTemplateInput().value).toBe("");
+  expect(preview()).toBeNull();
+  expect(screen.getByText("未启用：新建和复制推广计划时不会自动命名。")).toBeTruthy();
+});
+
+it("fills the recommended format with one click and saves it with the other values", async () => {
+  const onResult = vi.fn();
+  renderPanel([
+    nameTemplateMock("{{bd_english_name}}-{{product_id}}-{{date:MM.DD}}-{{sequence}}", onResult),
+  ]);
+  fireEvent.click(chip("使用推荐格式"));
+  expect(nameTemplateInput().value).toBe(
+    "{{bd_english_name}}-{{product_id}}-{{date:MM.DD}}-{{sequence}}",
+  );
+  expect(preview()).toMatch(/^Rosa-1737647724406212416-\d{2}\.\d{2}-1$/);
+  expect(saveButton().disabled).toBe(false);
+  fireEvent.click(saveButton());
+  await waitFor(() =>
+    expect(workspace.operationalSettings?.campaignNameTemplate).toBe(
+      "{{bd_english_name}}-{{product_id}}-{{date:MM.DD}}-{{sequence}}",
+    ),
+  );
+  expect(onResult).toHaveBeenCalledOnce();
+  expect(saveButton().disabled).toBe(true);
+});
+
+it("inserts a variable chip at the caret, replacing a selection, and leaves the caret after it", async () => {
+  renderPanel();
+  const input = nameTemplateInput();
+  fireEvent.change(input, { target: { value: "ab-cd" } });
+  input.setSelectionRange(3, 3);
+  fireEvent.click(chip("BD 英文名"));
+  expect(input.value).toBe("ab-{{bd_english_name}}cd");
+  await waitFor(() => expect(input.selectionStart).toBe(3 + "{{bd_english_name}}".length));
+  input.setSelectionRange(0, 2);
+  fireEvent.click(chip("当天序号"));
+  expect(input.value).toBe("{{sequence}}-{{bd_english_name}}cd");
+  await waitFor(() => expect(input.selectionStart).toBe("{{sequence}}".length));
+  fireEvent.click(chip("日期 MM.DD"));
+  expect(input.value).toBe("{{sequence}}{{date:MM.DD}}-{{bd_english_name}}cd");
+});
+
+it("does not insert a variable that would pass the 200 character limit", () => {
+  renderPanel();
+  const input = nameTemplateInput();
+  fireEvent.change(input, { target: { value: "x".repeat(195) } });
+  fireEvent.click(chip("当天序号"));
+  expect(input.value).toBe("x".repeat(195));
+});
+
+it("sends an empty string to turn a stored template off", async () => {
+  workspace = AffiliateWorkspaceModel.create({
+    operationalSettings: settings({ campaignNameTemplate: "{{sequence}}" }),
+  });
+  state.store = { affiliateWorkspace: workspace };
+  const onResult = vi.fn();
+  renderPanel([nameTemplateMock("", onResult)]);
+  fireEvent.change(nameTemplateInput(), { target: { value: "" } });
+  fireEvent.click(saveButton());
+  await waitFor(() => expect(workspace.operationalSettings?.campaignNameTemplate).toBe(""));
+  expect(onResult).toHaveBeenCalledOnce();
+});
+
+it("blocks save with an inline reason for an unknown variable or unterminated braces", () => {
+  renderPanel();
+  fireEvent.change(nameTemplateInput(), { target: { value: "{{creator_name}}-{{sequence}}" } });
+  expect(saveButton().disabled).toBe(true);
+  expect(screen.getByText("未知变量：{{creator_name}}")).toBeTruthy();
+  expect(preview()).toBeNull();
+  fireEvent.change(nameTemplateInput(), { target: { value: "{{sequence" } });
+  expect(saveButton().disabled).toBe(true);
+  expect(screen.getByText("变量缺少结束的双花括号，或花括号嵌套了。")).toBeTruthy();
+  fireEvent.change(nameTemplateInput(), { target: { value: "{{sequence}}" } });
+  expect(saveButton().disabled).toBe(false);
+});
+
+it("leaves the template out of a save that did not change it", async () => {
+  workspace = AffiliateWorkspaceModel.create({
+    operationalSettings: settings({ campaignNameTemplate: "{{sequence}}" }),
+  });
+  state.store = { affiliateWorkspace: workspace };
+  const onResult = vi.fn();
+  renderPanel([deadlineMock(72, onResult)]);
+  fireEvent.click(checkbox(DEADLINE_RELEASE));
+  fireEvent.click(saveButton());
+  await waitFor(() => expect(onResult).toHaveBeenCalledOnce());
 });

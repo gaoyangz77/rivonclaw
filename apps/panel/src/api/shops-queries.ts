@@ -321,6 +321,7 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
       strategy
     }
     firstTouchMode
+    reachProtectedCreators
     outreachPacingMode
     messageTemplateText
     collaborationInvitationText
@@ -5242,6 +5243,7 @@ export const AFFILIATE_OPERATIONAL_SETTINGS_QUERY = gql`
       creatorAssignmentTriggersCustomized
       bdCampaignSampleAssignmentDays
       effectiveBdCampaignSampleAssignmentDays
+      campaignNameTemplate
       onboardingCompletedAt
     }
   }
@@ -5260,6 +5262,7 @@ export const SET_AFFILIATE_UNREPLIED_MESSAGE_LOOKBACK_MUTATION = gql`
       creatorAssignmentTriggersCustomized
       bdCampaignSampleAssignmentDays
       effectiveBdCampaignSampleAssignmentDays
+      campaignNameTemplate
       onboardingCompletedAt
     }
   }
@@ -5278,7 +5281,21 @@ export const SET_AFFILIATE_CREATOR_BUSINESS_SETTINGS_MUTATION = gql`
       creatorAssignmentTriggersCustomized
       bdCampaignSampleAssignmentDays
       effectiveBdCampaignSampleAssignmentDays
+      campaignNameTemplate
       onboardingCompletedAt
+    }
+  }
+`;
+
+// ADR-120: the facts for rendering the default Campaign name. Authorized like a Campaign write, so a
+// Business Developer can read it while `affiliateOperationalSettings` stays supervision-only.
+export const AFFILIATE_CAMPAIGN_NAMING_CONTEXT_QUERY = gql`
+  query AffiliateCampaignNamingContext($input: AffiliateCampaignNamingContextInput!) {
+    affiliateCampaignNamingContext(input: $input) {
+      template
+      businessDeveloperName
+      businessDeveloperEnglishName
+      sequence
     }
   }
 `;
@@ -5531,6 +5548,7 @@ export const COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION = gql`
       creatorAssignmentTriggersCustomized
       bdCampaignSampleAssignmentDays
       effectiveBdCampaignSampleAssignmentDays
+      campaignNameTemplate
       onboardingCompletedAt
     }
   }

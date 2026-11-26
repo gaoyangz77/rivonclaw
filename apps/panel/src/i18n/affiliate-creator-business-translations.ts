@@ -38,6 +38,30 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
           bdCampaignDaysHint:
             "When a Creator reached by a Campaign that a BD created applies for a sample of that Campaign's product within this many days, and the Creator is in the public pool and not protected, the Creator is assigned to that BD instead of a random one. 0 turns this off. Default 7.",
           bdCampaignDaysInvalid: "Enter a whole number between 0 and 30",
+          campaignName: {
+            label: "Default Campaign name",
+            hint:
+              "Pre-fills the name when a Campaign is created or copied in the Campaign wizard. People can still change it by hand. Leave empty to turn this off.",
+            variablesTitle: "Click a variable to insert it at the cursor",
+            variablesHint:
+              "The daily sequence is the number of Campaigns the same BD (or the same login) already created today for the same product, plus 1. When the BD English name is empty, the separators stay as typed.",
+            recommended: "Use the recommended format",
+            preview: "Preview",
+            previewOff: "Off: new and copied Campaigns are not named automatically.",
+            previewNote:
+              "Sample values: BD Rosa / 黄海燕, product ID 1737647724406212416, today's date, sequence 1.",
+            unknownVariable: "Unknown variable: {{variables}}",
+            unterminated: "A variable is missing its closing braces, or braces are nested.",
+            controlCharacters:
+              "The template must not contain control characters such as tabs or line breaks.",
+            variables: {
+              bd_name: "BD Chinese name",
+              bd_english_name: "BD English name",
+              product_id: "Product ID",
+              date: "Date",
+              sequence: "Daily sequence",
+            },
+          },
           exclusions:
             "Reviews done with the main account, by AI on its own, or by the automatic pre-filter rules do not trigger the first two rules. The deadline release does not depend on any review decision.",
           saved: "Creator business rules saved.",
@@ -82,6 +106,27 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
           bdCampaignDaysHint:
             "BD 自己创建的推广计划触达达人后，达人在这个天数内申请该推广计划产品的样品，且达人在公海、未被保护，就直接分配给这个 BD，不走随机分配。填 0 关闭，默认 7 天。",
           bdCampaignDaysInvalid: "请输入 0–30 之间的整数",
+          campaignName: {
+            label: "推广计划默认名称",
+            hint: "在新建或复制推广计划时自动填入名称，创建人仍可手动修改。留空则不自动命名。",
+            variablesTitle: "点击变量，在光标处插入",
+            variablesHint:
+              "当天序号 = 同一位 BD（或同一登录账号）今天已为同一商品创建的推广计划数量 + 1，从 1 开始。BD 英文名为空时，前后的分隔符按原样保留。",
+            recommended: "使用推荐格式",
+            preview: "预览",
+            previewOff: "未启用：新建和复制推广计划时不会自动命名。",
+            previewNote: "示例：BD Rosa / 黄海燕，商品 ID 1737647724406212416，今天的日期，当天序号 1。",
+            unknownVariable: "未知变量：{{variables}}",
+            unterminated: "变量缺少结束的双花括号，或花括号嵌套了。",
+            controlCharacters: "模板不能包含制表符、换行等控制字符。",
+            variables: {
+              bd_name: "BD 中文名",
+              bd_english_name: "BD 英文名",
+              product_id: "商品 ID",
+              date: "日期",
+              sequence: "当天序号",
+            },
+          },
           exclusions:
             "使用主账号审核、AI 自行审核，以及自动预筛规则完成的审核，都不会触发前两条规则。申样临期未审释放不依赖任何审核结果。",
           saved: "达人业务配置已保存。",
@@ -130,6 +175,31 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
           bdCampaignDaysHint:
             "Wenn ein Creator, den eine von einem BD erstellte Kampagne erreicht hat, innerhalb dieser Anzahl Tage ein Muster eines Produkts dieser Kampagne anfragt und sich im öffentlichen Pool befindet und nicht geschützt ist, wird er diesem BD zugewiesen statt zufällig. 0 schaltet dies aus. Standard: 7.",
           bdCampaignDaysInvalid: "Bitte eine ganze Zahl zwischen 0 und 30 eingeben",
+          campaignName: {
+            label: "Standardname der Kampagne",
+            hint:
+              "Füllt den Namen aus, wenn im Kampagnen-Assistenten eine Kampagne erstellt oder kopiert wird. Er lässt sich weiterhin von Hand ändern. Leer lassen, um die Funktion auszuschalten.",
+            variablesTitle: "Variable anklicken, um sie an der Cursorposition einzufügen",
+            variablesHint:
+              "Die Tagesnummer ist die Zahl der Kampagnen, die derselbe BD (oder dasselbe Login) heute schon für dasselbe Produkt erstellt hat, plus 1. Ist der englische BD-Name leer, bleiben die Trennzeichen wie eingegeben.",
+            recommended: "Empfohlenes Format verwenden",
+            preview: "Vorschau",
+            previewOff: "Aus: Neue und kopierte Kampagnen werden nicht automatisch benannt.",
+            previewNote:
+              "Beispielwerte: BD Rosa / 黄海燕, Produkt-ID 1737647724406212416, heutiges Datum, Nummer 1.",
+            unknownVariable: "Unbekannte Variable: {{variables}}",
+            unterminated:
+              "Bei einer Variable fehlen die schließenden geschweiften Klammern, oder Klammern sind verschachtelt.",
+            controlCharacters:
+              "Die Vorlage darf keine Steuerzeichen wie Tabulatoren oder Zeilenumbrüche enthalten.",
+            variables: {
+              bd_name: "BD-Name (Chinesisch)",
+              bd_english_name: "BD-Name (Englisch)",
+              product_id: "Produkt-ID",
+              date: "Datum",
+              sequence: "Tagesnummer",
+            },
+          },
           exclusions:
             "Prüfungen über das Hauptkonto, durch die KI allein oder durch die automatischen Vorfilterregeln lösen die ersten beiden Regeln nicht aus. Die Freigabe vor Fristende hängt von keiner Prüfentscheidung ab.",
           saved: "Creator-Geschäftsregeln gespeichert.",
@@ -179,6 +249,31 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
           bdCampaignDaysHint:
             "Si un creador alcanzado por una campaña creada por un BD solicita una muestra de un producto de esa campaña dentro de este número de días, y está en el grupo público y no protegido, se asigna a ese BD en lugar de a uno aleatorio. 0 lo desactiva. Valor predeterminado: 7.",
           bdCampaignDaysInvalid: "Introduce un número entero entre 0 y 30",
+          campaignName: {
+            label: "Nombre predeterminado de la campaña",
+            hint:
+              "Rellena el nombre al crear o copiar una campaña en el asistente de campañas. Se puede seguir cambiando a mano. Déjalo vacío para desactivarlo.",
+            variablesTitle: "Haz clic en una variable para insertarla en el cursor",
+            variablesHint:
+              "El número del día es la cantidad de campañas que el mismo BD (o el mismo inicio de sesión) ya creó hoy para el mismo producto, más 1. Si el nombre en inglés del BD está vacío, los separadores se conservan tal como se escribieron.",
+            recommended: "Usar el formato recomendado",
+            preview: "Vista previa",
+            previewOff:
+              "Desactivado: las campañas nuevas y copiadas no se nombran automáticamente.",
+            previewNote:
+              "Valores de ejemplo: BD Rosa / 黄海燕, ID de producto 1737647724406212416, fecha de hoy, número 1.",
+            unknownVariable: "Variable desconocida: {{variables}}",
+            unterminated: "A una variable le faltan las llaves de cierre o hay llaves anidadas.",
+            controlCharacters:
+              "La plantilla no puede contener caracteres de control como tabuladores o saltos de línea.",
+            variables: {
+              bd_name: "Nombre del BD (chino)",
+              bd_english_name: "Nombre del BD (inglés)",
+              product_id: "ID de producto",
+              date: "Fecha",
+              sequence: "Número del día",
+            },
+          },
           exclusions:
             "Las revisiones hechas con la cuenta principal, por la IA por sí sola o por las reglas de prefiltrado automático no activan las dos primeras reglas. La devolución por plazo no depende de ninguna decisión de revisión.",
           saved: "Reglas de negocio de creadores guardadas.",
@@ -228,6 +323,32 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
           bdCampaignDaysHint:
             "Si un créateur contacté par une campagne créée par un BD demande un échantillon d'un produit de cette campagne dans ce nombre de jours, et qu'il est dans le pool public et non protégé, il est attribué à ce BD plutôt qu'au hasard. 0 désactive cette règle. Par défaut : 7.",
           bdCampaignDaysInvalid: "Saisissez un nombre entier entre 0 et 30",
+          campaignName: {
+            label: "Nom par défaut de la campagne",
+            hint:
+              "Préremplit le nom lors de la création ou de la copie d’une campagne dans l’assistant. Il reste modifiable à la main. Laissez vide pour désactiver.",
+            variablesTitle: "Cliquez sur une variable pour l’insérer au curseur",
+            variablesHint:
+              "Le numéro du jour correspond au nombre de campagnes que le même BD (ou le même identifiant) a déjà créées aujourd’hui pour le même produit, plus 1. Si le nom anglais du BD est vide, les séparateurs sont conservés tels quels.",
+            recommended: "Utiliser le format recommandé",
+            preview: "Aperçu",
+            previewOff:
+              "Désactivé : les campagnes nouvelles et copiées ne sont pas nommées automatiquement.",
+            previewNote:
+              "Valeurs d’exemple : BD Rosa / 黄海燕, ID produit 1737647724406212416, date du jour, numéro 1.",
+            unknownVariable: "Variable inconnue : {{variables}}",
+            unterminated:
+              "Une variable n’a pas d’accolades fermantes, ou des accolades sont imbriquées.",
+            controlCharacters:
+              "Le modèle ne doit pas contenir de caractères de contrôle comme des tabulations ou des sauts de ligne.",
+            variables: {
+              bd_name: "Nom du BD (chinois)",
+              bd_english_name: "Nom du BD (anglais)",
+              product_id: "ID produit",
+              date: "Date",
+              sequence: "Numéro du jour",
+            },
+          },
           exclusions:
             "Les examens effectués avec le compte principal, par l’IA seule ou par les règles de préfiltrage automatique ne déclenchent pas les deux premières règles. La remise à l’échéance ne dépend d’aucune décision d’examen.",
           saved: "Règles métier créateurs enregistrées.",
@@ -275,6 +396,31 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
           bdCampaignDaysHint:
             "Jika kreator yang dijangkau kampanye buatan BD meminta sampel produk kampanye itu dalam jumlah hari ini, dan kreator ada di kolam publik serta tidak dilindungi, kreator diberikan ke BD tersebut, bukan secara acak. 0 menonaktifkan aturan ini. Bawaan: 7.",
           bdCampaignDaysInvalid: "Masukkan bilangan bulat antara 0 dan 30",
+          campaignName: {
+            label: "Nama kampanye default",
+            hint:
+              "Mengisi nama saat kampanye dibuat atau disalin di panduan kampanye. Nama tetap bisa diubah manual. Kosongkan untuk menonaktifkan.",
+            variablesTitle: "Klik variabel untuk menyisipkannya di posisi kursor",
+            variablesHint:
+              "Nomor harian adalah jumlah kampanye yang sudah dibuat BD yang sama (atau login yang sama) hari ini untuk produk yang sama, ditambah 1. Jika nama Inggris BD kosong, pemisah tetap seperti yang diketik.",
+            recommended: "Gunakan format yang disarankan",
+            preview: "Pratinjau",
+            previewOff: "Nonaktif: kampanye baru dan salinan tidak diberi nama otomatis.",
+            previewNote:
+              "Nilai contoh: BD Rosa / 黄海燕, ID produk 1737647724406212416, tanggal hari ini, nomor 1.",
+            unknownVariable: "Variabel tidak dikenal: {{variables}}",
+            unterminated:
+              "Sebuah variabel tidak memiliki kurung kurawal penutup, atau kurung kurawal bersarang.",
+            controlCharacters:
+              "Templat tidak boleh berisi karakter kontrol seperti tab atau pemisah baris.",
+            variables: {
+              bd_name: "Nama BD (Mandarin)",
+              bd_english_name: "Nama BD (Inggris)",
+              product_id: "ID produk",
+              date: "Tanggal",
+              sequence: "Nomor harian",
+            },
+          },
           exclusions:
             "Peninjauan yang dilakukan dengan akun utama, oleh AI sendiri, atau oleh aturan penyaring awal otomatis tidak memicu dua aturan pertama. Pelepasan menjelang batas waktu tidak bergantung pada keputusan peninjauan apa pun.",
           saved: "Aturan bisnis kreator disimpan.",
@@ -323,6 +469,32 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
           bdCampaignDaysHint:
             "Se un creator raggiunto da una campagna creata da un BD richiede un campione di un prodotto di quella campagna entro questo numero di giorni, ed è nel pool pubblico e non protetto, viene assegnato a quel BD invece che a caso. 0 disattiva la regola. Predefinito: 7.",
           bdCampaignDaysInvalid: "Inserisci un numero intero tra 0 e 30",
+          campaignName: {
+            label: "Nome predefinito della campagna",
+            hint:
+              "Compila il nome quando una campagna viene creata o copiata nella procedura guidata. Resta modificabile a mano. Lascia vuoto per disattivare.",
+            variablesTitle: "Fai clic su una variabile per inserirla nella posizione del cursore",
+            variablesHint:
+              "Il numero del giorno è il numero di campagne che lo stesso BD (o lo stesso login) ha già creato oggi per lo stesso prodotto, più 1. Se il nome inglese del BD è vuoto, i separatori restano come digitati.",
+            recommended: "Usa il formato consigliato",
+            preview: "Anteprima",
+            previewOff:
+              "Disattivato: le campagne nuove e copiate non vengono nominate automaticamente.",
+            previewNote:
+              "Valori di esempio: BD Rosa / 黄海燕, ID prodotto 1737647724406212416, data di oggi, numero 1.",
+            unknownVariable: "Variabile sconosciuta: {{variables}}",
+            unterminated:
+              "A una variabile mancano le parentesi graffe di chiusura, oppure le parentesi sono annidate.",
+            controlCharacters:
+              "Il modello non può contenere caratteri di controllo come tabulazioni o a capo.",
+            variables: {
+              bd_name: "Nome BD (cinese)",
+              bd_english_name: "Nome BD (inglese)",
+              product_id: "ID prodotto",
+              date: "Data",
+              sequence: "Numero del giorno",
+            },
+          },
           exclusions:
             "Le revisioni fatte con l’account principale, dall’IA da sola o dalle regole di prefiltro automatico non attivano le prime due regole. La restituzione alla scadenza non dipende da alcuna decisione di revisione.",
           saved: "Regole business creator salvate.",
@@ -368,6 +540,29 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
           bdCampaignDaysHint:
             "หากครีเอเตอร์ที่แคมเปญซึ่ง BD สร้างเองได้ติดต่อไป ขอตัวอย่างสินค้าของแคมเปญนั้นภายในจำนวนวันนี้ และครีเอเตอร์อยู่ในพูลสาธารณะและไม่ได้รับการคุ้มครอง ครีเอเตอร์จะถูกมอบให้ BD นั้นแทนการสุ่ม ใส่ 0 เพื่อปิด ค่าเริ่มต้น 7 วัน",
           bdCampaignDaysInvalid: "กรอกจำนวนเต็มระหว่าง 0 ถึง 30",
+          campaignName: {
+            label: "ชื่อแคมเปญเริ่มต้น",
+            hint:
+              "เติมชื่อให้อัตโนมัติเมื่อสร้างหรือคัดลอกแคมเปญในตัวช่วยสร้างแคมเปญ ยังแก้ไขเองได้ ปล่อยว่างไว้เพื่อปิดใช้งาน",
+            variablesTitle: "คลิกตัวแปรเพื่อแทรกที่ตำแหน่งเคอร์เซอร์",
+            variablesHint:
+              "ลำดับของวันคือจำนวนแคมเปญที่ BD คนเดียวกัน (หรือบัญชีล็อกอินเดียวกัน) สร้างไว้แล้ววันนี้สำหรับสินค้าเดียวกัน บวก 1 หากชื่อภาษาอังกฤษของ BD ว่างอยู่ ตัวคั่นจะคงไว้ตามที่พิมพ์",
+            recommended: "ใช้รูปแบบที่แนะนำ",
+            preview: "ตัวอย่าง",
+            previewOff: "ปิดอยู่: แคมเปญใหม่และแคมเปญที่คัดลอกจะไม่ถูกตั้งชื่ออัตโนมัติ",
+            previewNote:
+              "ค่าตัวอย่าง: BD Rosa / 黄海燕, รหัสสินค้า 1737647724406212416, วันที่วันนี้, ลำดับ 1",
+            unknownVariable: "ตัวแปรที่ไม่รู้จัก: {{variables}}",
+            unterminated: "ตัวแปรขาดวงเล็บปีกกาปิด หรือมีวงเล็บปีกกาซ้อนกัน",
+            controlCharacters: "เทมเพลตต้องไม่มีอักขระควบคุม เช่น แท็บหรือการขึ้นบรรทัดใหม่",
+            variables: {
+              bd_name: "ชื่อ BD (ภาษาจีน)",
+              bd_english_name: "ชื่อ BD (ภาษาอังกฤษ)",
+              product_id: "รหัสสินค้า",
+              date: "วันที่",
+              sequence: "ลำดับของวัน",
+            },
+          },
           exclusions:
             "การตรวจสอบด้วยบัญชีหลัก โดย AI เพียงลำพัง หรือโดยกฎคัดกรองล่วงหน้าอัตโนมัติ จะไม่ทำให้สองกฎแรกทำงาน การปล่อยก่อนถึงกำหนดไม่ขึ้นกับผลการตรวจสอบใดๆ",
           saved: "บันทึกกฎธุรกิจครีเอเตอร์แล้ว",

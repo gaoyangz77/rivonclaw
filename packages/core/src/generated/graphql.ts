@@ -1383,6 +1383,8 @@ export interface AffiliateCampaign {
   productSnapshotId?: Maybe<Scalars["ID"]["output"]>;
   /** Every product the Campaign promotes, each with its own commission rate. The first is the one discovery searches on and the message names. */
   products: Array<AffiliateCampaignProductType>;
+  /** ADR-121: whether this Creator-list Campaign may reach Creators on the protection list. Always false for any other strategy. */
+  reachProtectedCreators: Scalars["Boolean"]["output"];
   resolvedTimeZone: Scalars["String"]["output"];
   searchPlanExplanationLocale: AffiliateCampaignSearchPlanExplanationLocale;
   searchPlanGuidance?: Maybe<Scalars["String"]["output"]>;
@@ -1786,6 +1788,25 @@ export interface AffiliateCampaignMessageTemplateSuggestion {
   productShortName: Scalars["String"]["output"];
   source: AffiliateCampaignMessageTemplateSource;
   text: Scalars["String"]["output"];
+}
+
+export interface AffiliateCampaignNamingContext {
+  /** The acting Business Developer's English name; null when the actor is not a Business Developer or has none. */
+  businessDeveloperEnglishName?: Maybe<Scalars["String"]["output"]>;
+  /** The acting Business Developer's Chinese name; null when the actor is not a Business Developer. */
+  businessDeveloperName?: Maybe<Scalars["String"]["output"]>;
+  /** 1 + the Campaigns this creator already created today (in the given time zone) for this lead product. */
+  sequence: Scalars["Int"]["output"];
+  /** The seller's default Campaign name template (ADR-120). An empty string means off. */
+  template: Scalars["String"]["output"];
+}
+
+export interface AffiliateCampaignNamingContextInput {
+  /** TikTok product id of the Campaign's lead (first) product. */
+  productId: Scalars["String"]["input"];
+  shopId: Scalars["ID"]["input"];
+  /** IANA time zone of the person creating the Campaign; it cuts the day the sequence counts in. */
+  timeZone: Scalars["String"]["input"];
 }
 
 /** UNIFORM uses the local outreach window; FAST runs immediately, around the clock, within daily targets. */
@@ -2392,7 +2413,7 @@ export interface AffiliateCoverageDailyPoint {
   shopsWithData: Scalars["Int"]["output"];
 }
 
-/** A scenario in which a new business fact about an unassigned, unprotected Creator triggers random Business Developer assignment. */
+/** A scenario in which a new business fact about an unassigned, unprotected Creator triggers random Business Developer assignment. PARTNER_SAMPLE_APPLICATION and REFUNDABLE_SAMPLE_APPLICATION are retired: seller-unmanaged Sample Applications never assign a Business Developer, a selection containing them is accepted and they are dropped. */
 export const AffiliateCreatorAssignmentTrigger = {
   CampaignFirstTouch: "CAMPAIGN_FIRST_TOUCH",
   CreatorInbound: "CREATOR_INBOUND",
@@ -4305,11 +4326,13 @@ export interface AffiliateOperationalSettings {
   autoReleaseOnSampleRejection: Scalars["Boolean"]["output"];
   /** The seller's own window, in days (0–30), in which a new Sample Application from a Business Developer's own Campaign assigns the Creator to that Business Developer. Null while the default applies; 0 means off. */
   bdCampaignSampleAssignmentDays?: Maybe<Scalars["Int"]["output"]>;
+  /** ADR-120: the seller-wide default name template of a new or copied Campaign, over {{bd_name}}, {{bd_english_name}}, {{product_id}}, {{date:…}} and {{sequence}}. An empty string means off. */
+  campaignNameTemplate: Scalars["String"]["output"];
   /** True when the seller chose their own selection of assignment scenarios; false while the defaults apply. */
   creatorAssignmentTriggersCustomized: Scalars["Boolean"]["output"];
   /** The window in force: the stored value, or the default of 7 days while there is none. 0 means the rule is off. */
   effectiveBdCampaignSampleAssignmentDays: Scalars["Int"]["output"];
-  /** Scenarios in force in which a new business fact about an unassigned, unprotected Creator triggers random Business Developer assignment. The seller's own selection, or the defaults (Creator inbound message, Sample Application, partner-managed Sample Application) while they have none. Empty means never assign automatically. */
+  /** Scenarios in force in which a new business fact about an unassigned, unprotected Creator triggers random Business Developer assignment. The seller's own selection, or the defaults (Creator inbound message, Sample Application) while they have none. Retired scenarios (partner-managed and refundable Sample Applications, which never assign a Business Developer) are never returned. Empty means never assign automatically. */
   enabledCreatorAssignmentTriggers: Array<AffiliateCreatorAssignmentTrigger>;
   id: Scalars["ID"]["output"];
   onboardingCompletedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
@@ -15189,6 +15212,8 @@ export interface Query {
   affiliateCampaignCreatorStates: AffiliateCampaignCreatorStatePage;
   /** Read recent daily execution records for one owned Campaign. */
   affiliateCampaignDailyExecutions: Array<AffiliateCampaignDailyExecution>;
+  /** The facts for rendering the seller's default Campaign name (ADR-120): the template, the acting Business Developer's names and today's sequence for the lead product. Authorized like a Campaign write, because a Business Developer cannot read the seller settings. */
+  affiliateCampaignNamingContext: AffiliateCampaignNamingContext;
   /** Fetch and normalize one owned-shop product for Campaign review without creating persistent draft state. */
   affiliateCampaignProductPreview: AffiliateCampaignProductPreview;
   /** Read deduplicated Product summaries of the shops the caller may create Campaigns in (ADR-118), for the Campaign page. The work views use affiliateProductSummaries. */
@@ -15646,6 +15671,10 @@ export interface QueryAffiliateCampaignCreatorStatesArgs {
 
 export interface QueryAffiliateCampaignDailyExecutionsArgs {
   input: ReadAffiliateCampaignDailyExecutionsInput;
+}
+
+export interface QueryAffiliateCampaignNamingContextArgs {
+  input: AffiliateCampaignNamingContextInput;
 }
 
 export interface QueryAffiliateCampaignProductPreviewArgs {
@@ -17380,6 +17409,8 @@ export interface SetAffiliateCreatorBusinessSettingsInput {
   autoReleaseOnSampleRejection: Scalars["Boolean"]["input"];
   /** Absent leaves the stored window unchanged; null restores the default of 7 days; an integer from 0 to 30 sets it (0 turns the rule off). */
   bdCampaignSampleAssignmentDays?: InputMaybe<Scalars["Int"]["input"]>;
+  /** Absent or null leaves the stored template unchanged; an empty string turns it off; otherwise a template of at most 200 characters over the known {{variables}} (ADR-120). */
+  campaignNameTemplate?: InputMaybe<Scalars["String"]["input"]>;
   /** Absent leaves the stored selection unchanged; null restores the defaults; a list sets exactly those scenarios (an empty list means never assign automatically). */
   creatorAssignmentTriggers?: InputMaybe<Array<AffiliateCreatorAssignmentTrigger>>;
   /** Absent leaves the stored value unchanged; null turns the safeguard off; an integer from 1 to 142 sets it. */
@@ -19375,6 +19406,8 @@ export interface WriteAffiliateCampaignInput {
   outreachPacingMode?: InputMaybe<AffiliateCampaignOutreachPacingMode>;
   /** Every product the Campaign promotes, each with its own commission rate. The first is the one discovery searches on and the message names. */
   products: Array<WriteAffiliateCampaignProductInput>;
+  /** ADR-121: absent or null keeps the stored value (false for a new Campaign). true is rejected unless the Campaign is a Creator list. */
+  reachProtectedCreators?: InputMaybe<Scalars["Boolean"]["input"]>;
   refreshProductSnapshot?: InputMaybe<Scalars["Boolean"]["input"]>;
   searchPlanExplanationLocale?: InputMaybe<AffiliateCampaignSearchPlanExplanationLocale>;
   searchPlanGuidance?: InputMaybe<Scalars["String"]["input"]>;

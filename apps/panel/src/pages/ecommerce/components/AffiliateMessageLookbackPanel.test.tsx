@@ -72,6 +72,7 @@ it("validates whole days and saves the selected range into the current MST setti
     enabledCreatorAssignmentTriggers: [],
     creatorAssignmentTriggersCustomized: false,
     effectiveBdCampaignSampleAssignmentDays: 7,
+    campaignNameTemplate: "",
   });
   fireEvent.click(save);
   await waitFor(() => expect(workspace.operationalSettings?.unrepliedMessageLookbackDays).toBe(14));
