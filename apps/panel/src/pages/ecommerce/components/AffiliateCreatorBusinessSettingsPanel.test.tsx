@@ -18,11 +18,10 @@ const AUTO_RELEASE = /新达人拒绝\/忽略申样后自动释放到公海/;
 const DEADLINE_RELEASE = /申样临期未审自动释放到公海/;
 const INVALID_HOURS = "请输入 1–142 之间的整数";
 
-const DEFAULT_TRIGGERS = ["CREATOR_INBOUND", "SAMPLE_APPLICATION", "PARTNER_SAMPLE_APPLICATION"];
+const DEFAULT_TRIGGERS = ["CREATOR_INBOUND", "SAMPLE_APPLICATION"];
 const TRIGGER_NAMES = {
   CREATOR_INBOUND: /达人主动发消息/,
   SAMPLE_APPLICATION: /达人申样（卖家可审核）/,
-  PARTNER_SAMPLE_APPLICATION: /服务商管理的申样/,
   TARGET_COLLABORATION: /定向合作/,
   CAMPAIGN_FIRST_TOUCH: /邀约首次触达/,
   PLATFORM_ACTION: /平台操作/,
@@ -293,18 +292,22 @@ it("ignores an invalid hours draft once the deadline release is switched back of
   expect(saveButton().disabled).toBe(true);
 });
 
-it("renders the six assignment scenarios from the store, defaults checked", () => {
+it("renders the five assignment scenarios from the store, defaults checked", () => {
   renderPanel();
   expect(screen.getByText("新达人分配 BD 的场景")).toBeTruthy();
   const checked = Object.entries(TRIGGER_NAMES).map(([key, name]) => [key, checkbox(name).checked]);
   expect(checked).toEqual([
     ["CREATOR_INBOUND", true],
     ["SAMPLE_APPLICATION", true],
-    ["PARTNER_SAMPLE_APPLICATION", true],
     ["TARGET_COLLABORATION", false],
     ["CAMPAIGN_FIRST_TOUCH", false],
     ["PLATFORM_ACTION", false],
   ]);
+  expect(screen.getAllByRole("checkbox", { name: /./ }).filter((box) =>
+    box.closest(".affiliate-creator-business-triggers") != null).length).toBe(5);
+  expect(screen.queryByText("服务商管理的申样")).toBeNull();
+  expect(screen.queryByText("买返样品")).toBeNull();
+  expect(screen.getByText(/服务商管理的申样和买返样品不会触发分配/)).toBeTruthy();
   expect(saveButton().disabled).toBe(true);
 });
 
@@ -322,7 +325,7 @@ it("marks the form dirty when a scenario is toggled and only while the set diffe
 });
 
 it("saves the edited scenario list together with the persisted rule values", async () => {
-  const next = ["CREATOR_INBOUND", "SAMPLE_APPLICATION", "PARTNER_SAMPLE_APPLICATION", "PLATFORM_ACTION"];
+  const next = ["CREATOR_INBOUND", "SAMPLE_APPLICATION", "PLATFORM_ACTION"];
   const result = vi.fn(() => ({
     data: {
       setAffiliateCreatorBusinessSettings: settings({

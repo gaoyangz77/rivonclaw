@@ -27,11 +27,11 @@ const BD_CAMPAIGN_DAYS_MIN = 0;
 const BD_CAMPAIGN_DAYS_MAX = 30;
 
 // Display order of the assignment scenarios. The default selection is owned by the backend.
+// Partner-managed and buy-and-refund samples never trigger assignment, so their
+// retired scenarios are not offered.
 const ASSIGNMENT_TRIGGERS = [
   "CREATOR_INBOUND",
   "SAMPLE_APPLICATION",
-  "PARTNER_SAMPLE_APPLICATION",
-  "REFUNDABLE_SAMPLE_APPLICATION",
   "TARGET_COLLABORATION",
   "CAMPAIGN_FIRST_TOUCH",
   "PLATFORM_ACTION",
