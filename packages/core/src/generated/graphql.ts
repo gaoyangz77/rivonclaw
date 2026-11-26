@@ -1653,6 +1653,15 @@ export interface AffiliateCampaignDeliveryFailureReason {
   count: Scalars["Int"]["output"];
 }
 
+/** Why today's first-touch Deliveries of a Campaign failed and are waiting for their next retry. The reason is the Provider's own message without its per-request id. */
+export interface AffiliateCampaignDeliveryRetryReason {
+  /** Deliveries still queued whose latest attempt failed for this reason. */
+  count: Scalars["Int"]["output"];
+  lastFailedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  nextRetryAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  reason: Scalars["String"]["output"];
+}
+
 export interface AffiliateCampaignDiscoveryRules {
   affiliatePerformance30d?: Maybe<AffiliateCampaignAffiliatePerformanceRules>;
   audience?: Maybe<AffiliateCampaignAudienceRules>;
@@ -2164,6 +2173,8 @@ export interface AffiliateCampaignSummary {
   campaignId: Scalars["ID"]["output"];
   counters: AffiliateCampaignExecutionCounters;
   deliveryFailureReasons: Array<AffiliateCampaignDeliveryFailureReason>;
+  /** Queued first-touch Deliveries of today's execution whose latest attempt failed, grouped by reason, most recent first. Target Collaboration create quota exhaustion is excluded; targetCollaborationCreateQuota reports it. */
+  deliveryRetryReasons: Array<AffiliateCampaignDeliveryRetryReason>;
   latestExecution?: Maybe<AffiliateCampaignDailyExecution>;
   lifetimeReachedOut: Scalars["Int"]["output"];
   shopDailyCapacity: AffiliateCampaignShopDailyCapacity;

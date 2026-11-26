@@ -516,6 +516,12 @@ export const AFFILIATE_CAMPAIGN_SUMMARY_QUERY = gql`
         code
         count
       }
+      deliveryRetryReasons {
+        reason
+        count
+        lastFailedAt
+        nextRetryAt
+      }
       counters {
         scanned
         matched

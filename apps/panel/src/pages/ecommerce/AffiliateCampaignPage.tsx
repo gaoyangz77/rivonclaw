@@ -954,6 +954,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const summary = summaryQuery.data?.affiliateCampaignSummary;
   const latestExecution = summary?.latestExecution;
   const targetCollaborationQuota = summary?.targetCollaborationCreateQuota;
+  const deliveryRetryReasons = summary?.deliveryRetryReasons ?? [];
   const targetCollaborationQuotaRecovered = Boolean(
     targetCollaborationQuota &&
     !targetCollaborationQuota.active &&
@@ -2454,6 +2455,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     selectedCampaign.dailyOutreachTarget,
                     selectedCampaign.outreachPacingMode,
                     t,
+                    deliveryRetryReasons.length > 0,
                   )}
                   progress
                   emphasis
@@ -2588,6 +2590,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   </span>
                 </section>
               )}
+
+            {deliveryRetryReasons.length > 0 && (
+              <CampaignDeliveryRetryIssue reasons={deliveryRetryReasons} t={t} />
+            )}
 
             <CampaignFunnel
               screeningBreakdown={
@@ -4762,6 +4768,44 @@ export function campaignScreeningPassRate(
   return (qualified / (qualified + rejected)) * 100;
 }
 
+export function CampaignDeliveryRetryIssue({
+  reasons,
+  t,
+}: {
+  reasons: GQL.AffiliateCampaignDeliveryRetryReason[];
+  t: (key: string, options?: Record<string, unknown>) => string;
+}) {
+  const total = reasons.reduce((sum, reason) => sum + reason.count, 0);
+  return (
+    <section className="affiliate-campaign-quota-issue" role="status">
+      <div className="affiliate-campaign-quota-issue-copy">
+        <strong>{t("ecommerce.affiliateCampaign.deliveryRetryTitle")}</strong>
+        <p>{t("ecommerce.affiliateCampaign.deliveryRetryDescription", { count: total })}</p>
+      </div>
+      {reasons.map((reason) => (
+        <div key={reason.reason} className="affiliate-campaign-delivery-retry-reason">
+          <span>{t("ecommerce.affiliateCampaign.deliveryRetryReason")}</span>
+          <p>{reason.reason}</p>
+          <dl>
+            <div>
+              <dt>{t("ecommerce.affiliateCampaign.deliveryRetryAffected")}</dt>
+              <dd>{formatNumber(reason.count)}</dd>
+            </div>
+            <div>
+              <dt>{t("ecommerce.affiliateCampaign.deliveryRetryLastFailed")}</dt>
+              <dd>{reason.lastFailedAt ? formatDateTime(reason.lastFailedAt) : "—"}</dd>
+            </div>
+            <div>
+              <dt>{t("ecommerce.affiliateCampaign.deliveryRetryNextRetry")}</dt>
+              <dd>{reason.nextRetryAt ? formatDateTime(reason.nextRetryAt) : "—"}</dd>
+            </div>
+          </dl>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 export function CampaignFunnel({
   counters,
   screeningBreakdown,
@@ -5630,10 +5674,15 @@ export function campaignTodayReachoutSupportingText(
   dailyTarget: number,
   pacingMode: GQL.AffiliateCampaignOutreachPacingMode | null | undefined,
   t: (key: string, options?: Record<string, unknown>) => string,
+  deliveryRetrying = false,
 ): string {
   const target = execution?.effectiveTarget ?? dailyTarget;
   if (execution && target > 0 && execution.counters.sent >= target) {
     return t("ecommerce.affiliateCampaign.pacing.dailyTargetReached");
+  }
+  // A failing send is not "waiting for the window": the reason banner explains it.
+  if (deliveryRetrying) {
+    return t("ecommerce.affiliateCampaign.deliveryRetryingHint");
   }
   if (execution?.nextTickAt) {
     return t("ecommerce.affiliateCampaign.nextSend", {

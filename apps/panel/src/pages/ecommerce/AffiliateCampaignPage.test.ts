@@ -151,6 +151,28 @@ describe("Affiliate Campaign presentation contracts", () => {
     ).toBe("ecommerce.affiliateCampaign.waitingForWindow");
   });
 
+  it("says sending is failing instead of waiting for a window while deliveries retry", () => {
+    const uniform = GQL.AffiliateCampaignOutreachPacingMode.Uniform;
+    expect(
+      campaignTodayReachoutSupportingText(
+        { counters: { sent: 0 }, nextTickAt: "2026-11-26T17:00:00Z" },
+        300,
+        uniform,
+        (value) => value,
+        true,
+      ),
+    ).toBe("ecommerce.affiliateCampaign.deliveryRetryingHint");
+    expect(
+      campaignTodayReachoutSupportingText(
+        { counters: { sent: 300 } },
+        300,
+        uniform,
+        (value) => value,
+        true,
+      ),
+    ).toBe("ecommerce.affiliateCampaign.pacing.dailyTargetReached");
+  });
+
   it("defaults to uniform pacing and offers an explicit immediate fast mode", () => {
     expect(emptyForm.outreachPacingMode).toBe(GQL.AffiliateCampaignOutreachPacingMode.Uniform);
     const source = readFileSync(resolve(import.meta.dirname, "AffiliateCampaignPage.tsx"), "utf8");
@@ -746,6 +768,21 @@ describe("Affiliate Campaign presentation contracts", () => {
       expect(JSON.stringify(campaign)).not.toContain("16024035");
     }
     expect(new Set(localized.map((campaign) => campaign.targetCollaborationQuotaTitle)).size).toBe(
+      localized.length,
+    );
+  });
+
+  it("localizes the failing-delivery retry banner in every supported Campaign locale", () => {
+    const localized = Object.values(AFFILIATE_CAMPAIGN_TRANSLATIONS).map(
+      (translations) => translations.ecommerce.affiliateCampaign,
+    );
+    for (const campaign of localized) {
+      expect(campaign.deliveryRetryTitle).toBeTruthy();
+      expect(campaign.deliveryRetryDescription).toContain("{{count}}");
+      expect(campaign.deliveryRetryReason).toBeTruthy();
+      expect(campaign.deliveryRetryingHint).toBeTruthy();
+    }
+    expect(new Set(localized.map((campaign) => campaign.deliveryRetryTitle)).size).toBe(
       localized.length,
     );
   });
