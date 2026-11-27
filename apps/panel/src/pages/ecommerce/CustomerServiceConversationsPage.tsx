@@ -22,7 +22,7 @@ import {
   TagIcon,
   RefreshIcon,
 } from "../../components/icons.js";
-import { getHost } from "../../host/index.js";
+import { getHost, hostSupports } from "../../host/index.js";
 import panelI18n from "../../i18n/index.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
 import {
@@ -1325,6 +1325,8 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
                           )}
                         </div>
                         <div className="cs-conversation-popover-footer">
+                          {/* Starting a run is a Desktop CS bridge dispatch. */}
+                          {hostSupports("csBridge") && (
                           <button
                             className="btn btn-primary btn-sm cs-run-ai-button"
                             type="button"
@@ -1343,6 +1345,7 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
                               ? t("common.loading")
                               : t("ecommerce.customerServiceWorkspace.startAi")}
                           </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1664,16 +1667,19 @@ const EscalationDetailModal = observer(function EscalationDetailModal({
                   : t("ecommerce.customerServiceWorkspace.dismissEscalation")}
               </button>
             </span>
-            <button
-              className="btn btn-primary"
-              type="button"
-              onClick={() => void respondToEscalation()}
-              disabled={workspace.respondingEscalation || !workspace.escalationGuidance.trim()}
-            >
-              {workspace.respondingEscalation
-                ? t("common.loading")
-                : t("ecommerce.customerServiceWorkspace.sendResponse")}
-            </button>
+            {/* The response is handed to the AI through Desktop's CS bridge. */}
+            {hostSupports("csBridge") && (
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={() => void respondToEscalation()}
+                disabled={workspace.respondingEscalation || !workspace.escalationGuidance.trim()}
+              >
+                {workspace.respondingEscalation
+                  ? t("common.loading")
+                  : t("ecommerce.customerServiceWorkspace.sendResponse")}
+              </button>
+            )}
           </div>
         </div>
       </section>

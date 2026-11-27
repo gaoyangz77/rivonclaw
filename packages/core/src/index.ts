@@ -225,3 +225,5 @@ export type { ClientToolDef } from "./client-tools.js";
 
 export { assembleCsPrompt } from "./prompts/cs-prompt.js";
 export type { AssembleCsPromptInput } from "./prompts/cs-prompt.js";
+
+export * from "./cloud-documents.js";

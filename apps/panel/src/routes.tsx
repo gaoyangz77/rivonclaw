@@ -521,6 +521,9 @@ export const SCOPE_LANDING_PATH: Partial<Record<GQL.PermissionScope, string>> = 
  */
 export const FALLBACK_LANDING_PATH = "/automation/skills";
 
+/** The same, for a host that cannot serve `FALLBACK_LANDING_PATH` (no local skills): the account page. */
+export const HOST_FALLBACK_LANDING_PATH = "/account/profile";
+
 /**
  * First landing path the given scopes unlock, in SCOPE_LANDING_PATH order.
  * CHAT comes first, so a user who may open the chat page keeps landing on "/".
@@ -528,7 +531,7 @@ export const FALLBACK_LANDING_PATH = "/automation/skills";
 export function resolveLandingPath(scopes: readonly string[]): string {
   const held = new Set(scopes);
   for (const [scope, path] of Object.entries(SCOPE_LANDING_PATH)) {
-    if (held.has(scope) && path) return path;
+    if (held.has(scope) && path && isRoutableOnHost(path)) return path;
   }
-  return FALLBACK_LANDING_PATH;
+  return isRoutableOnHost(FALLBACK_LANDING_PATH) ? FALLBACK_LANDING_PATH : HOST_FALLBACK_LANDING_PATH;
 }

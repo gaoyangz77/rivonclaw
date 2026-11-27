@@ -4,6 +4,7 @@ import { GQL } from "@rivonclaw/core";
 import { API, CLOUD_REST, clientPath } from "@rivonclaw/core/api-contract";
 import { fetchJson, fetchVoid } from "../../api/client.js";
 import { cloudFetchJson } from "../../api/cloud-client.js";
+import { hostSupports } from "../../host/index.js";
 import { graphQLErrorCode } from "../../lib/graphql-error-code.js";
 import { csSummaryErrorCode } from "../../lib/cs-one-shot-error.js";
 import {
@@ -116,6 +117,8 @@ function errorMessage(err: unknown): string {
 }
 
 function emitCsTelemetry(eventType: string, metadata: Record<string, unknown>): void {
+  // CS telemetry is reported through Desktop's CS bridge.
+  if (!hostSupports("csBridge")) return;
   fetchVoid(clientPath(API["telemetry.cs.track"]), {
     method: "POST",
     body: JSON.stringify({ eventType, metadata }),

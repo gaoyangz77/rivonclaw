@@ -16,7 +16,7 @@ import {
   TkButton,
   TkField,
 } from "../../../components/design-system/index.js";
-import { getHost } from "../../../host/index.js";
+import { getHost, hostSupports } from "../../../host/index.js";
 import { useToast } from "../../../components/Toast.js";
 
 const MEMBER_BATCH_SIZE = 5;
@@ -157,16 +157,18 @@ export function SubAccountsSection() {
                       : t("subAccounts.statusActive")}
                   </span>
                   <div className="acct-item-actions">
-                    <TkButton
-                      size="sm"
-                      variant="secondary"
-                      disabled={member.disabled || switchingMemberId !== null}
-                      onClick={() => void loginAsMember(member.id)}
-                    >
-                      {t(
-                        switchingMemberId === member.id ? "common.loading" : "subAccounts.loginAs",
-                      )}
-                    </TkButton>
+                    {hostSupports("desktopAuthFlows") && (
+                      <TkButton
+                        size="sm"
+                        variant="secondary"
+                        disabled={member.disabled || switchingMemberId !== null}
+                        onClick={() => void loginAsMember(member.id)}
+                      >
+                        {t(
+                          switchingMemberId === member.id ? "common.loading" : "subAccounts.loginAs",
+                        )}
+                      </TkButton>
+                    )}
                     {!isBusinessDeveloperMember(member) && (
                       <>
                         <button

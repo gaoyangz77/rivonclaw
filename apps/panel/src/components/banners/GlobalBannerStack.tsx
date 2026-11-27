@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
-import { getHost } from "../../host/index.js";
+import { getHost, hostSupports } from "../../host/index.js";
 import { shopDisplayLabel } from "../../lib/shop-display.js";
 import { useToast } from "../Toast.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
@@ -84,18 +84,30 @@ export const GlobalBannerStack = observer(function GlobalBannerStack({
   return (
     <>
       <AccountSwitchBanner />
-      <UpdateBanner onCurrentVersionChange={onCurrentVersionChange} />
+      {hostSupports("desktopUpdates") && (
+        <UpdateBanner onCurrentVersionChange={onCurrentVersionChange} />
+      )}
       <CloudLlmQuotaBanner onNavigate={onNavigate} />
-      <CloudToolsBanner state={runtimeStatus.cloudTools.state} />
-      <LlmUnavailableBanner show={showLlmUnavailableBanner} />
-      <GatewayStartupFailureBanner reason={gatewayStartupFailure} />
-      <AffiliateBdDeviceBanner onNavigate={onNavigate} />
-      <CustomerServiceBridgeBanner
-        show={showCsBridgeBanner}
-        state={csBridgeState}
-        reconnectAttempt={runtimeStatus.csBridge.reconnectAttempt}
-      />
-      <CustomerServiceRoutingBanner problems={customerServiceRoutingProblems} />
+      {/* Everything below reports on this machine: the local gateway, the CS bridge
+          and the devices that hold WhatsApp/email accounts. A browser has none. */}
+      {hostSupports("localGateway") && (
+        <>
+          <CloudToolsBanner state={runtimeStatus.cloudTools.state} />
+          <LlmUnavailableBanner show={showLlmUnavailableBanner} />
+          <GatewayStartupFailureBanner reason={gatewayStartupFailure} />
+        </>
+      )}
+      {hostSupports("outreachAccounts") && <AffiliateBdDeviceBanner onNavigate={onNavigate} />}
+      {hostSupports("csBridge") && (
+        <>
+          <CustomerServiceBridgeBanner
+            show={showCsBridgeBanner}
+            state={csBridgeState}
+            reconnectAttempt={runtimeStatus.csBridge.reconnectAttempt}
+          />
+          <CustomerServiceRoutingBanner problems={customerServiceRoutingProblems} />
+        </>
+      )}
     </>
   );
 });

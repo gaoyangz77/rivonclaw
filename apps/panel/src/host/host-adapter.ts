@@ -1,4 +1,5 @@
 import type { ApolloLink } from "@apollo/client";
+import type { WorkspaceDescriptor } from "@rivonclaw/core/api-contract";
 
 /**
  * Host adapter (ADR-123 decision 2).
@@ -47,6 +48,14 @@ export const HOST_CAPABILITIES = [
   "localLlmUsage",
   /** Sign-in flows that go through Desktop: captcha, Google, browser hand-off. */
   "desktopAuthFlows",
+  /** Desktop's CS bridge: starting an AI conversation, reporting escalation results, CS telemetry. */
+  "csBridge",
+  /** Affiliate outreach accounts (WhatsApp, email) that are paired and held on this machine. */
+  "outreachAccounts",
+  /** Desktop's media cache, which resolves remote media to local files. */
+  "mediaCache",
+  /** The pixel office overlay and screensaver, fed by Desktop's scene stream. */
+  "office",
 ] as const;
 
 export type HostCapability = (typeof HOST_CAPABILITIES)[number];
@@ -121,6 +130,16 @@ export interface HostCloud {
   fetch(path: string, init?: RequestInit): Promise<Response>;
 }
 
+export interface HostSettings {
+  /** Panel/app preferences by storage key (`privacy_mode`, `panel_theme`, ...). */
+  getAll(): Promise<Record<string, string>>;
+  /** Persist preferences. The host is responsible for the runtime status store reflecting them. */
+  update(entries: Record<string, string>): Promise<void>;
+  /** The open-tabs workspace stored for an account (`null` = guest), if any. */
+  getWorkspace(userId: string | null): Promise<WorkspaceDescriptor | null>;
+  saveWorkspace(userId: string | null, workspace: WorkspaceDescriptor): Promise<void>;
+}
+
 export interface HostAuthSession {
   authenticated: boolean;
   /** A token exists but may not be validated yet. */
@@ -156,6 +175,11 @@ export interface HostAuth {
   switchToMember(memberId: string): Promise<void>;
   /** Leave a sub-account, then reload into the owner. */
   returnToOwner(): Promise<void>;
+  /**
+   * Begin interactive sign-in for a Panel path. Desktop opens its sign-in
+   * modal; the web host leaves for the account page and comes back to the path.
+   */
+  startSignIn(returnPath: string): void;
 }
 
 export interface HostAdapter {
@@ -165,4 +189,14 @@ export interface HostAdapter {
   readonly cloud: HostCloud;
   readonly events: HostEvents;
   readonly auth: HostAuth;
+  readonly settings: HostSettings;
+  /**
+   * Who writes the entity and runtime-status stores.
+   * - `stream`: the host sends snapshots and patches over `events` and the
+   *   stores apply them (Desktop).
+   * - `local`: the host writes the stores itself from GraphQL responses and
+   *   subscriptions (web); `entity-patch`, `status-snapshot` and `status-patch`
+   *   are never emitted, and `entity-snapshot` only signals "entities reloaded".
+   */
+  readonly stateFeed: "stream" | "local";
 }

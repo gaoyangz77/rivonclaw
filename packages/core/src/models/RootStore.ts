@@ -15,6 +15,7 @@ import { PlatformAppModel } from "./PlatformApp.js";
 import { WmsAccountModel, WarehouseModel, ShopWarehouseModel } from "./Warehouse.js";
 import { InventoryGoodModel } from "./InventoryGood.js";
 import { AffiliateWorkspaceModel } from "./Affiliate.js";
+import { graphQLIngestionActions } from "./graphql-ingestion.js";
 import {
   SystemRunProfile,
   SystemSurface,
@@ -321,6 +322,7 @@ export const RootStoreModel = types
     get availableTools() {
       return self.toolCapability.availableTools;
     },
-  }));
+  }))
+  .actions(graphQLIngestionActions);
 
 export interface RootStore extends Instance<typeof RootStoreModel> {}

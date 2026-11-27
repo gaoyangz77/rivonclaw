@@ -9,6 +9,7 @@ vendor/pixel-agents/
 apps/desktop/build/office/
 node_modules/
 dist/
+dist-web/
 .turbo/
 .vscode/
 .claude/

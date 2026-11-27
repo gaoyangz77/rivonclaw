@@ -1,4 +1,5 @@
 import { fetchJson } from "./client.js";
+import { hostSupports } from "../host/index.js";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
 import type { ChannelAccountSnapshot, ChannelsStatusSnapshot } from "@rivonclaw/core";
 export type { ChannelAccountSnapshot, ChannelsStatusSnapshot };
@@ -8,6 +9,8 @@ export type { ChannelAccountSnapshot, ChannelsStatusSnapshot };
  * @param probe - If true, trigger health checks for all channels
  */
 export async function fetchChannelStatus(probe = false): Promise<ChannelsStatusSnapshot | null> {
+  // Channels run in the local gateway; a host without one has no status to report.
+  if (!hostSupports("channels")) return null;
   const data = await fetchJson<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>(
     clientPath(API["channels.status"]) + `?probe=${probe}`,
   );

@@ -1,3 +1,4 @@
+import { hostSupports } from "../../host/index.js";
 import { useEffect, useState, type CSSProperties } from "react";
 import { observer } from "mobx-react-lite";
 import { routeFirstPartyUrl } from "@rivonclaw/core";
@@ -62,6 +63,8 @@ function resolveFirstPartyObjectStorageUrl(sourceUrl: string): string | null {
 function resolveRemoteMediaUrl(sourceUrl: string, cachePolicy: "auto" | "force"): Promise<string> {
   const firstPartyUrl = resolveFirstPartyObjectStorageUrl(sourceUrl);
   if (firstPartyUrl) return Promise.resolve(firstPartyUrl);
+  // Without Desktop's media cache the browser loads the image from its own origin.
+  if (!hostSupports("mediaCache")) return Promise.resolve(sourceUrl);
 
   const key = cacheKey(sourceUrl, cachePolicy);
   const cached = resolvedUrlCache.get(key);

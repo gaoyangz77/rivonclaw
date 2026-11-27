@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { Layout } from "./layout/Layout.js";
-import { ROUTE_MAP, isRoutableOnHost } from "./routes.js";
+import { ROUTE_MAP, isRouteAvailableOnHost, isRoutableOnHost } from "./routes.js";
 import { WhatsNewModal } from "./components/modals/WhatsNewModal.js";
 import { TelemetryConsentModal } from "./components/modals/TelemetryConsentModal.js";
 import {
@@ -20,7 +20,7 @@ import {
   updateSettings,
 } from "./api/index.js";
 import type { ChangelogEntry } from "./api/index.js";
-import { getHost } from "./host/index.js";
+import { getHost, hostSupports } from "./host/index.js";
 import { entityStore } from "./store/entity-store.js";
 import { useRuntimeStatus } from "./store/RuntimeStatusProvider.js";
 import { getClient } from "./api/apollo-client.js";
@@ -143,7 +143,7 @@ export const App = observer(function App() {
       if (result === "limit") {
         showToast(t("workspace.limit"), "warning");
       } else if (result === "forbidden" && ROUTE_MAP.get(route)?.authRequired && !currentUserId) {
-        window.dispatchEvent(new CustomEvent("rivonclaw:open-auth", { detail: { path: route } }));
+        getHost().auth.startSignIn(route);
       } else if (result === "opened") {
         trackEvent("panel.page_viewed", { page: pageNameFromRoute(route) });
       }
@@ -172,7 +172,7 @@ export const App = observer(function App() {
     if (!workspaceController.ready || currentUserId || !initialProtectedPath.current) return;
     const path = initialProtectedPath.current;
     initialProtectedPath.current = null;
-    window.dispatchEvent(new CustomEvent("rivonclaw:open-auth", { detail: { path } }));
+    getHost().auth.startSignIn(path);
   }, [workspaceController.ready, currentUserId]);
 
   useEffect(() => {
@@ -246,6 +246,11 @@ export const App = observer(function App() {
       setShowWelcome(true);
       return;
     }
+    // Onboarding writes Desktop-held settings; the browser has no welcome page.
+    if (!hostSupports("desktopSettings")) {
+      setShowWelcome(false);
+      return;
+    }
     checkWelcome();
   }, []);
 
@@ -296,6 +301,7 @@ export const App = observer(function App() {
   // not the empty default (which would show "What's New" on every launch).
   useEffect(() => {
     if (showWelcome !== false) return;
+    if (!hostSupports("desktopUpdates")) return;
     if (!runtimeStatus.snapshotReceived) return;
     fetchChangelog()
       .then((data) => {
@@ -319,6 +325,7 @@ export const App = observer(function App() {
   // default before the real persisted value arrives via SSE.
   useEffect(() => {
     if (showWelcome !== false) return;
+    if (!hostSupports("desktopSettings")) return;
     if (!runtimeStatus.snapshotReceived) return;
     if (!runtimeStatus.appSettings.telemetryConsentShown) {
       setShowTelemetryConsent(true);
@@ -331,6 +338,8 @@ export const App = observer(function App() {
 
   useEffect(() => {
     if (showWelcome !== false) return;
+    // Announcements target the Desktop modal surface and a Desktop app version.
+    if (!hostSupports("desktopUpdates")) return;
     if (!runtimeStatus.snapshotReceived) return;
 
     let cancelled = false;
@@ -487,12 +496,14 @@ export const App = observer(function App() {
 
   const ChatComponent = ROUTE_MAP.get("/")!.component;
   const chatTab = workspace.tabs.find((tab) => tab.path === "/");
-  const chatAllowed = canSeeRoute(
-    ROUTE_MAP.get("/")!,
-    currentUserId
-      ? { isOwner: currentUserIsOwner, permissionScopes: currentUserScopes.split(",") }
-      : null,
-  );
+  const chatAllowed =
+    isRouteAvailableOnHost(ROUTE_MAP.get("/")!) &&
+    canSeeRoute(
+      ROUTE_MAP.get("/")!,
+      currentUserId
+        ? { isOwner: currentUserIsOwner, permissionScopes: currentUserScopes.split(",") }
+        : null,
+    );
   const tabItems = workspace.tabs.map((tab) => {
     const route = ROUTE_MAP.get(tab.path)!;
     return {

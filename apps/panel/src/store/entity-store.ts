@@ -957,6 +957,9 @@ let unsubscribePatch: (() => void) | null = null;
  */
 export function connectEntityStore(): void {
   disconnectEntityStore();
+  // A host with a local feed writes this store itself; applying a stream
+  // snapshot on top of it would replace what it loaded.
+  if (getHost().stateFeed === "local") return;
 
   unsubscribeSnapshot = getHost().events.subscribe("entity-snapshot", (data) => {
     applySnapshot(entityStore, data as Parameters<typeof applySnapshot>[1]);

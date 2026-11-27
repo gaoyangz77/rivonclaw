@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("../../../host/index.js", () => ({
   getHost: () => ({ auth: { switchToMember: mocks.switchToMember } }),
+  hostSupports: () => true,
 }));
 vi.mock("../../../components/Toast.js", () => ({
   useToast: () => ({ showToast: mocks.showToast }),

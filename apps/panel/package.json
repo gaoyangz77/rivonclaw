@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "build:web": "vite build --mode web",
     "css:check": "node ../../scripts/check-panel-css-usage.mjs && node ../../scripts/check-panel-css-graph.mjs",
     "css:prune": "node ../../scripts/check-panel-css-usage.mjs --fix",
     "dev": "vite",
@@ -25,6 +26,7 @@
     "emoji-picker-react": "^4.18.0",
     "exceljs": "^4.4.0",
     "graphql": "^16.13.1",
+    "graphql-ws": "^6.0.7",
     "i18next": "^25.8.4",
     "mobx": "^6.15.0",
     "mobx-react-lite": "^4.1.1",

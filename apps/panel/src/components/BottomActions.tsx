@@ -2,6 +2,7 @@ import { ThemeToggle } from "./ThemeToggle.js";
 import { LangToggle } from "./LangToggle.js";
 import { OpenInBrowserButton } from "./OpenInBrowserButton.js";
 import { HelpLink } from "./HelpLink.js";
+import { hostSupports } from "../host/index.js";
 
 /**
  * Unified bottom-actions bar used in both the sidebar and the onboarding page.
@@ -15,7 +16,7 @@ export function BottomActions({ collapsed = false }: { collapsed?: boolean }) {
       <ThemeToggle />
       <LangToggle />
       <HelpLink />
-      <OpenInBrowserButton />
+      {hostSupports("desktopSettings") && <OpenInBrowserButton />}
     </div>
   );
 }
