@@ -67,6 +67,7 @@ export {
   activateAuthProfile,
   syncAuthProfile,
   removeAuthProfile,
+  removeAuthProfilesForRuntimeProvider,
   syncAllAuthProfiles,
   syncBackOAuthCredentials,
   clearAllAuthProfiles,

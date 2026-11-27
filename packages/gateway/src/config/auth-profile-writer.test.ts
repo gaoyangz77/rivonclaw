@@ -9,6 +9,7 @@ import {
   activateAuthProfile,
   syncAuthProfile,
   removeAuthProfile,
+  removeAuthProfilesForRuntimeProvider,
   syncAllAuthProfiles,
   clearAllAuthProfiles,
 } from "./auth-profile-writer.js";
@@ -224,6 +225,32 @@ describe("removeAuthProfile", () => {
     // OpenAI should still be there
     expect(profiles["openai:active"]).toBeDefined();
     expect(order["openai"]).toEqual(["openai:active"]);
+  });
+
+  it("removes every profile of one runtime provider, whatever its id, and leaves others", () => {
+    syncAuthProfile(stateDir, "openai", "sk-openai-key");
+    syncAuthProfile(stateDir, "qwen", "sk-qwen-key");
+    const filePath = resolveAuthProfilePath(stateDir);
+    const store = readJsonFile(filePath) as {
+      profiles: Record<string, unknown>;
+      order: Record<string, string[]>;
+    };
+    store.profiles["qwen:me@example.com"] = { type: "oauth", provider: "qwen" };
+    store.order["qwen"] = ["qwen:active", "qwen:me@example.com"];
+    writeFileSync(filePath, JSON.stringify(store));
+
+    removeAuthProfilesForRuntimeProvider(stateDir, "qwen");
+
+    const after = readJsonFile(filePath) as typeof store;
+    expect(after.profiles["qwen:active"]).toBeUndefined();
+    expect(after.profiles["qwen:me@example.com"]).toBeUndefined();
+    expect(after.order["qwen"]).toBeUndefined();
+    expect(after.profiles["openai:active"]).toBeDefined();
+    expect(after.order["openai"]).toEqual(["openai:active"]);
+
+    // Idempotent: nothing left to remove, nothing rewritten.
+    removeAuthProfilesForRuntimeProvider(stateDir, "qwen");
+    expect(readJsonFile(filePath)).toEqual(after);
   });
 
   it("handles removing from empty store", () => {

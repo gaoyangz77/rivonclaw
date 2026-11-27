@@ -8,6 +8,7 @@ import {
   buildGatewayEnv,
   readExistingConfig,
   syncAllAuthProfiles,
+  removeAuthProfilesForRuntimeProvider,
   activateAuthProfile,
   syncBackOAuthCredentials,
 } from "@rivonclaw/gateway";
@@ -61,7 +62,7 @@ import { setCsTelemetryClient } from "../telemetry/cs-telemetry-ref.js";
 import { redactUserPaths, sanitizeTelemetryErrorText } from "../telemetry/telemetry-sanitize.js";
 import { allKeysToMstSnapshots, toMstSnapshot } from "../providers/provider-key-utils.js";
 import {
-  projectProviderMetadataFromVendor,
+  projectCloudOnlyProviderMetadata,
   writeVendorProviderDefinition,
 } from "../providers/vendor-provider-runtime.js";
 import { syncActiveKey } from "../providers/provider-secret-sync.js";
@@ -655,7 +656,7 @@ app.whenReady().then(async () => {
   }
 
   storage.providerKeys.setRuntimeProjector((entries) =>
-    projectProviderMetadataFromVendor({
+    projectCloudOnlyProviderMetadata({
       entries,
       configPath,
       stateDir,
@@ -1690,6 +1691,7 @@ app.whenReady().then(async () => {
     allKeysToMstSnapshots,
     syncActiveKey,
     syncAllAuthProfiles,
+    removeAuthProfilesForRuntimeProvider,
     activateAuthProfile,
     writeProxyRouterConfig,
     writeDefaultModelToConfig: (gwProvider: string, modelId: string, productProvider: string) => {

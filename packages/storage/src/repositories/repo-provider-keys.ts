@@ -50,6 +50,15 @@ export class ProviderKeysRepository {
     this.runtimeProjector = projector;
   }
 
+  /**
+   * Every stored row, bypassing the runtime projector. The projector decides
+   * which rows are live; this is for the startup reconciliation that has to
+   * see rows the product keeps but no longer uses.
+   */
+  getAllUnprojected(): ProviderKeyEntry[] {
+    return this.getAllMetadata();
+  }
+
   private getAllMetadata(): ProviderKeyEntry[] {
     const rows = this.db
       .prepare("SELECT * FROM provider_metadata ORDER BY product_provider ASC, created_at ASC")

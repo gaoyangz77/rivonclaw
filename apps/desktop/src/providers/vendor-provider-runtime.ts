@@ -5,6 +5,7 @@ import {
 } from "@rivonclaw/gateway";
 import { resolveGatewayProvider, type LLMProvider, type ProviderKeyEntry } from "@rivonclaw/core";
 import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
+import { CLOUD_PROVIDER_ID } from "./llm-provider-manager.js";
 import {
   buildCustomProviderOverridesFromKeys,
   buildDesktopOnlyProviderSeeds,
@@ -79,6 +80,30 @@ function selectActiveMetadataEntry(
   // deterministic tie-breaker; the selected model and auth order above remain
   // the runtime authority.
   return candidates.find((entry) => entry.isDefault) ?? candidates[0];
+}
+
+/**
+ * The runtime projector Desktop installs on the provider key repository, and
+ * the single place that makes seller-owned provider keys inert.
+ *
+ * Product decision (ADR-123): a seller's own provider keys (API keys, local
+ * models, custom endpoints, OAuth subscriptions) are KEPT in storage and the
+ * keychain but never used. Every reader (`getAll`, `getById`, `getByProvider`,
+ * `getActive`) goes through this projection, so by returning only the cloud
+ * provider here, nothing can write them into the OpenClaw auth profiles or model
+ * config, mark them active or default, or dispatch a run with them. Do not
+ * "clean up" the hidden rows or their secrets (`provider-key-*`, `proxy-auth-*`,
+ * `oauth-cred-*`); `getAllUnprojected()` is the only way to see them.
+ */
+export function projectCloudOnlyProviderMetadata(params: {
+  entries: ProviderKeyEntry[];
+  configPath: string;
+  stateDir: string;
+}): ProviderKeyEntry[] {
+  return projectProviderMetadataFromVendor({
+    ...params,
+    entries: params.entries.filter((entry) => entry.provider === CLOUD_PROVIDER_ID),
+  });
 }
 
 /**
