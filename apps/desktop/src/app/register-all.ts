@@ -1,4 +1,3 @@
-import { registerMessagingHandlers } from "../messaging/api.js";
 import type { RouteRegistry } from "../infra/api/route-registry.js";
 import { registerAuthHandlers } from "../auth/api.js";
 import { registerSettingsHandlers } from "../settings/api.js";
@@ -16,7 +15,6 @@ import { registerMediaCacheHandlers } from "../media-cache/api.js";
 
 export function registerAllHandlers(registry: RouteRegistry): void {
   registerAuthHandlers(registry);
-  registerMessagingHandlers(registry);
   registerSettingsHandlers(registry);
   registerChannelsHandlers(registry);
   registerCsBridgeHandlers(registry);

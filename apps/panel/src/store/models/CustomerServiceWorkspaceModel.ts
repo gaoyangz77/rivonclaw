@@ -4,6 +4,7 @@ import { GQL } from "@rivonclaw/core";
 import { API, CLOUD_REST, clientPath } from "@rivonclaw/core/api-contract";
 import { fetchJson, fetchVoid } from "../../api/client.js";
 import { graphQLErrorCode } from "../../lib/graphql-error-code.js";
+import { csSummaryErrorCode } from "../../lib/cs-one-shot-error.js";
 import {
   CS_DISMISS_CONVERSATION_ESCALATIONS_MUTATION,
   CS_DISMISS_ESCALATION_MUTATION,
@@ -25,6 +26,8 @@ import {
   CS_SET_CONVERSATION_AI_ENABLED_MUTATION,
   CS_START_CONVERSATION_FROM_ORDER_MUTATION,
   CS_TRANSLATE_MESSAGES_MUTATION,
+  CS_CONVERSATION_SUMMARY_QUERY,
+  CS_GENERATE_CONVERSATION_SUMMARY_MUTATION,
 } from "../../api/shops-queries.js";
 import type { PanelStoreEnv } from "../types.js";
 
@@ -406,7 +409,7 @@ export const CustomerServiceWorkspaceModel = types
     conversationSummary: types.maybeNull(types.frozen<Record<string, any>>()),
     conversationSummaryLoading: types.optional(types.boolean, false),
     conversationSummaryGenerating: types.optional(types.boolean, false),
-    conversationSummaryError: types.maybeNull(types.string),
+    conversationSummaryErrorCode: types.maybeNull(types.string),
     conversationOrderContexts: types.optional(types.map(types.frozen<Record<string, any>>()), {}),
     conversationOrderIds: types.optional(types.map(types.frozen<string[]>()), {}),
     conversationOrderIdsLoadingKeys: types.optional(types.array(types.string), []),
@@ -704,7 +707,7 @@ export const CustomerServiceWorkspaceModel = types
       self.manualReplyDraft = "";
       clearMessageTranslations();
       self.conversationSummary = null;
-      self.conversationSummaryError = null;
+      self.conversationSummaryErrorCode = null;
       self.conversationSummaryLoading = false;
       self.conversationSummaryGenerating = false;
     }
@@ -1359,21 +1362,23 @@ export const CustomerServiceWorkspaceModel = types
         const shopId = selected.shopId;
         const conversationId = selected.conversationId;
         self.conversationSummaryLoading = true;
-        self.conversationSummaryError = null;
+        self.conversationSummaryErrorCode = null;
         try {
-          const query = new URLSearchParams({ shopId, conversationId }).toString();
-          const result = yield fetchJson<{ summary?: Record<string, any> | null }>(
-            `${clientPath(API["csBridge.conversationSummary.get"])}?${query}`,
-          );
+          const result = yield client().query({
+            query: CS_CONVERSATION_SUMMARY_QUERY,
+            variables: { shopId, conversationId },
+            fetchPolicy: "network-only",
+          });
+          const summary = (result.data?.csConversationSummary ?? null) as Record<string, any> | null;
           if (
             self.selectedConversationId === conversationId &&
             self.selectedConversationShopId === shopId
           ) {
-            self.conversationSummary = result.summary ?? null;
+            self.conversationSummary = summary;
           }
-          return result.summary ?? null;
+          return summary;
         } catch (err) {
-          self.conversationSummaryError = errorMessage(err);
+          self.conversationSummaryErrorCode = csSummaryErrorCode(err);
           return null;
         } finally {
           self.conversationSummaryLoading = false;
@@ -1386,24 +1391,25 @@ export const CustomerServiceWorkspaceModel = types
         const shopId = selected.shopId;
         const conversationId = selected.conversationId;
         self.conversationSummaryGenerating = true;
-        self.conversationSummaryError = null;
+        self.conversationSummaryErrorCode = null;
         try {
-          const result = yield fetchJson<{ summary?: Record<string, any> | null }>(
-            clientPath(API["csBridge.conversationSummary.create"]),
-            {
-              method: "POST",
-              body: JSON.stringify({ shopId, conversationId, locale }),
-            },
-          );
+          const result = yield client().mutate({
+            mutation: CS_GENERATE_CONVERSATION_SUMMARY_MUTATION,
+            variables: { shopId, conversationId, locale },
+          });
+          const summary = (result.data?.csGenerateConversationSummary ?? null) as Record<
+            string,
+            any
+          > | null;
           if (
             self.selectedConversationId === conversationId &&
             self.selectedConversationShopId === shopId
           ) {
-            self.conversationSummary = result.summary ?? null;
+            self.conversationSummary = summary;
           }
-          return result.summary ?? null;
+          return summary;
         } catch (err) {
-          self.conversationSummaryError = errorMessage(err);
+          self.conversationSummaryErrorCode = csSummaryErrorCode(err);
           throw err;
         } finally {
           self.conversationSummaryGenerating = false;

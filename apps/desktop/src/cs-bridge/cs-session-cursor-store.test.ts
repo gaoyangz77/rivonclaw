@@ -33,10 +33,8 @@ const {
   advanceOpenClawSessionCursor,
   compareMessageCursor,
   flushCsSessionCursorStore,
-  readConversationSummary,
   readOpenClawSessionCursor,
   resetCsSessionCursorStoreForTests,
-  writeConversationSummary,
 } = await import("./cs-session-cursor-store.js");
 const { promises: fsPromises } = await import("node:fs");
 
@@ -116,33 +114,21 @@ describe("cs-session-cursor-store", () => {
     expect(serialized).toContain("shop-1:conv-2");
   });
 
-  it("stores summaries and prunes records older than 3 years", async () => {
+  it("prunes cursors older than 3 years", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-05-21T00:00:00.000Z"));
     try {
-      await writeConversationSummary({
+      await advanceOpenClawSessionCursor({
         shopId: "shop-1",
         conversationId: "conv-1",
         cursor: { messageId: "m-10", messageIndex: "10", createTime: 100 },
-        summary: "Buyer asked about shipping. Staff promised an update.",
-        messageCount: 10,
-        sessionKey: "agent:main:cs-summary:conv-1",
-        runId: "run-summary",
       });
-
       expect(
-        await readConversationSummary({ shopId: "shop-1", conversationId: "conv-1" }),
-      ).toMatchObject({
-        summary: "Buyer asked about shipping. Staff promised an update.",
-        messageIndex: "10",
-        messageCount: 10,
-      });
+        await readOpenClawSessionCursor({ shopId: "shop-1", conversationId: "conv-1" }),
+      ).toMatchObject({ messageIndex: "10" });
 
       vi.setSystemTime(new Date("2029-05-22T00:00:00.000Z"));
 
-      expect(
-        await readConversationSummary({ shopId: "shop-1", conversationId: "conv-1" }),
-      ).toBeUndefined();
       expect(
         await readOpenClawSessionCursor({ shopId: "shop-1", conversationId: "conv-1" }),
       ).toBeUndefined();

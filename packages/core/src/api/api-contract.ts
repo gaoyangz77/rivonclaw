@@ -45,32 +45,11 @@ export interface WorkspaceDescriptor {
 
 export const MAX_WORKSPACE_TABS = 8;
 
-/** Desktop-local translation preparation; contains no business API entities. */
-export type MessageLanguageSource = "messages" | "site";
-export interface MessageLanguageDecision {
-  language: string;
-  source: MessageLanguageSource;
-}
-export interface MessageTranslationRequest {
-  text: string;
-  target?: MessageLanguageDecision;
-  samples?: string[];
-  fallbackLanguage: string;
-}
-export interface MessageTranslationResult extends MessageLanguageDecision {
-  text: string;
-}
-
 // ---------------------------------------------------------------------------
 // Contract
 // ---------------------------------------------------------------------------
 
 export const API = {
-  "messaging.translate": {
-    method: "POST",
-    path: "/api/messaging/translate",
-    desc: "Prepare a human reply translation without sending",
-  },
   // ── Auth ──
   "auth.session": {
     method: "GET",
@@ -489,16 +468,6 @@ export const API = {
     method: "POST",
     path: "/api/cs-bridge/start-conversation",
     desc: "Manually start CS for a conversation",
-  },
-  "csBridge.conversationSummary.get": {
-    method: "GET",
-    path: "/api/cs-bridge/conversation-summary",
-    desc: "Read local CS conversation summary",
-  },
-  "csBridge.conversationSummary.create": {
-    method: "POST",
-    path: "/api/cs-bridge/conversation-summary",
-    desc: "Generate local CS conversation summary",
   },
 
   // ── Dependencies ──

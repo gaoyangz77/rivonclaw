@@ -1,7 +1,8 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
-import { translationIdentity } from "../lib/message-translation.js";
-import type { MessageTranslationResult } from "@rivonclaw/core/api-contract";
+import { replyTranslationErrorKey } from "../lib/cs-one-shot-error.js";
+import { translationIdentity, type MessageTranslationResult } from "../lib/message-translation.js";
 
 export interface TranslationSendOutcome {
   complete: boolean;
@@ -43,6 +44,7 @@ export function useMessageTranslation(options: {
   onAutoSendError?: (message: string) => void;
 }) {
   const store = useEntityStore();
+  const { t } = useTranslation();
   const identity = translationIdentity(store.currentUser);
   const key = JSON.stringify([identity, options.routeKey, options.contextKey]);
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -134,7 +136,7 @@ export function useMessageTranslation(options: {
       if (activeKey.current !== key || request.current !== revision) return;
       if (autoSend) {
         setAutoPending(false);
-        latest.current.onAutoSendError?.(error instanceof Error ? error.message : String(error));
+        latest.current.onAutoSendError?.(t(replyTranslationErrorKey(error)));
         return;
       }
       setPreview(
@@ -142,7 +144,7 @@ export function useMessageTranslation(options: {
           current && {
             ...current,
             loading: false,
-            error: error instanceof Error ? error.message : String(error),
+            error: t(replyTranslationErrorKey(error)),
           },
       );
     } finally {

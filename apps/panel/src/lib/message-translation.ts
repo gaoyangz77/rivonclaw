@@ -1,5 +1,13 @@
 import { GQL } from "@rivonclaw/core";
 
+/** Where a reply translation's target language came from (backend `CsReplyTranslationLanguageSource`, lower-cased). */
+export type MessageLanguageSource = "messages" | "site";
+export interface MessageTranslationResult {
+  language: string;
+  source: MessageLanguageSource;
+  text: string;
+}
+
 /** Site defaults, aligned with backend CsDeterministicMessages. No UI locale inference. */
 export const SITE_LANGUAGES: Record<GQL.ShopRegion, string> = {
   US: "en",

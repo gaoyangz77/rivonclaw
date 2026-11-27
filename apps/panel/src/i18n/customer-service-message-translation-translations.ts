@@ -9,6 +9,9 @@ export const CUSTOMER_SERVICE_MESSAGE_TRANSLATION_TRANSLATIONS = {
         messageTranslationSubscriptionRequired: "Message translation needs a cloud AI subscription.",
         messageTranslationQuotaExhausted: "The AI usage allowance is used up, so messages cannot be translated right now.",
         messageTranslationFailed: "Could not translate the messages.",
+        summarySubscriptionRequired: "Conversation summaries need a cloud AI subscription.",
+        summaryQuotaExhausted: "The AI usage allowance is used up, so the conversation cannot be summarized right now.",
+        summaryNoMessages: "This conversation has no messages to summarize yet.",
       },
       messageAutoTranslation: {
         title: "Message translation",
@@ -31,6 +34,9 @@ export const CUSTOMER_SERVICE_MESSAGE_TRANSLATION_TRANSLATIONS = {
         messageTranslationSubscriptionRequired: "消息翻译需要云端 AI 订阅。",
         messageTranslationQuotaExhausted: "AI 用量额度已用完，暂时无法翻译消息。",
         messageTranslationFailed: "消息翻译失败。",
+        summarySubscriptionRequired: "会话总结需要云端 AI 订阅。",
+        summaryQuotaExhausted: "AI 用量额度已用完，暂时无法生成会话总结。",
+        summaryNoMessages: "该会话暂无可总结的消息。",
       },
       messageAutoTranslation: {
         title: "消息翻译",
@@ -53,6 +59,9 @@ export const CUSTOMER_SERVICE_MESSAGE_TRANSLATION_TRANSLATIONS = {
         messageTranslationSubscriptionRequired: "Die Nachrichtenübersetzung erfordert ein Cloud-KI-Abonnement.",
         messageTranslationQuotaExhausted: "Das KI-Nutzungskontingent ist aufgebraucht, Nachrichten können derzeit nicht übersetzt werden.",
         messageTranslationFailed: "Die Nachrichten konnten nicht übersetzt werden.",
+        summarySubscriptionRequired: "Gesprächszusammenfassungen erfordern ein Cloud-KI-Abonnement.",
+        summaryQuotaExhausted: "Das KI-Nutzungskontingent ist aufgebraucht, daher kann das Gespräch derzeit nicht zusammengefasst werden.",
+        summaryNoMessages: "Dieses Gespräch enthält noch keine Nachrichten zum Zusammenfassen.",
       },
       messageAutoTranslation: {
         title: "Nachrichtenübersetzung",
@@ -75,6 +84,9 @@ export const CUSTOMER_SERVICE_MESSAGE_TRANSLATION_TRANSLATIONS = {
         messageTranslationSubscriptionRequired: "La traducción de mensajes requiere una suscripción de IA en la nube.",
         messageTranslationQuotaExhausted: "Se ha agotado la cuota de uso de IA, por lo que ahora no se pueden traducir los mensajes.",
         messageTranslationFailed: "No se pudieron traducir los mensajes.",
+        summarySubscriptionRequired: "Los resúmenes de conversaciones requieren una suscripción de IA en la nube.",
+        summaryQuotaExhausted: "Se agotó la cuota de uso de IA, por lo que no se puede resumir la conversación ahora.",
+        summaryNoMessages: "Esta conversación aún no tiene mensajes que resumir.",
       },
       messageAutoTranslation: {
         title: "Traducción de mensajes",
@@ -97,6 +109,9 @@ export const CUSTOMER_SERVICE_MESSAGE_TRANSLATION_TRANSLATIONS = {
         messageTranslationSubscriptionRequired: "La traduction des messages nécessite un abonnement IA cloud.",
         messageTranslationQuotaExhausted: "Le quota d’utilisation de l’IA est épuisé : les messages ne peuvent pas être traduits pour le moment.",
         messageTranslationFailed: "Impossible de traduire les messages.",
+        summarySubscriptionRequired: "Les résumés de conversation nécessitent un abonnement IA cloud.",
+        summaryQuotaExhausted: "Le quota d’utilisation de l’IA est épuisé : la conversation ne peut pas être résumée pour le moment.",
+        summaryNoMessages: "Cette conversation ne contient pas encore de message à résumer.",
       },
       messageAutoTranslation: {
         title: "Traduction des messages",
@@ -119,6 +134,9 @@ export const CUSTOMER_SERVICE_MESSAGE_TRANSLATION_TRANSLATIONS = {
         messageTranslationSubscriptionRequired: "Terjemahan pesan memerlukan langganan AI cloud.",
         messageTranslationQuotaExhausted: "Kuota penggunaan AI sudah habis, sehingga pesan tidak dapat diterjemahkan saat ini.",
         messageTranslationFailed: "Pesan tidak dapat diterjemahkan.",
+        summarySubscriptionRequired: "Ringkasan percakapan memerlukan langganan AI cloud.",
+        summaryQuotaExhausted: "Kuota penggunaan AI sudah habis, sehingga percakapan belum dapat diringkas saat ini.",
+        summaryNoMessages: "Percakapan ini belum memiliki pesan untuk diringkas.",
       },
       messageAutoTranslation: {
         title: "Terjemahan pesan",
@@ -141,6 +159,9 @@ export const CUSTOMER_SERVICE_MESSAGE_TRANSLATION_TRANSLATIONS = {
         messageTranslationSubscriptionRequired: "La traduzione dei messaggi richiede un abbonamento AI cloud.",
         messageTranslationQuotaExhausted: "La quota di utilizzo dell’AI è esaurita, quindi al momento non è possibile tradurre i messaggi.",
         messageTranslationFailed: "Impossibile tradurre i messaggi.",
+        summarySubscriptionRequired: "I riepiloghi delle conversazioni richiedono un abbonamento IA cloud.",
+        summaryQuotaExhausted: "La quota di utilizzo dell’IA è esaurita, quindi la conversazione non può essere riassunta ora.",
+        summaryNoMessages: "Questa conversazione non ha ancora messaggi da riassumere.",
       },
       messageAutoTranslation: {
         title: "Traduzione dei messaggi",
@@ -163,6 +184,9 @@ export const CUSTOMER_SERVICE_MESSAGE_TRANSLATION_TRANSLATIONS = {
         messageTranslationSubscriptionRequired: "การแปลข้อความต้องมีการสมัครสมาชิก AI บนคลาวด์",
         messageTranslationQuotaExhausted: "โควตาการใช้งาน AI หมดแล้ว จึงยังแปลข้อความไม่ได้ในขณะนี้",
         messageTranslationFailed: "ไม่สามารถแปลข้อความได้",
+        summarySubscriptionRequired: "การสรุปบทสนทนาต้องใช้การสมัครสมาชิก AI บนคลาวด์",
+        summaryQuotaExhausted: "โควตาการใช้งาน AI หมดแล้ว จึงยังสรุปบทสนทนาไม่ได้ในขณะนี้",
+        summaryNoMessages: "บทสนทนานี้ยังไม่มีข้อความให้สรุป",
       },
       messageAutoTranslation: {
         title: "การแปลข้อความ",

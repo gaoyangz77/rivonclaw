@@ -31,6 +31,7 @@ import {
   type ShopDisplayLabel,
 } from "../../lib/shop-display.js";
 import { shopFollowsUpManually } from "../../lib/bad-review.js";
+import { csSummaryErrorKey } from "../../lib/cs-one-shot-error.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { badReviewStatusLabel } from "./bad-review-labels.js";
 import { MarkdownMessage } from "../../components/markdown/MarkdownMessage.js";
@@ -469,10 +470,7 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
       await workspace.generateConversationSummary(i18n.language);
       showToast(t("ecommerce.customerServiceWorkspace.summaryCreated"), "success");
     } catch (err) {
-      showToast(
-        err instanceof Error ? err.message : t("ecommerce.customerServiceWorkspace.summaryFailed"),
-        "error",
-      );
+      showToast(t(csSummaryErrorKey(workspace.conversationSummaryErrorCode)), "error");
     }
   }
 
@@ -1357,8 +1355,10 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
                   {workspace.conversationMessagesError && (
                     <div className="form-error">{workspace.conversationMessagesError}</div>
                   )}
-                  {workspace.conversationSummaryError && (
-                    <div className="form-error">{workspace.conversationSummaryError}</div>
+                  {workspace.conversationSummaryErrorCode && (
+                    <div className="form-error">
+                      {t(csSummaryErrorKey(workspace.conversationSummaryErrorCode))}
+                    </div>
                   )}
                   {translationActive && workspace.messageTranslationErrorCode && (
                     <div className="form-error">
