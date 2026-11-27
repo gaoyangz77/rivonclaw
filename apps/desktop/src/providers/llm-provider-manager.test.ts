@@ -191,29 +191,77 @@ describe("LLMProviderManager (cloud default model only)", () => {
     expect(secretMap.get("provider-key-cloud-rivonclaw-pro")).toBe("cloud-key");
   });
 
-  it("resets only user-pinned session models, once", async () => {
+  it("resets user-pinned session models across every page, archived and every agent, once", async () => {
     const h = harness([cloudEntry("m")], "rivonclaw-pro/rivonclaw-flagship");
-    h.rpcRequest.mockImplementation(async (method: string) =>
-      method === "sessions.list"
-        ? {
-            sessions: [
-              { key: "a", modelOverrideSource: "user" },
-              { key: "b" },
-              { key: "c", modelOverrideSource: "auto" },
-            ],
-          }
-        : true,
+    const pages = [
+      {
+        sessions: [{ key: "agent:main:a", modelOverrideSource: "user" }, { key: "agent:main:b" }],
+        hasMore: true,
+        nextOffset: 2,
+      },
+      {
+        sessions: [
+          { key: "agent:customer-service:cs:c", modelOverrideSource: "user" },
+          { key: "agent:affiliate:d", modelOverrideSource: "auto" },
+        ],
+        hasMore: true,
+        nextOffset: 4,
+      },
+      { sessions: [{ key: "agent:main:archived-e", modelOverrideSource: "user" }], hasMore: false },
+    ];
+    h.rpcRequest.mockImplementation(async (method: string, params: { offset?: number }) =>
+      method === "sessions.list" ? pages[(params.offset ?? 0) / 2] : true,
     );
 
     await rootStore.llmManager.resetStaleSessionModelOverrides();
-    expect(h.rpcRequest).toHaveBeenCalledWith("sessions.patch", { key: "a", model: null });
-    expect(h.rpcRequest).not.toHaveBeenCalledWith(
-      "sessions.patch",
-      expect.objectContaining({ key: "b" }),
-    );
+
+    const listCalls = h.rpcRequest.mock.calls.filter(([method]) => method === "sessions.list");
+    expect(listCalls.map(([, params]) => params.offset)).toEqual([0, 2, 4]);
+    expect(
+      listCalls.every(([, params]) => params.archived === "all" && !("agentId" in params)),
+    ).toBe(true);
+    const patched = h.rpcRequest.mock.calls
+      .filter(([method]) => method === "sessions.patch")
+      .map(([, params]) => params);
+    expect(patched).toEqual([
+      { key: "agent:main:a", model: null },
+      { key: "agent:customer-service:cs:c", model: null },
+      { key: "agent:main:archived-e", model: null },
+    ]);
 
     h.rpcRequest.mockClear();
     await rootStore.llmManager.resetStaleSessionModelOverrides();
     expect(h.rpcRequest).not.toHaveBeenCalled();
+  });
+
+  it("does not mark the reset done when a later page fails, and retries from the start", async () => {
+    const h = harness([cloudEntry("m")], "rivonclaw-pro/rivonclaw-flagship");
+    let failSecondPage = true;
+    h.rpcRequest.mockImplementation(async (method: string, params: { offset?: number }) => {
+      if (method !== "sessions.list") return true;
+      if (!params.offset) {
+        return {
+          sessions: [{ key: "agent:main:a", modelOverrideSource: "user" }],
+          hasMore: true,
+          nextOffset: 1,
+        };
+      }
+      if (failSecondPage) throw new Error("gateway restarting");
+      return { sessions: [], hasMore: false };
+    });
+
+    await expect(rootStore.llmManager.resetStaleSessionModelOverrides()).rejects.toThrow(
+      "gateway restarting",
+    );
+    expect(h.settings.size).toBe(0);
+    expect(h.rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
+
+    failSecondPage = false;
+    await rootStore.llmManager.resetStaleSessionModelOverrides();
+    expect(h.rpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "agent:main:a",
+      model: null,
+    });
+    expect(h.settings.get("_internal.session-model-overrides-reset-done")).toBe("true");
   });
 });

@@ -97,6 +97,15 @@ interface GatewaySessionListRow {
   modelOverrideSource?: unknown;
 }
 
+interface GatewaySessionListPage {
+  sessions?: GatewaySessionListRow[];
+  hasMore?: boolean;
+  nextOffset?: number | null;
+}
+
+/** Rows per `sessions.list` page; the gateway's own default is 100. */
+const SESSION_LIST_PAGE_SIZE = 200;
+
 function selectCloudDefaultModel(cloudModels: CloudModel[]): string {
   return (
     cloudModels.find((model) => model.id === CLOUD_DEFAULT_MODEL_ID)?.id ?? cloudModels[0]?.id ?? ""
@@ -352,18 +361,37 @@ export const LLMProviderManagerModel = types
         const rpc = getRpcClient();
         if (!rpc) throw new Error("RPC client not available");
 
-        const result: { sessions?: GatewaySessionListRow[] } = yield rpc.request(
-          "sessions.list",
-          {},
-        );
-        const overridden = (result?.sessions ?? []).filter(
-          (row) => row.modelOverrideSource === "user" && typeof row.key === "string",
-        );
-        for (const row of overridden) {
-          yield rpc.request("sessions.patch", { key: row.key, model: null });
+        // Collect every key first, patch afterwards: patching bumps a session's
+        // updatedAt, which would reorder the list under an offset cursor.
+        // `archived: "all"` includes archived sessions; leaving out `agentId`
+        // covers every agent (main, customer service, affiliate, utility).
+        const overriddenKeys: string[] = [];
+        let offset = 0;
+        for (;;) {
+          const page: GatewaySessionListPage = yield rpc.request("sessions.list", {
+            archived: "all",
+            limit: SESSION_LIST_PAGE_SIZE,
+            offset,
+          });
+          const rows = page?.sessions ?? [];
+          for (const row of rows) {
+            if (row.modelOverrideSource === "user" && typeof row.key === "string") {
+              overriddenKeys.push(row.key);
+            }
+          }
+          if (!page?.hasMore) break;
+          if (rows.length === 0) {
+            throw new Error("sessions.list reported more sessions but returned an empty page");
+          }
+          offset = typeof page.nextOffset === "number" ? page.nextOffset : offset + rows.length;
+        }
+        for (const key of overriddenKeys) {
+          yield rpc.request("sessions.patch", { key, model: null });
         }
         storage.settings.set(SESSION_MODEL_RESET_DONE_SETTING, "true");
-        log.info(`Reset ${overridden.length} per-session model override(s) to the default model`);
+        log.info(
+          `Reset ${overriddenKeys.length} per-session model override(s) to the default model`,
+        );
       }),
 
       /**
