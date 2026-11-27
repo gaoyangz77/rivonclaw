@@ -215,11 +215,18 @@ describe("customer service translation preview", () => {
     expect(state.sendImage).toHaveBeenCalledTimes(2);
   });
   it("keeps original on generation errors and never sends it automatically", async () => {
-    state.translate.mockRejectedValue(new Error("Model unavailable"));
+    state.translate.mockRejectedValue(
+      Object.assign(new Error("raw backend text"), {
+        errors: [{ extensions: { code: "CS_ONE_SHOT_QUOTA_EXHAUSTED" } }],
+      }),
+    );
     state.workspace.setManualReplyDraft("你好");
     render(view());
     translate();
-    await waitFor(() => expect(screen.getByText("Model unavailable")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByText("AI 用量额度已用完，暂时无法翻译消息。")).toBeTruthy(),
+    );
+    expect(screen.queryByText("raw backend text")).toBeNull();
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(state.workspace.manualReplyDraft).toBe("你好");
     expect(state.mutate).not.toHaveBeenCalled();

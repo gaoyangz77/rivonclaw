@@ -54,7 +54,7 @@ describe("conversation summary (backend, ADR-123)", () => {
       fetchPolicy: "network-only",
     });
     expect(workspace.conversationSummary).toEqual(summary);
-    expect(workspace.conversationSummaryError).toBeNull();
+    expect(workspace.conversationSummaryErrorCode).toBeNull();
   });
 
   it("treats a conversation without a stored summary as having none", async () => {
@@ -77,11 +77,13 @@ describe("conversation summary (backend, ADR-123)", () => {
 
   it("surfaces a generation failure and keeps the previous summary", async () => {
     const mutate = vi.fn(async () => {
-      throw new Error("The AI quota is used up, so this feature is unavailable now.");
+      throw Object.assign(new Error("raw backend text"), {
+        errors: [{ extensions: { code: "CS_ONE_SHOT_QUOTA_EXHAUSTED" } }],
+      });
     });
     const workspace = fixture({ mutate });
-    await expect(workspace.generateConversationSummary("en")).rejects.toThrow("quota");
-    expect(workspace.conversationSummaryError).toContain("quota");
+    await expect(workspace.generateConversationSummary("en")).rejects.toThrow();
+    expect(workspace.conversationSummaryErrorCode).toBe("CS_ONE_SHOT_QUOTA_EXHAUSTED");
     expect(workspace.conversationSummary).toBeNull();
     expect(workspace.conversationSummaryGenerating).toBe(false);
   });
