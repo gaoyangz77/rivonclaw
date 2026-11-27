@@ -39,8 +39,6 @@ export const CustomerServiceConfigModel = types
     ),
     businessPrompt: types.optional(types.maybeNull(types.string), null),
     csDeviceId: types.maybeNull(types.string),
-    csProviderOverride: types.maybeNull(types.string),
-    csModelOverride: types.maybeNull(types.string),
     escalationChannelId: types.maybeNull(types.string),
     escalationRecipientId: types.maybeNull(types.string),
     runProfileId: types.maybeNull(types.string),

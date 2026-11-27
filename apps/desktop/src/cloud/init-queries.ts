@@ -186,8 +186,6 @@ export const INIT_SHOPS_QUERY = `
           businessPrompt
           runProfileId
           csDeviceId
-          csProviderOverride
-          csModelOverride
           escalationChannelId
           escalationRecipientId
           platformSystemPrompt

@@ -128,9 +128,6 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
     onRecipientSeen: ({ channelId, accountId, recipientId }) => {
       return rootStore.channelManager.recordRecipientSeen({ channelId, accountId, recipientId });
     },
-    onSessionActivity: (sessionKey) => {
-      rootStore.llmManager.trackSessionActivity(sessionKey);
-    },
   });
   const handleGatewayEvent: GatewayEventHandler = (evt) => {
     // CS bridge still needs the raw gateway stream for per-turn forwarding.

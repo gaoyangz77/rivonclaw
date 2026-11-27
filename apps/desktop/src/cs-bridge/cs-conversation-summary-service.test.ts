@@ -112,9 +112,6 @@ describe("generateConversationSummary", () => {
     expect(agentParams).not.toHaveProperty("runProfileId");
     expect(agentParams).not.toHaveProperty("tools");
     expect(agentParams).not.toHaveProperty("allowEmptyAssistantReplyAsSilent");
-    expect(summaryState.resolveModelForDispatch).toHaveBeenCalledWith(
-      expect.stringMatching(/^agent:customer-service:cs-summary:shop-1:conv-1:/),
-      { type: "cs_session", shopId: "shop-1" },
-    );
+    expect(summaryState.resolveModelForDispatch).toHaveBeenCalledWith();
   });
 });

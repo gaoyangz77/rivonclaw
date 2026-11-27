@@ -207,14 +207,6 @@ export const TUTORIAL_NEW_KEYS_EN = {
       connectFlowBody:
         "Choose the platform app, market, and seller type before authorization. The matching app determines which OAuth flow is opened.",
     },
-    providers: {
-      setupFlowTitle: "Provider-specific setup",
-      setupFlowBody:
-        "The form changes by provider type: subscription sign-in, API key, local endpoint, or a custom compatible API. Complete the fields shown for the selected tab.",
-      currentActionsTitle: "Configured model actions",
-      currentActionsBody:
-        "Activate a key from its header. Depending on provider type, the footer can show usage, reauthentication, model refresh, credential update, proxy settings, or removal.",
-    },
     adsManagement: {
       accountFiltersTitle: "Search and account status",
       accountFiltersBody:
@@ -297,11 +289,6 @@ export const TUTORIAL_CATCHUP_EN = {
         "Manage connected seller shops, shop services, authorization, and warehouse integrations from one workspace.",
       drawerBody:
         "The shop workspace contains overview and service controls, AI customer service configuration, device binding, and warehouse mapping. Affiliate sections are outside this walkthrough.",
-    },
-    providers: {
-      ...TUTORIAL_NEW_KEYS_EN.tutorial.providers,
-      tabBarBody:
-        "Choose Subscription, API Key, Local, or Custom. Each tab has a different authentication and model-discovery flow.",
     },
   },
 } as const;
@@ -483,15 +470,6 @@ export const TUTORIAL_CATCHUP_ZH = {
       welcomeBody: "在同一工作区管理卖家店铺、店铺服务、授权和仓储集成。",
       drawerBody:
         "店铺工作区包含概览与服务控制、AI 客服、设备绑定和仓库映射；联盟部分不在本次导览范围内。",
-    },
-    providers: {
-      setupFlowTitle: "按提供商设置",
-      setupFlowBody:
-        "表单会随类型变化：订阅登录、API Key、本地端点或自定义兼容 API。请完成当前标签页显示的字段。",
-      currentActionsTitle: "已配置模型操作",
-      currentActionsBody:
-        "从卡片顶部激活密钥；底部会按类型提供用量、重新授权、刷新模型、更新凭据、代理设置或删除。",
-      tabBarBody: "选择订阅、API Key、本地或自定义；每种类型都有不同的认证和模型发现流程。",
     },
     adsManagement: {
       accountFiltersTitle: "搜索与账号状态",

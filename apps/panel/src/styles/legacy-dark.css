@@ -310,18 +310,6 @@
   color: #a8a29e;
 }
 
-[data-theme="dark"] .info-box-green {
-  background-color: rgba(0, 200, 150, 0.1);
-  border-color: rgba(0, 200, 150, 0.18);
-  color: #00c896;
-}
-
-[data-theme="dark"] .info-box-yellow {
-  background-color: rgba(255, 176, 32, 0.1);
-  border-color: rgba(255, 176, 32, 0.18);
-  color: #ffb020;
-}
-
 /* ===== D13. Badge Variants ===== */
 [data-theme="dark"] .badge-success {
   background-color: rgba(0, 200, 150, 0.12);
@@ -363,39 +351,6 @@
 /* Dark-theme tile surface. Low-alpha white elevation so tiles read as
    lifted chips against the page canvas — plain `--color-bg` would collapse
    them into one flat plane in dark mode. */
-[data-theme="dark"] .key-card {
-  background: rgba(255, 255, 255, 0.02);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-[data-theme="dark"] .key-card:hover {
-  background-color: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.16);
-}
-
-[data-theme="dark"] .key-card-active {
-  border-color: var(--color-primary);
-  background: linear-gradient(
-    135deg,
-    var(--brand-tint-22) 0%,
-    var(--brand-tint-08) 50%,
-    rgba(255, 255, 255, 0.02) 100%
-  );
-  box-shadow: inset 3px 0 0 var(--color-primary);
-}
-
-[data-theme="dark"] .key-card-active:hover {
-  background: linear-gradient(
-    135deg,
-    var(--brand-tint-35) 0%,
-    var(--brand-tint-12) 50%,
-    rgba(255, 255, 255, 0.04) 100%
-  );
-}
-
-[data-theme="dark"] .key-expanded {
-  border-top-color: rgba(255, 255, 255, 0.06);
-}
 
 /* ===== D15. Toggle Switch ===== */
 
@@ -416,29 +371,6 @@
 }
 
 /* ===== D16b. Provider Select ===== */
-[data-theme="dark"] .provider-select-trigger {
-  background-color: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
-}
-
-[data-theme="dark"] .provider-select-trigger:hover {
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-[data-theme="dark"] .provider-select-dropdown {
-  background: var(--surface-dropdown, #1e2333);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: var(--shadow-lg);
-}
-
-[data-theme="dark"] .provider-select-option:hover {
-  background-color: rgba(255, 255, 255, 0.04);
-}
-
-[data-theme="dark"] .provider-select-option-active {
-  background-color: var(--brand-tint-16);
-}
 
 /* ===== D17. Channels Page ===== */
 [data-theme="dark"] .channel-info-box {
@@ -502,10 +434,6 @@
 /* ===== D23b. Skeleton Loader (Dark) ===== */
 
 /* ===== D23c. Welcome Step Dots (Dark) ===== */
-
-[data-theme="dark"] .key-section-border {
-  border-top-color: rgba(255, 255, 255, 0.07);
-}
 
 /* ===== D24. Update Banner ===== */
 [data-theme="dark"] .update-banner {
@@ -587,15 +515,8 @@
 }
 
 /* ===== D29. Input readonly & form ===== */
-[data-theme="dark"] .input-readonly {
-  background-color: rgba(0, 0, 0, 0.18);
-  color: rgba(255, 255, 255, 0.55);
-}
 
 /* ===== D30. Advanced section ===== */
-[data-theme="dark"] .advanced-content {
-  border-left-color: rgba(255, 255, 255, 0.08);
-}
 
 /* ===== D32. Tabs ===== */
 

@@ -37,8 +37,6 @@ export const SHOP_FIELDS_FRAGMENT = gql`
         businessPrompt
         runProfileId
         csDeviceId
-        csProviderOverride
-        csModelOverride
         escalationChannelId
         escalationRecipientId
         platformSystemPrompt
@@ -136,7 +134,11 @@ export const UPDATE_SHOP_MUTATION = gql`
 
 export const ECOMMERCE_UPDATE_SHOP_MUTATION = gql`
   mutation EcommerceUpdateShop($shopId: String!, $alias: String) {
-    ecommerceUpdateShop: ecommercePatchShopSettings(shopId: $shopId, alias: $alias, updateMask: ["alias"]) {
+    ecommerceUpdateShop: ecommercePatchShopSettings(
+      shopId: $shopId
+      alias: $alias
+      updateMask: ["alias"]
+    ) {
       shopId
       message
     }
@@ -1408,11 +1410,7 @@ export const CS_CONVERSATION_ORDER_CONTEXT_QUERY = gql`
 
 export const CS_CONVERSATION_ORDER_CANCELLATIONS_QUERY = gql`
   query CustomerServiceConversationOrderCancellations($shopId: String!, $orderId: String!) {
-    cancellations: ecommerceSearchCancellations(
-      shopId: $shopId
-      orderIds: [$orderId]
-      limit: 20
-    ) {
+    cancellations: ecommerceSearchCancellations(shopId: $shopId, orderIds: [$orderId], limit: 20) {
       cancelId
       orderId
       cancelType
@@ -1823,7 +1821,14 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           sampleWorkStatus
           partnerName
           sampleType
-          sourceCollaboration { affiliateCollaborationId type platformCollaborationId name campaignId campaignName }
+          sourceCollaboration {
+            affiliateCollaborationId
+            type
+            platformCollaborationId
+            name
+            campaignId
+            campaignName
+          }
           reviewDisposition
           platformStatus
           trackingNumber
@@ -2266,7 +2271,14 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
         sampleWorkStatus
         partnerName
         sampleType
-        sourceCollaboration { affiliateCollaborationId type platformCollaborationId name campaignId campaignName }
+        sourceCollaboration {
+          affiliateCollaborationId
+          type
+          platformCollaborationId
+          name
+          campaignId
+          campaignName
+        }
         reviewDisposition
         platformStatus
         observedContentCount
@@ -2393,7 +2405,14 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           sampleWorkStatus
           partnerName
           sampleType
-          sourceCollaboration { affiliateCollaborationId type platformCollaborationId name campaignId campaignName }
+          sourceCollaboration {
+            affiliateCollaborationId
+            type
+            platformCollaborationId
+            name
+            campaignId
+            campaignName
+          }
           reviewDisposition
           platformStatus
           observedContentCount
@@ -2429,7 +2448,14 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           sampleWorkStatus
           partnerName
           sampleType
-          sourceCollaboration { affiliateCollaborationId type platformCollaborationId name campaignId campaignName }
+          sourceCollaboration {
+            affiliateCollaborationId
+            type
+            platformCollaborationId
+            name
+            campaignId
+            campaignName
+          }
           reviewDisposition
           platformStatus
           observedContentCount
@@ -3474,7 +3500,14 @@ export const AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY = gql`
         sampleWorkStatus
         partnerName
         sampleType
-        sourceCollaboration { affiliateCollaborationId type platformCollaborationId name campaignId campaignName }
+        sourceCollaboration {
+          affiliateCollaborationId
+          type
+          platformCollaborationId
+          name
+          campaignId
+          campaignName
+        }
         platformStatus
         platformFulfillmentStatus
         approveExpirationAt
@@ -3561,7 +3594,14 @@ export const AFFILIATE_SAMPLE_APPLICATION_STATE_QUERY = gql`
         sampleWorkStatus
         partnerName
         sampleType
-        sourceCollaboration { affiliateCollaborationId type platformCollaborationId name campaignId campaignName }
+        sourceCollaboration {
+          affiliateCollaborationId
+          type
+          platformCollaborationId
+          name
+          campaignId
+          campaignName
+        }
         reviewDisposition
         platformStatus
         platformFulfillmentStatus
@@ -3749,11 +3789,26 @@ export const AFFILIATE_CREATOR_PROFILE_QUERY = gql`
       performance {
         details {
           observedAt
-          followerAge { key share }
-          followerGender { key share }
-          followerLocation { key share }
-          categoryGmvDistribution { key share }
-          contentGmvDistribution { key share }
+          followerAge {
+            key
+            share
+          }
+          followerGender {
+            key
+            share
+          }
+          followerLocation {
+            key
+            share
+          }
+          categoryGmvDistribution {
+            key
+            share
+          }
+          contentGmvDistribution {
+            key
+            share
+          }
           brandCollaborationCount
           promotedProductCount
           averageCommissionRate
@@ -3766,10 +3821,30 @@ export const AFFILIATE_CREATOR_PROFILE_QUERY = gql`
           averageLiveShareCount
           liveEngagementRate
           videoEngagementRate
-          averageGmvPerBuyer { amount currency minimumAmount maximumAmount }
-          productOriginalPriceRange { amount currency minimumAmount maximumAmount }
-          liveGpm { amount currency minimumAmount maximumAmount }
-          videoGpm { amount currency minimumAmount maximumAmount }
+          averageGmvPerBuyer {
+            amount
+            currency
+            minimumAmount
+            maximumAmount
+          }
+          productOriginalPriceRange {
+            amount
+            currency
+            minimumAmount
+            maximumAmount
+          }
+          liveGpm {
+            amount
+            currency
+            minimumAmount
+            maximumAmount
+          }
+          videoGpm {
+            amount
+            currency
+            minimumAmount
+            maximumAmount
+          }
         }
         id
         market
@@ -3834,10 +3909,28 @@ export const AFFILIATE_CREATOR_CONTACT_STATE_QUERY = gql`
         id
         displayName
       }
-      whatsAppAccounts { id displayName phoneNumber status provider outboundSendBlockedUntil }
-      emailAccounts { id displayName emailAddress sharedMailboxAddress status provider }
-      preferredWhatsAppAccount { id }
-      preferredEmailAccount { id }
+      whatsAppAccounts {
+        id
+        displayName
+        phoneNumber
+        status
+        provider
+        outboundSendBlockedUntil
+      }
+      emailAccounts {
+        id
+        displayName
+        emailAddress
+        sharedMailboxAddress
+        status
+        provider
+      }
+      preferredWhatsAppAccount {
+        id
+      }
+      preferredEmailAccount {
+        id
+      }
       channelContacts {
         id
         accountLabel
@@ -4035,31 +4128,112 @@ export const DELETE_AFFILIATE_APPROVAL_POLICY_MUTATION = gql`
 
 export const AFFILIATE_MESSAGE_TARGET_COLLABORATION_FRAGMENT = gql`
   fragment AffiliateMessageTargetCollaboration on AffiliateMessageTargetCollaboration {
-    id shopId type status platformCollaborationId productIds
-    name message startTime endTime lastObservedAt platformUpdatedAt
-    freeSampleRule { hasFreeSample isSampleApprovalExempt }
-    sellerContactInfo { email }
+    id
+    shopId
+    type
+    status
+    platformCollaborationId
+    productIds
+    name
+    message
+    startTime
+    endTime
+    lastObservedAt
+    platformUpdatedAt
+    freeSampleRule {
+      hasFreeSample
+      isSampleApprovalExempt
+    }
+    sellerContactInfo {
+      email
+    }
     products {
-      id productId title mainImageUrl imageUrl status collaborationStatus
-      commission { rate shopAdsCommissionRate }
+      id
+      productId
+      title
+      mainImageUrl
+      imageUrl
+      status
+      collaborationStatus
+      commission {
+        rate
+        shopAdsCommissionRate
+      }
     }
   }
 `;
 
 export const AFFILIATE_MESSAGE_CARD_ENTITY_FRAGMENT = gql`
   fragment AffiliateMessageCardEntities on AffiliateHistoryPart {
-    platformSampleApplicationId cardRefreshToken
-    productSummary { productId title coverImage status priceMin priceMax skus { skuId skuName sellerSku price currency } }
+    platformSampleApplicationId
+    cardRefreshToken
+    productSummary {
+      productId
+      title
+      coverImage
+      status
+      priceMin
+      priceMax
+      skus {
+        skuId
+        skuName
+        sellerSku
+        price
+        currency
+      }
+    }
     sampleApplication {
-      id shopId creatorRelationshipId platformApplicationId productId skuId skuName skuImageUrl
-      sampleWorkStatus partnerName sampleType sourceCollaboration { affiliateCollaborationId type platformCollaborationId name campaignId campaignName } reviewDisposition platformStatus commissionRate observedContentCount
-      updatedAt lastObservedAt firstObservedAt shippedAt deliveredAt carrier trackingNumber
-      latestObservedContentId latestObservedContentAt latestObservedContentViewCount
-      affiliateCollaborationId platformCollaborationId platformTargetCollaborationId platformOpenCollaborationId
+      id
+      shopId
+      creatorRelationshipId
+      platformApplicationId
+      productId
+      skuId
+      skuName
+      skuImageUrl
+      sampleWorkStatus
+      partnerName
+      sampleType
+      sourceCollaboration {
+        affiliateCollaborationId
+        type
+        platformCollaborationId
+        name
+        campaignId
+        campaignName
+      }
+      reviewDisposition
+      platformStatus
+      commissionRate
+      observedContentCount
+      updatedAt
+      lastObservedAt
+      firstObservedAt
+      shippedAt
+      deliveredAt
+      carrier
+      trackingNumber
+      latestObservedContentId
+      latestObservedContentAt
+      latestObservedContentViewCount
+      affiliateCollaborationId
+      platformCollaborationId
+      platformTargetCollaborationId
+      platformOpenCollaborationId
       order {
-        platformOrderId trackingNumber carrier status trackingSyncedAt latestTrackingEventAt
-        latestTrackingEventDescription latestTrackingEventActionCode
-        trackingEvents { actionCode description updateTimeMillis }
+        platformOrderId
+        trackingNumber
+        carrier
+        status
+        trackingSyncedAt
+        latestTrackingEventAt
+        latestTrackingEventDescription
+        latestTrackingEventActionCode
+        trackingEvents {
+          actionCode
+          description
+          updateTimeMillis
+        }
       }
     }
   }
@@ -4643,7 +4817,14 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
 
 const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
   fragment AffiliateWorkbenchSampleRowFields on AffiliateWorkbenchSampleRow {
-    creatorGmv { amount minimumAmount maximumAmount currency window precision }
+    creatorGmv {
+      amount
+      minimumAmount
+      maximumAmount
+      currency
+      window
+      precision
+    }
     creatorPostRate
     creatorAverageVideoViews
     creatorUnitsSold
@@ -4682,7 +4863,14 @@ const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
       sampleWorkStatus
       partnerName
       sampleType
-      sourceCollaboration { affiliateCollaborationId type platformCollaborationId name campaignId campaignName }
+      sourceCollaboration {
+        affiliateCollaborationId
+        type
+        platformCollaborationId
+        name
+        campaignId
+        campaignName
+      }
       reviewDisposition
       reviewDispositionRevision
       merchantReviewDecision
@@ -5574,9 +5762,20 @@ export const AFFILIATE_RELATIONSHIP_OWNERSHIP_FIELDS = gql`
     sellerNote
     operationalConfigRevision
     manualTagIds
-    manualTags { id name sensitive updatedAt }
+    manualTags {
+      id
+      name
+      sensitive
+      updatedAt
+    }
     highestSampleTier
-    shopStates { shopId sampleTier lastContactedAt lastInvitedAt lastQualifiedAt }
+    shopStates {
+      shopId
+      sampleTier
+      lastContactedAt
+      lastInvitedAt
+      lastQualifiedAt
+    }
     lastInboundAt
     lastOutboundAt
     lastAgentHandledAt
@@ -5591,11 +5790,31 @@ export const AFFILIATE_RELATIONSHIP_OWNERSHIP_FIELDS = gql`
     activeRunBusinessDeveloperId
     activeRunBusinessDeveloperConfigRevision
     agendaItems {
-      key owner sourceType workKind requiredAction shopId sampleApplicationRecordId
-      reviewDisposition affiliateCollaborationId productId proposalId reasons nextActionAt
-      boundaryEventCursor updatedAt messageChannel pendingLifecycleEventId pendingRelationshipSequence
+      key
+      owner
+      sourceType
+      workKind
+      requiredAction
+      shopId
+      sampleApplicationRecordId
+      reviewDisposition
+      affiliateCollaborationId
+      productId
+      proposalId
+      reasons
+      nextActionAt
+      boundaryEventCursor
+      updatedAt
+      messageChannel
+      pendingLifecycleEventId
+      pendingRelationshipSequence
     }
-    workSummary { agentRequiredCount staffRequiredCount externalWaitingCount nextActionAt }
+    workSummary {
+      agentRequiredCount
+      staffRequiredCount
+      externalWaitingCount
+      nextActionAt
+    }
     lastBlockedAt
     lastPlatformSyncedAt
     stateUpdatedAt
@@ -5743,8 +5962,16 @@ export const AFFILIATE_CREATOR_UPDATE_EXPORT_PAGE_QUERY = gql`
 export const AFFILIATE_CHAT_CAMPAIGN_TEMPLATES_QUERY = gql`
   query AffiliateChatCampaignTemplates($shopId: ID!, $creatorRelationshipId: ID!) {
     affiliateChatCampaignTemplates(shopId: $shopId, creatorRelationshipId: $creatorRelationshipId) {
-      id name endDays isSampleApprovalExempt sellerContactEmail
-      products { productId commissionRatePercent shopAdsCommissionRatePercent }
+      id
+      name
+      endDays
+      isSampleApprovalExempt
+      sellerContactEmail
+      products {
+        productId
+        commissionRatePercent
+        shopAdsCommissionRatePercent
+      }
     }
   }
 `;
@@ -5752,8 +5979,16 @@ export const AFFILIATE_CHAT_CAMPAIGN_TEMPLATES_QUERY = gql`
 export const SEND_AFFILIATE_CAMPAIGN_INVITATION_MUTATION = gql`
   mutation SendAffiliateCampaignInvitation($input: SendAffiliateCampaignInvitationInput!) {
     sendAffiliateCampaignInvitation(input: $input) {
-      delivery { id status errorCode errorMessage }
-      affiliateCollaboration { id shopId }
+      delivery {
+        id
+        status
+        errorCode
+        errorMessage
+      }
+      affiliateCollaboration {
+        id
+        shopId
+      }
     }
   }
 `;

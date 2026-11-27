@@ -27,9 +27,7 @@ const {
     ensureRpcReady: vi.fn(),
   };
 
-  const mockRootStore = {
-    llmManager: { refreshModelCatalog: vi.fn().mockResolvedValue(undefined) },
-  };
+  const mockRootStore = {};
 
   const mockAuthSession = {
     getCachedUser: vi.fn().mockReturnValue(null),

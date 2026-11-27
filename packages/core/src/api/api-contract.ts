@@ -196,16 +196,6 @@ export const API = {
     path: "/api/settings/workspace",
     desc: "Save account-scoped Panel workspace tabs",
   },
-  "settings.validateKey": {
-    method: "POST",
-    path: "/api/settings/validate-key",
-    desc: "Validate provider API key",
-  },
-  "settings.validateCustomKey": {
-    method: "POST",
-    path: "/api/settings/validate-custom-key",
-    desc: "Validate custom provider key",
-  },
   "settings.telemetry.get": {
     method: "GET",
     path: "/api/settings/telemetry",
@@ -267,112 +257,6 @@ export const API = {
   },
 
   "fileDialog.open": { method: "POST", path: "/api/file-dialog", desc: "Open native file picker" },
-
-  // ── Provider Keys ──
-  "providerKeys.list": {
-    method: "GET",
-    path: "/api/provider-keys",
-    desc: "List all provider API keys",
-  },
-  "providerKeys.create": {
-    method: "POST",
-    path: "/api/provider-keys",
-    desc: "Create new provider key",
-  },
-  "providerKeys.update": {
-    method: "PUT",
-    path: "/api/provider-keys/:id",
-    desc: "Update provider key config",
-  },
-  "providerKeys.delete": {
-    method: "DELETE",
-    path: "/api/provider-keys/:id",
-    desc: "Delete provider key",
-  },
-  "providerKeys.activate": {
-    method: "POST",
-    path: "/api/provider-keys/:id/activate",
-    desc: "Set as global default key",
-  },
-  "providerKeys.refreshModels": {
-    method: "POST",
-    path: "/api/provider-keys/:id/refresh-models",
-    desc: "Refresh models for custom provider",
-  },
-  "providerKeys.fetchUsage": {
-    method: "POST",
-    path: "/api/provider-keys/:id/usage/fetch",
-    desc: "Fetch subscription quota usage for a key (writes into MST)",
-  },
-  "providerKeys.reauth": {
-    method: "POST",
-    path: "/api/provider-keys/:id/reauth",
-    desc: "Re-authenticate OAuth and rotate stored credentials in place",
-  },
-
-  // ── Session Model ──
-  "sessionModel.get": {
-    method: "GET",
-    path: "/api/session-model",
-    desc: "Get per-session model override",
-  },
-  "sessionModel.set": {
-    method: "PUT",
-    path: "/api/session-model",
-    desc: "Set per-session model override",
-  },
-  "sessionModel.apply": {
-    method: "POST",
-    path: "/api/session-model/apply",
-    desc: "Apply resolved model to a session",
-  },
-
-  // ── Models / Catalog ──
-  "models.catalog": {
-    method: "GET",
-    path: "/api/models",
-    desc: "Full model catalog from all providers",
-  },
-  "models.fetchCustom": {
-    method: "POST",
-    path: "/api/custom-provider/fetch-models",
-    desc: "Fetch models from custom OpenAI-compatible provider",
-  },
-
-  // ── Local Models ──
-  "localModels.detect": {
-    method: "GET",
-    path: "/api/local-models/detect",
-    desc: "Auto-detect local model servers (Ollama)",
-  },
-  "localModels.models": {
-    method: "GET",
-    path: "/api/local-models/models",
-    desc: "Fetch models from local server",
-  },
-  "localModels.health": {
-    method: "POST",
-    path: "/api/local-models/health",
-    desc: "Check local model server health",
-  },
-
-  // ── OAuth ──
-  "oauth.start": {
-    method: "POST",
-    path: "/api/oauth/start",
-    desc: "Start OAuth flow for provider",
-  },
-  "oauth.save": {
-    method: "POST",
-    path: "/api/oauth/save",
-    desc: "Save OAuth-acquired credentials",
-  },
-  "oauth.manualComplete": {
-    method: "POST",
-    path: "/api/oauth/manual-complete",
-    desc: "Complete manual OAuth via callback URL",
-  },
-  "oauth.status": { method: "GET", path: "/api/oauth/status", desc: "Poll OAuth flow status" },
 
   // ── Channels ──
   "channels.status": {

@@ -1,41 +1,33 @@
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { Select } from "../../../components/inputs/Select.js";
-import { KeyModelSelector } from "../../../components/inputs/KeyModelSelector.js";
 import { RunProfileSelector } from "../../../components/inputs/RunProfileSelector.js";
-import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { formatTokenCount } from "../chat-utils.js";
-import type { ActiveModelInfo } from "../hooks/useChatModelControls.js";
 
 export interface ChatStatusBarProps {
   connectionState: string;
   agentName: string | null;
-  activeModel: ActiveModelInfo | null;
   thinkingLevel: string;
   onThinkingLevelChange: (level: string) => void;
   totalTokens: number;
   contextWindow: number | null;
   selectedRunProfileId: string;
   onRunProfileChange: (id: string) => void;
-  onKeyModelChange: (provider: string, model: string) => void;
   onReset: () => void;
 }
 
 export const ChatStatusBar = observer(function ChatStatusBar({
   connectionState,
   agentName,
-  activeModel,
   thinkingLevel,
   onThinkingLevelChange,
   totalTokens,
   contextWindow,
   selectedRunProfileId,
   onRunProfileChange,
-  onKeyModelChange,
   onReset,
 }: ChatStatusBarProps) {
   const { t } = useTranslation();
-  const entityStore = useEntityStore();
 
   const contextUsageRatio =
     contextWindow && contextWindow > 0 && totalTokens > 0 ? totalTokens / contextWindow : 0;
@@ -56,23 +48,6 @@ export const ChatStatusBar = observer(function ChatStatusBar({
     <div className="chat-status" data-tutorial-id="chat-controls">
       <span className={`chat-status-dot chat-status-dot-${connectionState}`} />
       <span>{agentName ? `${agentName} · ${t(statusKey)}` : t(statusKey)}</span>
-      {connectionState === "connected" && activeModel && (
-        <KeyModelSelector
-          keys={entityStore.providerKeys.map((k) => ({
-            id: k.id,
-            provider: k.provider,
-            label: k.label,
-            model: k.model,
-            isDefault: k.isDefault,
-          }))}
-          catalog={entityStore.llmManager.catalog}
-          selectedProvider={activeModel.provider}
-          selectedModel={activeModel.model}
-          onChange={onKeyModelChange}
-          allowDefault
-          isFollowingDefault={!activeModel.isOverridden}
-        />
-      )}
       {connectionState === "connected" && (
         <Select
           className="chat-thinking-select"

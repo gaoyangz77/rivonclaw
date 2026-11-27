@@ -349,7 +349,7 @@ async function handleAffiliateUnknownSenderIdentificationWork(
     });
     await registerIdentificationSession(sessionKey, work);
     logIdentificationPromptContext(sessionKey, work, request.message, request.extraSystemPrompt);
-    const resolvedModel = rootStore.llmManager.resolveModelForDispatch(sessionKey);
+    const resolvedModel = rootStore.llmManager.resolveModelForDispatch();
     const response = await requestAgent<{ runId?: string }>({
       sessionKey,
       provider: resolvedModel.provider,

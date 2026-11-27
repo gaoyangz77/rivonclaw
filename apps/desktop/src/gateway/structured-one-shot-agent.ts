@@ -14,7 +14,7 @@ type ChatHistoryMessage = Record<string, unknown>;
 type TerminalReply = { disposition: "visible"; text: string } | { disposition: "silent" | "empty" };
 
 export interface StructuredOneShotAgentRuntime {
-  resolveDefaultModel(sessionKey: string): { provider: string; model: string };
+  resolveDefaultModel(): { provider: string; model: string };
   start(input: Record<string, unknown>): Promise<{ runId?: string }>;
   wait(
     runId: string,
@@ -44,8 +44,8 @@ export interface StructuredOneShotAgentResult<T> {
 }
 
 const defaultRuntime: StructuredOneShotAgentRuntime = {
-  resolveDefaultModel(sessionKey) {
-    return rootStore.llmManager.resolveModelForDispatch(sessionKey);
+  resolveDefaultModel() {
+    return rootStore.llmManager.resolveModelForDispatch();
   },
   start(input) {
     // Structured one-shot work is a raw model run. Going through requestAgent()
@@ -92,7 +92,7 @@ export async function runStructuredOneShotAgent<T>(
   // the request when no agent with that id is configured.
   const sessionKey = `agent:${DEFAULT_AGENT_ID}:model-run:${sanitizeNamespace(options.namespace)}:${randomUUID()}`;
   const repairSessionKey = `${sessionKey}:format-repair`;
-  const resolvedModel = runtime.resolveDefaultModel(sessionKey);
+  const resolvedModel = runtime.resolveDefaultModel();
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const runIds: string[] = [];
   const createdSessionKeys = new Set([sessionKey]);

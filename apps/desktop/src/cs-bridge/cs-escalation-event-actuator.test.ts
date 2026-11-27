@@ -113,8 +113,6 @@ function seedShop(
             enabled: true,
             businessPrompt: "",
             csDeviceId,
-            csProviderOverride: null,
-            csModelOverride: null,
             escalationChannelId:
               routing.escalationChannelId === undefined
                 ? "telegram:acct_cloud_send"

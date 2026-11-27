@@ -24,30 +24,6 @@ export async function updateSettings(settings: Record<string, string>): Promise<
   invalidateCache("settings");
 }
 
-export async function validateApiKey(
-  provider: string,
-  apiKey: string,
-  proxyUrl?: string,
-  model?: string,
-): Promise<{ valid: boolean; error?: string }> {
-  return fetchJson(clientPath(API["settings.validateKey"]), {
-    method: "POST",
-    body: JSON.stringify({ provider, apiKey, proxyUrl, model }),
-  });
-}
-
-export async function validateCustomApiKey(
-  baseUrl: string,
-  apiKey: string,
-  protocol: string,
-  model: string,
-): Promise<{ valid: boolean; error?: string }> {
-  return fetchJson(clientPath(API["settings.validateCustomKey"]), {
-    method: "POST",
-    body: JSON.stringify({ baseUrl, apiKey, protocol, model }),
-  });
-}
-
 // --- File Dialog ---
 
 export async function openFileDialog(): Promise<string | null> {

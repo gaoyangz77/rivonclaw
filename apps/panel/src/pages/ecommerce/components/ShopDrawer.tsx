@@ -58,10 +58,6 @@ interface ShopDrawerProps {
   selectedRunProfile: { selectedToolIds: string[] } | null;
   savingRunProfile: boolean;
   onRunProfileChange: (profileId: string) => void;
-  selectedCSProvider: string;
-  selectedCSModel: string;
-  savingModel: boolean;
-  onCSModelChange: (provider: string, model: string) => void;
   draftUnpaidReachoutEnabled: boolean;
   draftUnpaidReachoutStages: UnpaidReachoutStageDraft[];
   draftUnpaidExperimentEnabled: boolean;
@@ -137,10 +133,6 @@ export const ShopDrawer = observer(function ShopDrawer({
   selectedRunProfile,
   savingRunProfile,
   onRunProfileChange,
-  selectedCSProvider,
-  selectedCSModel,
-  savingModel,
-  onCSModelChange,
   draftUnpaidReachoutEnabled,
   draftUnpaidReachoutStages,
   draftUnpaidExperimentEnabled,
@@ -248,10 +240,6 @@ export const ShopDrawer = observer(function ShopDrawer({
             {
               id: workspaceSectionId(activeTab, "run-profile"),
               label: t("ecommerce.shopDrawer.aiCS.runProfile"),
-            },
-            {
-              id: workspaceSectionId(activeTab, "model"),
-              label: t("ecommerce.shopDrawer.aiCS.csModelOverride"),
             },
             {
               id: workspaceSectionId(activeTab, "reminders"),
@@ -479,7 +467,9 @@ export const ShopDrawer = observer(function ShopDrawer({
                           {t("ecommerce.table.headers.platform")}
                         </span>
                         <span className="shop-info-value">
-                          {t(`ecommerce.platform.${shop.platform}`, { defaultValue: shop.platform })}
+                          {t(`ecommerce.platform.${shop.platform}`, {
+                            defaultValue: shop.platform,
+                          })}
                         </span>
                       </div>
                       <div className="shop-info-row">
@@ -648,7 +638,8 @@ export const ShopDrawer = observer(function ShopDrawer({
                         <span className="shop-info-card-hint">
                           {t("ecommerce.shopDrawer.overview.csToggleHint")}
                         </span>
-                        {(!customerServiceEntitlement?.allowed || isAccountServiceEntitlement(customerServiceEntitlement)) && (
+                        {(!customerServiceEntitlement?.allowed ||
+                          isAccountServiceEntitlement(customerServiceEntitlement)) && (
                           <CustomerServiceBillingCta
                             shopId={shop.id}
                             shopName={shopLabel.text}
@@ -746,10 +737,6 @@ export const ShopDrawer = observer(function ShopDrawer({
                   selectedRunProfile={selectedRunProfile}
                   savingRunProfile={savingRunProfile}
                   onRunProfileChange={onRunProfileChange}
-                  selectedCSProvider={selectedCSProvider}
-                  selectedCSModel={selectedCSModel}
-                  savingModel={savingModel}
-                  onCSModelChange={onCSModelChange}
                   draftUnpaidReachoutEnabled={draftUnpaidReachoutEnabled}
                   draftUnpaidReachoutStages={draftUnpaidReachoutStages}
                   draftUnpaidExperimentEnabled={draftUnpaidExperimentEnabled}
