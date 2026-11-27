@@ -5558,6 +5558,7 @@ export const CAMPAIGN_ERROR_MESSAGE_KEYS:ReadonlyArray<readonly [string, string]
   ["CAMPAIGN_AI_SUGGESTION_INVALID", "errors.suggestionInvalid"],
   ["CAMPAIGN_AI_SUGGESTION_FAILED", "errors.suggestionFailed"],
   ["CAMPAIGN_AI_TEMPLATE_INVALID", "errors.aiTemplatePlaceholderMissing"],
+  ["CAMPAIGN_AI_CLOUD_QUOTA_EXHAUSTED", "errors.templateQuotaExhausted"],
   ["CAMPAIGN_COPY_REQUIRED", "errors.copyRequired"],
   ["CAMPAIGN_PRODUCT_NOT_ACTIVE", "errors.productNotActive"],
   ["CAMPAIGN_PRODUCT_SNAPSHOT_REQUIRED", "errors.productSnapshotRequired"],
