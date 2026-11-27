@@ -9,7 +9,7 @@ import {
 } from "../../../api/shops-queries.js";
 import { useCreatorScopeConversation } from "./useCreatorScopeConversation.js";
 import { useAffiliateWorkbenchRefresh } from "../useAffiliateWorkbenchRefresh.js";
-import { panelEventBus } from "../../../lib/event-bus.js";
+import { getHost } from "../../../host/index.js";
 
 afterEach(() => {
   cleanup();
@@ -102,7 +102,7 @@ describe("creator scoped conversation API and pagination", () => {
       history([msg("old", "1", "2026-09-01T12:00:00Z")]),
     );
     const snapshots = vi.fn();
-    vi.spyOn(panelEventBus, "subscribe").mockImplementation((event, handler) => {
+    vi.spyOn(getHost().events, "subscribe").mockImplementation((event, handler) => {
       if (event === "entity-snapshot") {
         snapshots();
         // The real bus immediately replays its most recent snapshot on subscribe.

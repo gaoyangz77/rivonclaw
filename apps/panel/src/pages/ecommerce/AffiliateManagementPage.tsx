@@ -90,7 +90,8 @@ import {
   UserIcon,
 } from "../../components/icons.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
-import { panelEventBus } from "../../lib/event-bus.js";
+import { getHost } from "../../host/index.js";
+import { cloudRestPath } from "@rivonclaw/core/api-contract";
 import { graphQLErrorCode, graphQLErrorExtensions } from "../../lib/graphql-error-code.js";
 import {
   businessDeveloperShopScopeErrorKey,
@@ -1358,7 +1359,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   }, [escalationData?.affiliateEscalationPage.totalCount, escalationOffset]);
 
   useEffect(() => {
-    return panelEventBus.subscribe("affiliate-escalation-changed", () => {
+    return getHost().events.subscribe("affiliate-escalation-changed", () => {
       if (workbenchTab === "ESCALATIONS") void refetchEscalations();
     });
   }, [refetchEscalations, workbenchTab]);
@@ -1402,7 +1403,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   }
 
   useEffect(() => {
-    const unsubscribeProposal = panelEventBus.subscribe(
+    const unsubscribeProposal = getHost().events.subscribe(
       "affiliate-action-proposal-changed",
       (payload) => {
         const proposal = (payload as { proposal?: GQL.ActionProposal } | null)?.proposal;
@@ -3528,10 +3529,10 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     skip: !user,
   });
   useEffect(() => {
-    const unsubscribeProposal = panelEventBus.subscribe("affiliate-action-proposal-changed", () => {
+    const unsubscribeProposal = getHost().events.subscribe("affiliate-action-proposal-changed", () => {
       void refetch();
     });
-    const unsubscribeWorkItem = panelEventBus.subscribe("affiliate-work-item-changed", () => {
+    const unsubscribeWorkItem = getHost().events.subscribe("affiliate-work-item-changed", () => {
       void refetch();
     });
     return () => {
@@ -6625,10 +6626,10 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   });
 
   useEffect(() => {
-    const unsubscribeProposal = panelEventBus.subscribe("affiliate-action-proposal-changed", () => {
+    const unsubscribeProposal = getHost().events.subscribe("affiliate-action-proposal-changed", () => {
       void refetch();
     });
-    const unsubscribeWorkItem = panelEventBus.subscribe("affiliate-work-item-changed", () => {
+    const unsubscribeWorkItem = getHost().events.subscribe("affiliate-work-item-changed", () => {
       void refetch();
     });
     return () => {
@@ -10727,10 +10728,10 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     skip: !relationshipId,
   });
   useEffect(() => {
-    const unsubscribeProposal = panelEventBus.subscribe("affiliate-action-proposal-changed", () => {
+    const unsubscribeProposal = getHost().events.subscribe("affiliate-action-proposal-changed", () => {
       void refetchRelationshipDetail();
     });
-    const unsubscribeWorkItem = panelEventBus.subscribe("affiliate-work-item-changed", () => {
+    const unsubscribeWorkItem = getHost().events.subscribe("affiliate-work-item-changed", () => {
       void refetchRelationshipDetail();
     });
     return () => {
@@ -10972,7 +10973,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     disabled: !canPerformDailyOperations || sendingMessage || sendingInvitation || translation.locked,
     stage: async (file, signal) => {
       if (!relationshipId) throw new Error("Creator relationship is required");
-      const response = await fetch("/api/cloud/ecommerce/affiliate/upload-draft-attachment", {
+      const response = await getHost().cloud.fetch(cloudRestPath("/api/ecommerce/affiliate/upload-draft-attachment"), {
         method: "POST", signal,
         headers: {
           "Content-Type": file.type || "application/octet-stream",
@@ -11113,7 +11114,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   }, [affiliateWorkspace, proposalPage]);
   useEffect(
     () =>
-      panelEventBus.subscribe("affiliate-action-proposal-changed", (payload) => {
+      getHost().events.subscribe("affiliate-action-proposal-changed", (payload) => {
         const current = (payload as { proposal?: GQL.ActionProposal } | null)?.proposal;
         if (current?.creatorRelationshipId === relationshipId) {
           affiliateWorkspace.upsertAffiliateActionProposal?.(current);

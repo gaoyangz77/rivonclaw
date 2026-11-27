@@ -5,6 +5,7 @@ import { observable, runInAction } from "mobx";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n/index.js";
 import { ToastProvider } from "../../components/Toast.js";
+import { getHost } from "../../host/index.js";
 import { CreatorRelationshipDetailModal, SampleApplicationSummaryCard } from "./AffiliateManagementPage.js";
 import type { GQL } from "@rivonclaw/core";
 import { mockObjectUrls } from "../../../test/mock-object-urls.js";
@@ -61,14 +62,6 @@ const state = vi.hoisted(() => ({
   },
 }));
 vi.mock("../../store/EntityStoreProvider.js", () => ({ useEntityStore: () => state.entityStore }));
-vi.mock("../../lib/event-bus.js", () => ({ panelEventBus: {
-  subscribe: (event: string, handler: (payload: unknown) => void) => {
-    const handlers = state.handlers.get(event) ?? new Set();
-    handlers.add(handler);
-    state.handlers.set(event, handlers);
-    return () => handlers.delete(handler);
-  },
-} }));
 vi.mock("@apollo/client/react", () => ({
   useApolloClient: () => ({ mutate: state.mutate, query: state.refetch }),
   useMutation: () => [state.mutate, { loading: false }],
@@ -109,6 +102,12 @@ vi.mock("@apollo/client/react", () => ({
 }));
 
 beforeEach(async () => {
+  vi.spyOn(getHost().events, "subscribe").mockImplementation((event, handler) => {
+    const handlers = state.handlers.get(event) ?? new Set();
+    handlers.add(handler);
+    state.handlers.set(event, handlers);
+    return () => handlers.delete(handler);
+  });
   mockObjectUrls();
   state.entityStore.messageTranslation.translate.mockReset().mockResolvedValue({ language: "es", source: "messages", text: "Hola, gracias" });
   await i18n.changeLanguage("zh");
@@ -173,7 +172,7 @@ beforeEach(async () => {
   Element.prototype.scrollTo = vi.fn();
   Element.prototype.scrollIntoView = vi.fn();
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("Sample card review result", () => {
   const reviewed = {

@@ -16,7 +16,7 @@ import {
   TkButton,
   TkField,
 } from "../../../components/design-system/index.js";
-import { switchToMember } from "../../../api/account-switch.js";
+import { getHost } from "../../../host/index.js";
 import { useToast } from "../../../components/Toast.js";
 
 const MEMBER_BATCH_SIZE = 5;
@@ -41,7 +41,7 @@ export function SubAccountsSection() {
   async function loginAsMember(memberId: string) {
     setSwitchingMemberId(memberId);
     try {
-      await switchToMember(memberId);
+      await getHost().auth.switchToMember(memberId);
     } catch (error) {
       const code = (error as { code?: string } | null)?.code;
       const message =

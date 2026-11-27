@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { panelEventBus } from "../../../lib/event-bus.js";
+import { getHost } from "../../../host/index.js";
 import { useToast } from "../../../components/Toast.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { OAUTH_TIMEOUT_MS, hasUpgradeRequired } from "../tiktok-shops-utils.js";
@@ -51,7 +51,7 @@ export function useTikTokOAuthFlow({ setUpgradePrompt }: UseTikTokOAuthFlowParam
   }
 
   function startOAuthSSEListener() {
-    unsubscribeOAuthRef.current = panelEventBus.subscribe("oauth-complete", (raw) => {
+    unsubscribeOAuthRef.current = getHost().events.subscribe("oauth-complete", (raw) => {
       const data = raw as { shops?: unknown[] };
       if (!Array.isArray(data.shops) || data.shops.length === 0) {
         cleanupOAuthWait();

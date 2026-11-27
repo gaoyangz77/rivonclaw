@@ -7,7 +7,7 @@ import { Select } from "../../../components/inputs/Select.js";
 import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
 import { useToast } from "../../../components/Toast.js";
 import { RefreshIcon } from "../../../components/icons.js";
-import { panelEventBus } from "../../../lib/event-bus.js";
+import { getHost } from "../../../host/index.js";
 import {
   CREATE_WHATSAPP_ACCOUNT_BINDING_MUTATION,
   ASSIGN_AFFILIATE_WHATSAPP_ACCOUNT_MUTATION,
@@ -185,7 +185,7 @@ export function AffiliateWhatsAppAccountPanel({
   }, [activeQr, showToast]);
 
   useEffect(() => {
-    return panelEventBus.subscribe("affiliate-outreach-account-connected", (raw) => {
+    return getHost().events.subscribe("affiliate-outreach-account-connected", (raw) => {
       const event = raw as { channel?: unknown; accountId?: unknown };
       if (event.channel !== "WHATSAPP") return;
       const accountId = typeof event.accountId === "string" ? event.accountId : undefined;

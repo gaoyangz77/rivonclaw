@@ -1,7 +1,7 @@
 import { applySnapshot, applyPatch, types, type Instance, type IJsonPatch } from "mobx-state-tree";
 import { RuntimeStatusStoreModel } from "@rivonclaw/core/models";
 import { AppSettingsModel } from "./models/AppSettingsModel.js";
-import { panelEventBus } from "../lib/event-bus.js";
+import { getHost } from "../host/index.js";
 
 /**
  * Panel-specific RuntimeStatusStore that overrides `appSettings` with the
@@ -50,14 +50,14 @@ let unsubscribePatch: (() => void) | null = null;
 export function connectRuntimeStatusStore(): void {
   disconnectRuntimeStatusStore();
 
-  unsubscribeSnapshot = panelEventBus.subscribe("status-snapshot", (data) => {
+  unsubscribeSnapshot = getHost().events.subscribe("status-snapshot", (data) => {
     applySnapshot(runtimeStatusStore, data as Parameters<typeof applySnapshot>[1]);
     if (!runtimeStatusStore.snapshotReceived) {
       runtimeStatusStore.markSnapshotReceived();
     }
   });
 
-  unsubscribePatch = panelEventBus.subscribe("status-patch", (data) => {
+  unsubscribePatch = getHost().events.subscribe("status-patch", (data) => {
     applyPatch(runtimeStatusStore, data as IJsonPatch[]);
   });
 }

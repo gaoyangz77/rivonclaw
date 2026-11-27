@@ -10,7 +10,7 @@ import {
   type UpdateDownloadStatus,
   type UpdateInfo,
 } from "../../api/index.js";
-import { panelEventBus } from "../../lib/event-bus.js";
+import { getHost } from "../../host/index.js";
 
 interface UpdateBannerProps {
   onCurrentVersionChange: (version: string) => void;
@@ -42,7 +42,7 @@ export function UpdateBanner({ onCurrentVersionChange }: UpdateBannerProps) {
     const retryTimer = window.setTimeout(check, 20_000);
     document.addEventListener("visibilitychange", onVisibilityChange);
 
-    const unsubscribeUpdate = panelEventBus.subscribe("update-available", (raw) => {
+    const unsubscribeUpdate = getHost().events.subscribe("update-available", (raw) => {
       const data = raw as UpdateInfo & { currentVersion?: string };
       if (data.currentVersion) onCurrentVersionChange(data.currentVersion);
       setUpdateInfo(data.updateAvailable ? data : null);

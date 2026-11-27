@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
-import { panelEventBus } from "../../lib/event-bus.js";
+import { getHost } from "../../host/index.js";
 import { retryFeishuCallbackSetup, type ChannelAccountSnapshot } from "../../api/index.js";
 import { ChevronRightIcon } from "../../components/icons.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
@@ -148,7 +148,7 @@ export function ChannelAccountsTable({
   useEffect(() => {
     if (!workspaceTab.active || expandedAccounts.size === 0) return;
 
-    const unsubscribe = panelEventBus.subscribe("recipient-added", (raw) => {
+    const unsubscribe = getHost().events.subscribe("recipient-added", (raw) => {
       const { channelId, accountId } = raw as { channelId: string; accountId?: string };
       // Find expanded composite keys matching this channelId/accountId and refresh each.
       // Older events do not carry accountId, so fall back to channel-wide refresh.

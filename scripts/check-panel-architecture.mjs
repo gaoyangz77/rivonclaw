@@ -53,6 +53,7 @@ const SHARED_LAYERS = new Set([
   "tutorial",
   "i18n",
   "hooks",
+  "host",
 ]);
 
 const IMPORT_FROM_RE = /from\s+["']([^"']+)["']/g;

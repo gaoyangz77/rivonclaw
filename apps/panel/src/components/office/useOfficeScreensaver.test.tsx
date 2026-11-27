@@ -4,13 +4,15 @@ import { useOfficeScreensaver } from "./useOfficeScreensaver.js";
 
 const listeners = new Set<(payload: unknown) => void>();
 
-vi.mock("../../lib/event-bus.js", () => ({
-  panelEventBus: {
-    subscribe: (_event: string, handler: (payload: unknown) => void) => {
-      listeners.add(handler);
-      return () => listeners.delete(handler);
+vi.mock("../../host/index.js", () => ({
+  getHost: () => ({
+    events: {
+      subscribe: (_event: string, handler: (payload: unknown) => void) => {
+        listeners.add(handler);
+        return () => listeners.delete(handler);
+      },
     },
-  },
+  }),
 }));
 
 function setIdle(idle: boolean) {

@@ -1,5 +1,7 @@
 import { afterEach } from "vitest";
 import { cleanup } from "@testing-library/react";
+import { installHost } from "../src/host/index.js";
+import { createDesktopHost } from "../src/host/desktop/desktop-host.js";
 
 /**
  * Unmount every tree React Testing Library rendered, after every test.
@@ -33,8 +35,8 @@ afterEach(cleanup);
  * keeps the bus honest - it should fail loudly in a real browser that cannot
  * open the stream, and only the test environment needs the stand-in.
  *
- * The stub never emits. A test that needs events builds its own bus with
- * `createPanelEventBus(fakeFactory)`.
+ * The stub never emits. A test that needs events builds its own stream with
+ * `createDesktopEventStream(fakeFactory)`, or installs its own host.
  */
 class StubEventSource {
   static readonly CONNECTING = 0;
@@ -72,3 +74,8 @@ if (typeof globalThis.ResizeObserver === "undefined") {
     disconnect() {}
   };
 }
+
+// Every Panel module reaches transport, events and auth through the installed
+// host. Tests run against the Desktop host; its event stream opens no
+// connection until something subscribes, and then only the stub above.
+installHost(createDesktopHost());

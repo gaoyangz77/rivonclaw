@@ -1,5 +1,5 @@
-import { ApolloClient, InMemoryCache, createHttpLink } from "@apollo/client";
-import { API } from "@rivonclaw/core/api-contract";
+import { ApolloClient, InMemoryCache } from "@apollo/client";
+import { getHost } from "../host/index.js";
 import { createAffiliatePermissionErrorLink } from "./affiliate-permission-error-link.js";
 import { createCategoryRefreshLink } from "./product-categories-query.js";
 
@@ -23,7 +23,7 @@ let _client: ApolloClient | null = null;
 export function createApolloClient() {
   _client = new ApolloClient({
     link: createAffiliatePermissionErrorLink().concat(createCategoryRefreshLink())
-      .concat(createHttpLink({ uri: API["cloud.graphql"].path })),
+      .concat(getHost().graphql.createLink()),
     cache: new InMemoryCache({
       typePolicies: {
         // Stage IDs are stable inside a shop/configuration, but copied experiment

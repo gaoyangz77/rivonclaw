@@ -375,7 +375,7 @@ export class ChatGatewayController {
       this.client = client;
       client.start();
 
-      // Connect SSE bridge — now routed through the shared panelEventBus
+      // Connect SSE bridge — now routed through the host event stream
       // singleton, so no URL is needed here.
       const bridge = new ChatEventBridge({
         onAction: (action) => {

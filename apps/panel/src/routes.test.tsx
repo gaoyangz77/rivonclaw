@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { GQL } from "@rivonclaw/core";
-import { ROUTES, resolveLandingPath, FALLBACK_LANDING_PATH } from "./routes.js";
+import {
+  ROUTES,
+  resolveLandingPath,
+  FALLBACK_LANDING_PATH,
+  isRouteAvailableOnHost,
+  isRoutableOnHost,
+} from "./routes.js";
+import { HOST_CAPABILITIES } from "./host/host-adapter.js";
+import { getHost, installHost } from "./host/index.js";
+import type { HostAdapter } from "./host/index.js";
 import { canSeeRoute } from "./lib/permission-scope.js";
 import { selectSidebarRoutes } from "./layout/sidebar-navigation.js";
 
@@ -293,5 +302,33 @@ describe("permission-scope navigation", () => {
     }
     expect(resolveLandingPath([])).toBe(FALLBACK_LANDING_PATH);
     expect(paths.has(FALLBACK_LANDING_PATH)).toBe(true);
+  });
+});
+
+describe("host requirements", () => {
+  it("names only known capabilities", () => {
+    for (const route of ROUTES) {
+      for (const capability of route.requires) expect(HOST_CAPABILITIES).toContain(capability);
+    }
+  });
+
+  it("keeps every route available on the Desktop host", () => {
+    for (const route of ROUTES) expect(isRouteAvailableOnHost(route)).toBe(true);
+    expect(isRoutableOnHost("/commerce/affiliate/campaigns")).toBe(true);
+  });
+
+  it("hides a route from a host that lacks its capability, and refuses its URL", () => {
+    const desktop = getHost();
+    try {
+      installHost({ ...desktop, capabilities: new Set() } as HostAdapter);
+      expect(isRoutableOnHost("/connections/channels")).toBe(false);
+      expect(isRoutableOnHost("/")).toBe(false);
+      expect(isRoutableOnHost("/commerce/affiliate/campaigns")).toBe(true);
+      // Internal and unknown paths are never routable.
+      expect(isRoutableOnHost("/welcome")).toBe(false);
+      expect(isRoutableOnHost("/nope")).toBe(false);
+    } finally {
+      installHost(desktop);
+    }
   });
 });

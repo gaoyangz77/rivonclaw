@@ -22,7 +22,7 @@ const bus = vi.hoisted(() => ({
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
-vi.mock("../../lib/event-bus.js", () => ({ panelEventBus: bus }));
+vi.mock("../../host/index.js", () => ({ getHost: () => ({ events: bus }) }));
 vi.mock("@rivonclaw/pixel-agents-bridge", () => ({
   // A `function`, not an arrow: the overlay calls `new OfficeHost(...)`.
   OfficeHost: vi.fn(function OfficeHostMock() {

@@ -22,7 +22,7 @@ import {
   TagIcon,
   RefreshIcon,
 } from "../../components/icons.js";
-import { panelEventBus } from "../../lib/event-bus.js";
+import { getHost } from "../../host/index.js";
 import panelI18n from "../../i18n/index.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
 import {
@@ -376,7 +376,7 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
     // Counts cannot be adjusted locally (an off-page row's old category is unknown), so a burst
     // of events triggers a single trailing refetch.
     let countsTimer: ReturnType<typeof setTimeout> | null = null;
-    const unsubscribe = panelEventBus.subscribe("cs-conversation-changed", (raw) => {
+    const unsubscribe = getHost().events.subscribe("cs-conversation-changed", (raw) => {
       workspace.ingestConversationChanged(raw);
       void workspace.refreshMessagesAfterConversationChanged(raw, i18n.language);
       if (countsTimer) clearTimeout(countsTimer);

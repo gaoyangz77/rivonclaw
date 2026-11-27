@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { Layout } from "./layout/Layout.js";
-import { VALID_PATHS, ROUTE_MAP } from "./routes.js";
+import { ROUTE_MAP, isRoutableOnHost } from "./routes.js";
 import { WhatsNewModal } from "./components/modals/WhatsNewModal.js";
 import { TelemetryConsentModal } from "./components/modals/TelemetryConsentModal.js";
 import {
@@ -20,7 +20,7 @@ import {
   updateSettings,
 } from "./api/index.js";
 import type { ChangelogEntry } from "./api/index.js";
-import { fetchJson } from "./api/client.js";
+import { getHost } from "./host/index.js";
 import { entityStore } from "./store/entity-store.js";
 import { useRuntimeStatus } from "./store/RuntimeStatusProvider.js";
 import { getClient } from "./api/apollo-client.js";
@@ -28,7 +28,6 @@ import {
   ACTIVE_ANNOUNCEMENTS_QUERY,
   RECORD_ANNOUNCEMENT_EVENT_MUTATION,
 } from "./api/announcement-queries.js";
-import { API, clientPath } from "@rivonclaw/core/api-contract";
 import { normalizeLanguageCode } from "./i18n/languages.js";
 import { canSeeRoute } from "./lib/permission-scope.js";
 import { useWorkspaceTabs } from "./hooks/useWorkspaceTabs.js";
@@ -42,7 +41,7 @@ import { useProductCategoryWarmup } from "./hooks/useProductCategoryWarmup.js";
 
 /** Normalise a browser pathname to one of our known routes, defaulting to "/" */
 function resolveRoute(pathname: string): string {
-  return VALID_PATHS.has(pathname) ? pathname : "/";
+  return isRoutableOnHost(pathname) ? pathname : "/";
 }
 
 function pageNameFromRoute(path: string): string {
@@ -91,8 +90,7 @@ export const App = observer(function App() {
       if (!voluntaryLogoutRef.current) lostDraftsRef.current = dirtyTabsRef.current.size;
       entityStore.clearAuth();
     };
-    window.addEventListener("rivonclaw:auth-expired", handler);
-    return () => window.removeEventListener("rivonclaw:auth-expired", handler);
+    return getHost().auth.onSessionExpired(handler);
   }, []);
 
   // Primitives, not the MST node: the user node is replaced on every `me`
@@ -280,9 +278,7 @@ export const App = observer(function App() {
         return;
       }
 
-      const session = await fetchJson<{ authenticated: boolean; tokenPresent?: boolean }>(
-        clientPath(API["auth.session"]),
-      ).catch(() => null);
+      const session = await getHost().auth.getSession().catch(() => null);
       if (session?.authenticated || session?.tokenPresent) {
         updateSettings({ [WELCOME_PAGE_COMPLETED_KEY]: "1" }).catch(() => {});
         setShowWelcome(false);

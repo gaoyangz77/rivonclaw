@@ -16,7 +16,7 @@
  */
 
 import type { RunAction } from "./run-tracker.js";
-import { panelEventBus } from "../../lib/event-bus.js";
+import { getHost } from "../../host/index.js";
 
 // ---------------------------------------------------------------------------
 // SSE payload types
@@ -70,7 +70,7 @@ export class ChatEventBridge {
     if (this.unsubscribers.length > 0) return;
 
     this.unsubscribers.push(
-      panelEventBus.subscribe("inbound", (raw) => {
+      getHost().events.subscribe("inbound", (raw) => {
         const data = raw as InboundSSEPayload;
         this.callbacks.onUserMessage({
           text: data.message,
@@ -87,7 +87,7 @@ export class ChatEventBridge {
     );
 
     this.unsubscribers.push(
-      panelEventBus.subscribe("session-reset", (raw) => {
+      getHost().events.subscribe("session-reset", (raw) => {
         const data = raw as { sessionKey?: string };
         if (data.sessionKey) {
           this.callbacks.onSessionReset?.(data.sessionKey);
@@ -96,7 +96,7 @@ export class ChatEventBridge {
     );
 
     this.unsubscribers.push(
-      panelEventBus.subscribe("chat-mirror", (raw) => {
+      getHost().events.subscribe("chat-mirror", (raw) => {
         this.callbacks.onMirrorEvent?.(raw as ChatMirrorSSEPayload);
       }),
     );

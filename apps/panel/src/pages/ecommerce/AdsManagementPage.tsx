@@ -26,7 +26,7 @@ import {
 } from "../../components/icons.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useToast } from "../../components/Toast.js";
-import { panelEventBus } from "../../lib/event-bus.js";
+import { getHost } from "../../host/index.js";
 import { OAUTH_TIMEOUT_MS } from "./ecommerce-utils.js";
 import { readinessBadgeTone, resolveShopAdsReadiness } from "./ads-readiness.js";
 import { formatShopRegionLabel } from "../../lib/ecommerce-labels.js";
@@ -294,7 +294,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
     if (unsubscribeAdsOAuthRef.current) {
       unsubscribeAdsOAuthRef.current();
     }
-    unsubscribeAdsOAuthRef.current = panelEventBus.subscribe("ads-oauth-complete", (raw) => {
+    unsubscribeAdsOAuthRef.current = getHost().events.subscribe("ads-oauth-complete", (raw) => {
       if (oauthCompletionHandledRef.current) return;
       const payload = raw as { advertiserCount?: unknown };
       const advertiserCount =
