@@ -553,6 +553,7 @@ const en = {
     invitationTextContainsUrl: "The invitation text cannot contain links.",
     templateUnsupportedVariable:
       "The first message contains an unsupported variable. Use only the variables offered in the editor.",
+    templateQuotaExhausted: "The cloud AI quota is used up, so a message draft can't be generated right now. You can still write the message yourself.",
     aiTemplatePlaceholderMissing:
       "The AI-generated message is missing the creator-name placeholder. Generate it again or add the placeholder back.",
     authRequired: "Your sign-in has expired. Sign in again and retry.",
@@ -1212,6 +1213,7 @@ const zh = {
     invitationTextContainsHtml: "邀约文字不能包含 HTML 标签。",
     invitationTextContainsUrl: "邀约文字不能包含链接。",
     templateUnsupportedVariable: "首信里有不支持的变量，请只使用编辑器提供的变量。",
+    templateQuotaExhausted: "云端 AI 额度已用完，暂时无法生成消息草稿。你仍可自己撰写消息。",
     aiTemplatePlaceholderMissing: "AI 生成的首信缺少达人名字占位符，请重新生成或手动补上。",
     authRequired: "登录已过期，请重新登录后再试。",
     dailyCreatorOutreachLimitRequired: "请先在店铺设置中配置每日自动联系达人上限，再开启推广计划。",
@@ -1633,6 +1635,7 @@ const operationalCopy = {
       invitationTextContainsUrl: "Der Einladungstext darf keine Links enthalten.",
       templateUnsupportedVariable:
         "Die erste Nachricht enthält eine nicht unterstützte Variable. Verwende nur die Variablen aus dem Editor.",
+      templateQuotaExhausted: "Das Cloud-KI-Kontingent ist aufgebraucht, daher kann gerade kein Nachrichtenentwurf erstellt werden. Sie können die Nachricht weiterhin selbst schreiben.",
       aiTemplatePlaceholderMissing:
         "In der KI-Nachricht fehlt der Platzhalter für den Creator-Namen. Erstelle sie neu oder füge ihn wieder ein.",
       authRequired:
@@ -1925,6 +1928,7 @@ const operationalCopy = {
       invitationTextContainsUrl: "El texto de invitación no puede contener enlaces.",
       templateUnsupportedVariable:
         "El primer mensaje contiene una variable no compatible. Usa solo las variables que ofrece el editor.",
+      templateQuotaExhausted: "La cuota de IA en la nube se ha agotado, por lo que ahora no se puede generar un borrador del mensaje. Aún puedes escribir el mensaje tú mismo.",
       aiTemplatePlaceholderMissing:
         "Al mensaje generado por IA le falta el marcador del nombre del creador. Vuelve a generarlo o añádelo de nuevo.",
       authRequired: "Tu sesión ha caducado. Vuelve a iniciar sesión e inténtalo de nuevo.",
@@ -2216,6 +2220,7 @@ const operationalCopy = {
       invitationTextContainsUrl: "Le texte d'invitation ne peut pas contenir de liens.",
       templateUnsupportedVariable:
         "Le premier message contient une variable non prise en charge. Utilisez uniquement les variables proposées par l’éditeur.",
+      templateQuotaExhausted: "Le quota d'IA dans le cloud est épuisé : impossible de générer un brouillon de message pour le moment. Vous pouvez toujours rédiger le message vous-même.",
       aiTemplatePlaceholderMissing:
         "Le message généré par l’IA ne contient plus l’espace réservé du nom du créateur. Générez-le de nouveau ou rajoutez-le.",
       authRequired: "Votre session a expiré. Reconnectez-vous puis réessayez.",
@@ -2503,6 +2508,7 @@ const operationalCopy = {
       invitationTextContainsUrl: "Teks undangan tidak boleh berisi tautan.",
       templateUnsupportedVariable:
         "Pesan pertama berisi variabel yang tidak didukung. Gunakan hanya variabel yang disediakan editor.",
+      templateQuotaExhausted: "Kuota AI cloud sudah habis, sehingga draf pesan tidak dapat dibuat saat ini. Anda tetap dapat menulis pesan sendiri.",
       aiTemplatePlaceholderMissing:
         "Pesan buatan AI kehilangan placeholder nama kreator. Buat ulang atau tambahkan kembali.",
       authRequired: "Sesi masuk Anda sudah kedaluwarsa. Masuk lagi lalu coba kembali.",
@@ -2793,6 +2799,7 @@ const operationalCopy = {
       invitationTextContainsUrl: "Il testo dell'invito non può contenere link.",
       templateUnsupportedVariable:
         "Il primo messaggio contiene una variabile non supportata. Usa solo le variabili offerte dall’editor.",
+      templateQuotaExhausted: "La quota di IA nel cloud è esaurita, quindi al momento non è possibile generare una bozza del messaggio. Puoi comunque scrivere il messaggio da solo.",
       aiTemplatePlaceholderMissing:
         "Nel messaggio generato dall’IA manca il segnaposto del nome del creator. Generalo di nuovo o reinseriscilo.",
       authRequired: "La sessione è scaduta. Accedi di nuovo e riprova.",
@@ -3058,6 +3065,7 @@ const operationalCopy = {
       invitationTextContainsHtml: "ข้อความเชิญต้องไม่มีแท็ก HTML",
       invitationTextContainsUrl: "ข้อความเชิญต้องไม่มีลิงก์",
       templateUnsupportedVariable: "ข้อความแรกมีตัวแปรที่ไม่รองรับ โปรดใช้เฉพาะตัวแปรที่ตัวแก้ไขมีให้",
+      templateQuotaExhausted: "โควตา AI บนคลาวด์ถูกใช้หมดแล้ว จึงยังสร้างร่างข้อความไม่ได้ในตอนนี้ คุณยังเขียนข้อความเองได้",
       aiTemplatePlaceholderMissing: "ข้อความที่ AI สร้างไม่มีตัวแทนชื่อครีเอเตอร์ โปรดสร้างใหม่หรือเพิ่มกลับเข้าไป",
       authRequired: "การเข้าสู่ระบบหมดอายุแล้ว โปรดเข้าสู่ระบบอีกครั้งแล้วลองใหม่",
       modelNotReady: "โหมด AI ยังไม่พร้อมสำหรับผู้ขายรายนี้ กรุณาใช้โหมดกฎของ Creator Marketplace",

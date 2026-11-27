@@ -1122,6 +1122,23 @@ export const GENERATE_AFFILIATE_CAMPAIGN_TEMPLATE_MUTATION = gql`
   }
 `;
 
+/**
+ * Backend one-shot (ADR-123): product preview, model call and Campaign
+ * validation in one call, on the Desktop host and a web host alike.
+ */
+export const SUGGEST_AFFILIATE_CAMPAIGN_MESSAGE_TEMPLATE_MUTATION = gql`
+  mutation SuggestAffiliateCampaignMessageTemplate(
+    $input: SuggestAffiliateCampaignMessageTemplateInput!
+  ) {
+    suggestAffiliateCampaignMessageTemplate(input: $input) {
+      text
+      source
+      productShortName
+      collaborationInvitationText
+    }
+  }
+`;
+
 export const AFFILIATE_CAMPAIGN_PRODUCT_PREVIEW_QUERY = gql`
   query AffiliateCampaignProductPreview($input: ResolveAffiliateCampaignProductInput!) {
     affiliateCampaignProductPreview(input: $input) {
