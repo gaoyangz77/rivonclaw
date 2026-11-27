@@ -25,8 +25,6 @@ export interface CustomerServiceShopContextProjection {
   shopName: string;
   platform: string;
   systemPrompt: string;
-  csProviderOverride?: string | null;
-  csModelOverride?: string | null;
   runProfileId?: string | null;
 }
 
@@ -123,7 +121,6 @@ function preserveMissingShopServiceFields(
 /** Initialize the LLM Provider Manager environment. Called once during startup in main.ts. */
 export function initLLMProviderManagerEnv(env: LLMProviderManagerEnv): void {
   rootStore.llmManager.setEnv(env);
-  rootStore.llmManager.initFromStorage();
 }
 
 /** Initialize the Channel Manager environment. Called once during startup in main.ts. */
@@ -156,8 +153,6 @@ const DesktopRootStoreModel = RootStoreModel.views((self) => ({
         shopName: shop.shopName ?? platformShopId,
         platform: normalizePlatform(shop.platform),
         systemPrompt: assembledPrompt,
-        csProviderOverride: shop.services?.customerService?.csProviderOverride ?? undefined,
-        csModelOverride: shop.services?.customerService?.csModelOverride ?? undefined,
         runProfileId: shop.services?.customerService?.runProfileId ?? undefined,
       });
     }

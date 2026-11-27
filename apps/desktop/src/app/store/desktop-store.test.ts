@@ -15,21 +15,79 @@ import {
 
 describe("ownership mutation → Desktop MST contract", () => {
   beforeEach(() => rootStore.clearCloudEntities());
-  const schema = buildSchema(readFileSync(resolve(process.cwd(), "../../server/backend/schema.graphql"), "utf8"));
+  const schema = buildSchema(
+    readFileSync(resolve(process.cwd(), "../../server/backend/schema.graphql"), "utf8"),
+  );
   it.each([
-    ["claimAffiliateCreatorRelationship",CLAIM_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION,"new-bd"],
-    ["releaseAffiliateCreatorRelationship",RELEASE_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION,null],
-    ["assignAffiliateBusinessDeveloper",ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,"new-bd"],
-  ] as const)("hydrates %s on a cold and warm store without missing creatorId or erasing active work",async (field,document,owner)=>{
-    const now="2026-10-16T11:16:29.360Z";
-    const entity={id:"relationship",userId:"user",creatorId:"creator",businessDeveloperId:owner,operationalConfigRevision:2,manualTagIds:["tag"],manualTags:[],highestSampleTier:null,shopStates:[],agendaItems:[],workSummary:{agentRequiredCount:0,staffRequiredCount:0,externalWaitingCount:0},committedCheckpointId:"checkpoint",committedEventCursor:4,lifecycleEventSequence:5,activeRunId:"frozen-run",activeRunBusinessDeveloperId:"original-bd",activeRunBusinessDeveloperConfigRevision:3,stateUpdatedAt:now,activeAffiliateCollaborationIds:["collaboration"],activeSampleApplicationRecordIds:["sample"],blocked:false,blockedShopIds:[],createdAt:now,updatedAt:now,sellerProvidedUid:"seller-uid",sellerNote:"Preserve this note"};
-    const response=await execute({schema,document,rootValue:{[field]:()=>entity},variableValues:{creatorRelationshipId:"relationship",expectedBusinessDeveloperId:"original-bd",input:{creatorRelationshipId:"relationship",businessDeveloperId:"new-bd"}}});
-    expect(response.errors).toBeUndefined();
-    expect(response.data?.[field]).toMatchObject({__typename:"AffiliateCreatorRelationship",creatorId:"creator"});
-    await ingestAndCollect(response.data!);
-    await ingestAndCollect(response.data!);
-    expect(getSnapshot(rootStore.affiliateWorkspace.getCreatorRelationship("relationship")!)).toMatchObject({creatorId:"creator",businessDeveloperId:owner,operationalConfigRevision:2,committedCheckpointId:"checkpoint",activeRunId:"frozen-run",activeRunBusinessDeveloperId:"original-bd",manualTagIds:["tag"],activeAffiliateCollaborationIds:["collaboration"],activeSampleApplicationRecordIds:["sample"],sellerProvidedUid:"seller-uid",sellerNote:"Preserve this note"});
-  });
+    ["claimAffiliateCreatorRelationship", CLAIM_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION, "new-bd"],
+    ["releaseAffiliateCreatorRelationship", RELEASE_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION, null],
+    ["assignAffiliateBusinessDeveloper", ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION, "new-bd"],
+  ] as const)(
+    "hydrates %s on a cold and warm store without missing creatorId or erasing active work",
+    async (field, document, owner) => {
+      const now = "2026-10-16T11:16:29.360Z";
+      const entity = {
+        id: "relationship",
+        userId: "user",
+        creatorId: "creator",
+        businessDeveloperId: owner,
+        operationalConfigRevision: 2,
+        manualTagIds: ["tag"],
+        manualTags: [],
+        highestSampleTier: null,
+        shopStates: [],
+        agendaItems: [],
+        workSummary: { agentRequiredCount: 0, staffRequiredCount: 0, externalWaitingCount: 0 },
+        committedCheckpointId: "checkpoint",
+        committedEventCursor: 4,
+        lifecycleEventSequence: 5,
+        activeRunId: "frozen-run",
+        activeRunBusinessDeveloperId: "original-bd",
+        activeRunBusinessDeveloperConfigRevision: 3,
+        stateUpdatedAt: now,
+        activeAffiliateCollaborationIds: ["collaboration"],
+        activeSampleApplicationRecordIds: ["sample"],
+        blocked: false,
+        blockedShopIds: [],
+        createdAt: now,
+        updatedAt: now,
+        sellerProvidedUid: "seller-uid",
+        sellerNote: "Preserve this note",
+      };
+      const response = await execute({
+        schema,
+        document,
+        rootValue: { [field]: () => entity },
+        variableValues: {
+          creatorRelationshipId: "relationship",
+          expectedBusinessDeveloperId: "original-bd",
+          input: { creatorRelationshipId: "relationship", businessDeveloperId: "new-bd" },
+        },
+      });
+      expect(response.errors).toBeUndefined();
+      expect(response.data?.[field]).toMatchObject({
+        __typename: "AffiliateCreatorRelationship",
+        creatorId: "creator",
+      });
+      await ingestAndCollect(response.data!);
+      await ingestAndCollect(response.data!);
+      expect(
+        getSnapshot(rootStore.affiliateWorkspace.getCreatorRelationship("relationship")!),
+      ).toMatchObject({
+        creatorId: "creator",
+        businessDeveloperId: owner,
+        operationalConfigRevision: 2,
+        committedCheckpointId: "checkpoint",
+        activeRunId: "frozen-run",
+        activeRunBusinessDeveloperId: "original-bd",
+        manualTagIds: ["tag"],
+        activeAffiliateCollaborationIds: ["collaboration"],
+        activeSampleApplicationRecordIds: ["sample"],
+        sellerProvidedUid: "seller-uid",
+        sellerNote: "Preserve this note",
+      });
+    },
+  );
 });
 
 function shop(id: string, name: string) {
@@ -73,8 +131,6 @@ function customerServiceShop(id: string, name: string) {
         businessPrompt: "original prompt",
         runProfileId: "CUSTOMER_SERVICE",
         csDeviceId: "device-1",
-        csProviderOverride: null,
-        csModelOverride: null,
         escalationChannelId: null,
         escalationRecipientId: null,
         platformSystemPrompt: "platform prompt",
@@ -128,8 +184,6 @@ describe("DesktopRootStore shop ingestion", () => {
             businessPrompt: "updated prompt",
             runProfileId: "CUSTOMER_SERVICE",
             csDeviceId: "device-1",
-            csProviderOverride: null,
-            csModelOverride: null,
             escalationChannelId: null,
             escalationRecipientId: null,
             platformSystemPrompt: "platform prompt",
@@ -179,24 +233,59 @@ describe("DesktopRootStore shop ingestion", () => {
 
   it("keeps shop context for a BD on a different device without changing dispatch ownership", () => {
     const template = customerServiceShop("shop-1", "BD shop");
-    const enabled = { ...template, services: { ...template.services,
-      affiliateService: { ...template.services.affiliateService, enabled: true, deviceId: "shop-device" },
-    } };
-    rootStore.replaceShopsFromGraphQL([enabled, customerServiceShop("disabled", "Disabled")], "test:bd-device");
+    const enabled = {
+      ...template,
+      services: {
+        ...template.services,
+        affiliateService: {
+          ...template.services.affiliateService,
+          enabled: true,
+          deviceId: "shop-device",
+        },
+      },
+    };
+    rootStore.replaceShopsFromGraphQL(
+      [enabled, customerServiceShop("disabled", "Disabled")],
+      "test:bd-device",
+    );
     const contexts = rootStore.getAffiliateShopContextsForDevice("bd-device");
     expect(contexts.map((context) => context.id)).toEqual(["shop-1"]);
     expect(rootStore.getAffiliateShopContextsForDevice(null)).toEqual([]);
 
-    const item = { creatorRelationship: { workSummary: {
-      businessDeveloperId: "bd-1", businessDeveloperDeviceId: "bd-device",
-    } }, agentWorkingAgendaItems: [{ shopId: "shop-1" }] } as unknown as AffiliateWorkItemPayload;
+    const item = {
+      creatorRelationship: {
+        workSummary: {
+          businessDeveloperId: "bd-1",
+          businessDeveloperDeviceId: "bd-device",
+        },
+      },
+      agentWorkingAgendaItems: [{ shopId: "shop-1" }],
+    } as unknown as AffiliateWorkItemPayload;
     const lookup = () => ({ enabled: true, deviceId: "shop-device" });
-    expect(computeAffiliateWorkItemDeviceTarget(item, lookup)).toEqual({ kind: "BUSINESS_DEVELOPER", deviceId: "bd-device" });
-    expect(computeAffiliateWorkItemDeviceTarget({ ...item, creatorRelationship: { workSummary: {} } } as unknown as AffiliateWorkItemPayload, lookup))
-      .toEqual({ kind: "SHOP", shopId: "shop-1", deviceId: "shop-device" });
-    expect(computeAffiliateWorkItemDeviceTarget({ ...item, creatorRelationship: {
-      workSummary: { businessDeveloperId: "bd-1", businessDeveloperDeviceId: null },
-    } } as unknown as AffiliateWorkItemPayload, lookup)).toEqual({ kind: "BUSINESS_DEVELOPER_WITHOUT_DEVICE" });
+    expect(computeAffiliateWorkItemDeviceTarget(item, lookup)).toEqual({
+      kind: "BUSINESS_DEVELOPER",
+      deviceId: "bd-device",
+    });
+    expect(
+      computeAffiliateWorkItemDeviceTarget(
+        {
+          ...item,
+          creatorRelationship: { workSummary: {} },
+        } as unknown as AffiliateWorkItemPayload,
+        lookup,
+      ),
+    ).toEqual({ kind: "SHOP", shopId: "shop-1", deviceId: "shop-device" });
+    expect(
+      computeAffiliateWorkItemDeviceTarget(
+        {
+          ...item,
+          creatorRelationship: {
+            workSummary: { businessDeveloperId: "bd-1", businessDeveloperDeviceId: null },
+          },
+        } as unknown as AffiliateWorkItemPayload,
+        lookup,
+      ),
+    ).toEqual({ kind: "BUSINESS_DEVELOPER_WITHOUT_DEVICE" });
   });
 });
 
@@ -296,20 +385,44 @@ describe("DesktopRootStore payment ingestion", () => {
 
 describe("DesktopRootStore billing overview ingestion", () => {
   beforeEach(() => rootStore.clearCloudEntities());
-  const schema = buildSchema(readFileSync(resolve(process.cwd(), "../../server/backend/schema.graphql"), "utf8"));
+  const schema = buildSchema(
+    readFileSync(resolve(process.cwd(), "../../server/backend/schema.graphql"), "utf8"),
+  );
 
   function entitlement(allowed: boolean, usedPercent: number) {
     return {
-      scopeType: "ACCOUNT", scopeId: "user", coverageScopeType: null, coverageScopeId: null,
-      product: "LLM_USAGE", allowed, code: allowed ? "ALLOWED" : "QUOTA_EXCEEDED", source: null,
-      subscription: null, validUntil: null,
-      usage: [{ metric: "LLM_TOKEN", window: "WEEK", usedPercent, remainingPercent: 100 - usedPercent, refreshAt: "2026-10-30T00:00:00.000Z" }],
+      scopeType: "ACCOUNT",
+      scopeId: "user",
+      coverageScopeType: null,
+      coverageScopeId: null,
+      product: "LLM_USAGE",
+      allowed,
+      code: allowed ? "ALLOWED" : "QUOTA_EXCEEDED",
+      source: null,
+      subscription: null,
+      validUntil: null,
+      usage: [
+        {
+          metric: "LLM_TOKEN",
+          window: "WEEK",
+          usedPercent,
+          remainingPercent: 100 - usedPercent,
+          refreshAt: "2026-10-30T00:00:00.000Z",
+        },
+      ],
     };
   }
 
   it("keeps the loaded shop rows when the quota refresh selects only accountLlm", async () => {
-    const { BILLING_OVERVIEW_QUERY, ACCOUNT_LLM_BILLING_QUERY } = await import("../../../../panel/src/api/billing-queries.js");
-    const shopStatus = { ...entitlement(true, 0), scopeType: "SHOP", scopeId: "shop-1", product: "ECOM_INVENTORY", usage: [] };
+    const { BILLING_OVERVIEW_QUERY, ACCOUNT_LLM_BILLING_QUERY } =
+      await import("../../../../panel/src/api/billing-queries.js");
+    const shopStatus = {
+      ...entitlement(true, 0),
+      scopeType: "SHOP",
+      scopeId: "shop-1",
+      product: "ECOM_INVENTORY",
+      usage: [],
+    };
     const full = await execute({
       schema,
       document: BILLING_OVERVIEW_QUERY,
@@ -317,7 +430,16 @@ describe("DesktopRootStore billing overview ingestion", () => {
         billingOverview: () => ({
           accountServices: [],
           accountLlm: { planId: "RIVONCLAW_AI_PRO", entitlement: entitlement(true, 10) },
-          shops: [{ shopId: "shop-1", shopName: "Shop 1", customerService: shopStatus, inventory: shopStatus, affiliate: shopStatus, analytics: shopStatus }],
+          shops: [
+            {
+              shopId: "shop-1",
+              shopName: "Shop 1",
+              customerService: shopStatus,
+              inventory: shopStatus,
+              affiliate: shopStatus,
+              analytics: shopStatus,
+            },
+          ],
         }),
       },
     });
@@ -327,7 +449,11 @@ describe("DesktopRootStore billing overview ingestion", () => {
     const quota = await execute({
       schema,
       document: ACCOUNT_LLM_BILLING_QUERY,
-      rootValue: { billingOverview: () => ({ accountLlm: { planId: "RIVONCLAW_AI_PRO", entitlement: entitlement(false, 100) } }) },
+      rootValue: {
+        billingOverview: () => ({
+          accountLlm: { planId: "RIVONCLAW_AI_PRO", entitlement: entitlement(false, 100) },
+        }),
+      },
     });
     expect(quota.errors).toBeUndefined();
     expect(Object.keys((quota.data as any).billingOverview)).toEqual(["__typename", "accountLlm"]);
@@ -335,7 +461,10 @@ describe("DesktopRootStore billing overview ingestion", () => {
 
     const overview = getSnapshot(rootStore.billingOverview!)!;
     expect(overview.shops.map((shop) => shop.shopId)).toEqual(["shop-1"]);
-    expect(overview.accountLlm.entitlement).toMatchObject({ allowed: false, code: "QUOTA_EXCEEDED" });
+    expect(overview.accountLlm.entitlement).toMatchObject({
+      allowed: false,
+      code: "QUOTA_EXCEEDED",
+    });
     expect(overview.accountLlm.entitlement.usage[0].usedPercent).toBe(100);
   });
 });

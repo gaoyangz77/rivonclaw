@@ -79,7 +79,6 @@ export const EcommercePage = observer(function EcommercePage() {
   const [togglingAffiliateServiceId, setTogglingAffiliateServiceId] = useState<string | null>(null);
   const [savingRunProfile, setSavingRunProfile] = useState(false);
   const [savingAffiliateRunProfile, setSavingAffiliateRunProfile] = useState(false);
-  const [savingModel, setSavingModel] = useState(false);
   const [savingReviewOptimizationSettings, setSavingReviewOptimizationSettings] = useState(false);
   const [confirmDeleteShopId, setConfirmDeleteShopId] = useState<string | null>(null);
   const [affiliateBindConflictShopId, setAffiliateBindConflictShopId] = useState<string | null>(
@@ -127,14 +126,6 @@ export const EcommercePage = observer(function EcommercePage() {
       handleFetchPlatformApps();
     }
   }, [user]);
-
-  // Model catalog is read from entityStore.llmManager.catalog (shared, auto-refreshed).
-  // Trigger initial catalog load if not yet populated.
-  useEffect(() => {
-    if (!entityStore.llmManager.catalogReady) {
-      entityStore.llmManager.refreshCatalog();
-    }
-  }, []);
 
   // Sync editable CS drafts from shop data (re-runs when shop changes or after mutations refresh the shop)
   useEffect(() => {
@@ -245,10 +236,8 @@ export const EcommercePage = observer(function EcommercePage() {
     if (!platformAppId) return;
     setUpgradePrompt(false);
     oauthFlow
-      .initiateOAuth(
-        platformAppId,
-        handleShopAuthorized,
-        (err) => handleError(err, "ecommerce.oauthFailed"),
+      .initiateOAuth(platformAppId, handleShopAuthorized, (err) =>
+        handleError(err, "ecommerce.oauthFailed"),
       )
       .catch(() => {}); // Error already handled by onError callback
   }
@@ -262,10 +251,8 @@ export const EcommercePage = observer(function EcommercePage() {
     }
     setUpgradePrompt(false);
     try {
-      await oauthFlow.initiateOAuth(
-        appId,
-        handleShopAuthorized,
-        (err) => handleError(err, "ecommerce.oauthFailed"),
+      await oauthFlow.initiateOAuth(appId, handleShopAuthorized, (err) =>
+        handleError(err, "ecommerce.oauthFailed"),
       );
       // Open modal after OAuth URL is set (initiateOAuth sets oauthWaiting on success)
       setConnectModalOpen(true);
@@ -594,29 +581,6 @@ export const EcommercePage = observer(function EcommercePage() {
     }
   }
 
-  async function handleCSModelChange(provider: string, model: string) {
-    if (!selectedShopId) return;
-    setSavingModel(true);
-    setUpgradePrompt(false);
-    try {
-      const shop = shops.find((s) => s.id === selectedShopId);
-      if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
-      // Empty provider+model means "use global default"
-      await shop.update({
-        services: {
-          customerService: {
-            csProviderOverride: provider,
-            csModelOverride: model,
-          },
-        },
-      });
-    } catch (err) {
-      handleError(err, "ecommerce.updateFailed");
-    } finally {
-      setSavingModel(false);
-    }
-  }
-
   function openDrawer(shopId: string) {
     setSelectedShopId(shopId);
     setActiveTab("overview");
@@ -648,9 +612,6 @@ export const EcommercePage = observer(function EcommercePage() {
       ? (t(`surfaces.systemNames.${p.name}`, { defaultValue: p.name }) as string)
       : p.name,
   }));
-
-  const selectedCSProvider = selectedShop?.services?.customerService?.csProviderOverride ?? "";
-  const selectedCSModel = selectedShop?.services?.customerService?.csModelOverride ?? "";
 
   // ── Render ──
 
@@ -749,10 +710,6 @@ export const EcommercePage = observer(function EcommercePage() {
         selectedRunProfile={selectedRunProfile}
         savingRunProfile={savingRunProfile}
         onRunProfileChange={handleRunProfileChange}
-        selectedCSProvider={selectedCSProvider}
-        selectedCSModel={selectedCSModel}
-        savingModel={savingModel}
-        onCSModelChange={handleCSModelChange}
         draftUnpaidReachoutEnabled={draftUnpaidReachoutEnabled}
         draftUnpaidReachoutStages={draftUnpaidReachoutStages}
         draftUnpaidExperimentEnabled={draftUnpaidExperimentEnabled}

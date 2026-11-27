@@ -13,7 +13,11 @@ import {
   type IJsonPatch,
   type IStateTreeNode,
 } from "mobx-state-tree";
-import { RootStoreModel, productCategoryCacheSnapshot, PRODUCT_CATEGORY_CACHE_TTL_MS } from "@rivonclaw/core/models";
+import {
+  RootStoreModel,
+  productCategoryCacheSnapshot,
+  PRODUCT_CATEGORY_CACHE_TTL_MS,
+} from "@rivonclaw/core/models";
 import type { GQL } from "@rivonclaw/core";
 import { PRODUCT_CATEGORIES_SYNC_QUERY } from "../api/product-categories-query.js";
 import {
@@ -28,7 +32,6 @@ import {
   ShopWarehouseModel,
   InventoryGoodModel,
   ProviderKeyModel,
-  LLMProviderModel,
   ChannelAccountModel,
   ChannelManagerModel,
 } from "./models/index.js";
@@ -68,10 +71,9 @@ import {
   REFRESH_PAYMENT_MUTATION,
   START_BILLING_SUBSCRIPTION_MUTATION,
 } from "../api/billing-queries.js";
-import { fetchJson, invalidateCache } from "../api/client.js";
+import { fetchJson } from "../api/client.js";
 import { syncOfficialPresetSkills } from "../api/official-preset-skills.js";
 import { trackEvent } from "../api/settings.js";
-import type { ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
 import { parseChannelSessionRecipient } from "../lib/chat-session-keys.js";
 import { panelEventBus } from "../lib/event-bus.js";
@@ -217,7 +219,6 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
   inventoryGoods: types.optional(types.array(InventoryGoodModel), []),
   providerKeys: types.optional(types.array(ProviderKeyModel), []),
   channelAccounts: types.optional(types.array(ChannelAccountModel), []),
-  llmManager: types.optional(LLMProviderModel, {}),
   channelManager: types.optional(ChannelManagerModel, {}),
   ecommerceInventory: types.optional(EcommerceInventoryModel, {}),
   ecommerceAfterSale: types.optional(EcommerceAfterSaleModel, {}),
@@ -234,11 +235,18 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
   affiliateMlInsightsError: types.maybeNull(types.string),
   affiliateMlInsightsLoadedAt: types.maybeNull(types.number),
 })
-  .actions(self => ({
+  .actions((self) => ({
     afterCreate() {
-      addDisposer(self, reaction(() => translationIdentity(self.currentUser), identity => {
-        self.messageTranslation.setIdentity(identity);
-      }, { fireImmediately: true }));
+      addDisposer(
+        self,
+        reaction(
+          () => translationIdentity(self.currentUser),
+          (identity) => {
+            self.messageTranslation.setIdentity(identity);
+          },
+          { fireImmediately: true },
+        ),
+      );
     },
   }))
   .views((self) => {
@@ -318,32 +326,49 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
           return yield (self as any).ensureCategories(locale, { force: true });
         }
         const cached = self.categories.get(locale);
-        if (!options.force && cached?.fetchedAt != null && !cached.error
-          && Date.now() - cached.fetchedAt < PRODUCT_CATEGORY_CACHE_TTL_MS) return;
+        if (
+          !options.force &&
+          cached?.fetchedAt != null &&
+          !cached.error &&
+          Date.now() - cached.fetchedAt < PRODUCT_CATEGORY_CACHE_TTL_MS
+        )
+          return;
         if (!self.categories.has(locale)) self.categories.set(locale, { locale });
         self.categories.get(locale)!.loading = true;
         self.categories.get(locale)!.error = null;
         let request = existing?.promise;
         if (!request) {
-          request = client().query({ query: PRODUCT_CATEGORIES_SYNC_QUERY,
-            variables: { locale }, fetchPolicy: "no-cache",
-            context: { http: { includeExtensions: true }, forceCategoriesRefresh: options.force === true },
+          request = client().query({
+            query: PRODUCT_CATEGORIES_SYNC_QUERY,
+            variables: { locale },
+            fetchPolicy: "no-cache",
+            context: {
+              http: { includeExtensions: true },
+              forceCategoriesRefresh: options.force === true,
+            },
           });
           categoryRequests.set(key, { promise: request, force: options.force === true });
         }
         try {
-          const result: { data?: { productCategories?: GQL.ProductCategoryCatalog } } = yield request;
+          const result: { data?: { productCategories?: GQL.ProductCategoryCatalog } } =
+            yield request;
           if (self.categorySession !== session || self.currentUser?.userId !== userId) return;
           const catalog = result.data?.productCategories;
-          if (!catalog || catalog.locale !== locale) throw new Error("Invalid product category catalog response");
+          if (!catalog || catalog.locale !== locale)
+            throw new Error("Invalid product category catalog response");
           self.categories.set(locale, productCategoryCacheSnapshot(catalog));
         } catch (error) {
           if (self.categorySession === session && self.currentUser?.userId === userId) {
             const bucket = self.categories.get(locale);
-            if (bucket) { bucket.loading = false; bucket.error = error instanceof Error ? error.message : String(error); }
+            if (bucket) {
+              bucket.loading = false;
+              bucket.error = error instanceof Error ? error.message : String(error);
+            }
           }
           throw error;
-        } finally { categoryRequests.delete(key); }
+        } finally {
+          categoryRequests.delete(key);
+        }
       }),
       // ── Auth actions ──
 
@@ -442,97 +467,6 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
         self.affiliateMlInsightsLoadedAt = null;
       },
 
-      // ── Provider key mutations (REST to Desktop) ──
-
-      createProviderKey: flow(function* (data: {
-        provider: string;
-        label: string;
-        model: string;
-        apiKey?: string;
-        proxyUrl?: string;
-        authType?: ProviderKeyAuthType;
-        baseUrl?: string;
-        customProtocol?: "openai" | "anthropic";
-        customModelsJson?: string;
-        inputModalities?: string[];
-      }): Generator<Promise<ProviderKeyEntry>, ProviderKeyEntry, ProviderKeyEntry> {
-        const result: ProviderKeyEntry = yield fetchJson<ProviderKeyEntry>(
-          clientPath(API["providerKeys.create"]),
-          {
-            method: "POST",
-            body: JSON.stringify(data),
-          },
-        );
-        invalidateCache("models");
-        return result;
-      }),
-
-      // ── OAuth flow mutations (REST to Desktop) ──
-
-      startOAuthFlow: flow(function* (provider: string) {
-        const result: {
-          ok: boolean;
-          email?: string;
-          tokenPreview?: string;
-          providerKeyId?: string;
-          provider?: string;
-          manualMode?: boolean;
-          authUrl?: string;
-          flowId?: string;
-        } = yield fetchJson<{
-          ok: boolean;
-          email?: string;
-          tokenPreview?: string;
-          providerKeyId?: string;
-          provider?: string;
-          manualMode?: boolean;
-          authUrl?: string;
-          flowId?: string;
-        }>(clientPath(API["oauth.start"]), { method: "POST", body: JSON.stringify({ provider }) });
-        return result;
-      }),
-
-      completeManualOAuth: flow(function* (provider: string, callbackUrl: string) {
-        const result: { email?: string; tokenPreview?: string } = yield fetchJson<{
-          email?: string;
-          tokenPreview?: string;
-        }>(clientPath(API["oauth.manualComplete"]), {
-          method: "POST",
-          body: JSON.stringify({ provider, callbackUrl }),
-        });
-        return result;
-      }),
-
-      pollOAuthStatus: flow(function* (flowId: string) {
-        const result: {
-          status: "pending" | "completed" | "failed";
-          tokenPreview?: string;
-          email?: string;
-          error?: string;
-        } = yield fetchJson<{
-          status: "pending" | "completed" | "failed";
-          tokenPreview?: string;
-          email?: string;
-          error?: string;
-        }>(clientPath(API["oauth.status"]) + `?flowId=${encodeURIComponent(flowId)}`, {
-          method: "GET",
-        });
-        return result;
-      }),
-
-      saveOAuthFlow: flow(function* (
-        provider: string,
-        options: { proxyUrl?: string; label?: string; model?: string },
-      ) {
-        const result: { providerKeyId: string; email?: string; provider: string } =
-          yield fetchJson<{ ok: boolean; providerKeyId: string; email?: string; provider: string }>(
-            clientPath(API["oauth.save"]),
-            { method: "POST", body: JSON.stringify({ provider, ...options }) },
-          );
-        invalidateCache("models");
-        return result;
-      }),
-
       // ── Shops / ecommerce mutations ──
 
       initiateTikTokOAuth: flow(function* (platformAppId: string) {
@@ -557,18 +491,28 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
       }),
 
       setShopPickupReminderEnabled: flow(function* (shopId: string, enabled: boolean) {
-        const result = yield client().mutate({ mutation: UPDATE_SHOP_MUTATION,
-          variables: { id: shopId, input: { services: { customerService: { pickupReminderEnabled: enabled } } } } });
-        if (!result.data?.updateShop) throw new Error('Shop settings update returned no shop');
-        const current = self.shops.find(shop => shop.id === shopId);
+        const result = yield client().mutate({
+          mutation: UPDATE_SHOP_MUTATION,
+          variables: {
+            id: shopId,
+            input: { services: { customerService: { pickupReminderEnabled: enabled } } },
+          },
+        });
+        if (!result.data?.updateShop) throw new Error("Shop settings update returned no shop");
+        const current = self.shops.find((shop) => shop.id === shopId);
         if (current) applySnapshot(current, stripTypename(result.data.updateShop) as any);
       }),
 
       setShopDeliveryFailureReminderEnabled: flow(function* (shopId: string, enabled: boolean) {
-        const result = yield client().mutate({ mutation: UPDATE_SHOP_MUTATION,
-          variables: { id: shopId, input: { services: { customerService: { deliveryFailureReminderEnabled: enabled } } } } });
-        if (!result.data?.updateShop) throw new Error('Shop settings update returned no shop');
-        const current = self.shops.find(shop => shop.id === shopId);
+        const result = yield client().mutate({
+          mutation: UPDATE_SHOP_MUTATION,
+          variables: {
+            id: shopId,
+            input: { services: { customerService: { deliveryFailureReminderEnabled: enabled } } },
+          },
+        });
+        if (!result.data?.updateShop) throw new Error("Shop settings update returned no shop");
+        const current = self.shops.find((shop) => shop.id === shopId);
         if (current) applySnapshot(current, stripTypename(result.data.updateShop) as any);
       }),
 
@@ -576,10 +520,15 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
         shopId: string,
         level: GQL.CustomerServiceMessageAutoTranslation,
       ) {
-        const result = yield client().mutate({ mutation: UPDATE_SHOP_MUTATION,
-          variables: { id: shopId, input: { services: { customerService: { messageAutoTranslation: level } } } } });
-        if (!result.data?.updateShop) throw new Error('Shop settings update returned no shop');
-        const current = self.shops.find(shop => shop.id === shopId);
+        const result = yield client().mutate({
+          mutation: UPDATE_SHOP_MUTATION,
+          variables: {
+            id: shopId,
+            input: { services: { customerService: { messageAutoTranslation: level } } },
+          },
+        });
+        if (!result.data?.updateShop) throw new Error("Shop settings update returned no shop");
+        const current = self.shops.find((shop) => shop.id === shopId);
         if (current) applySnapshot(current, stripTypename(result.data.updateShop) as any);
       }),
 
@@ -696,7 +645,10 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
         const userId = self.currentUser?.userId;
         if (!userId) return;
         const session = self.categorySession;
-        const result = yield client().query({ query: ACCOUNT_LLM_BILLING_QUERY, fetchPolicy: "network-only" });
+        const result = yield client().query({
+          query: ACCOUNT_LLM_BILLING_QUERY,
+          fetchPolicy: "network-only",
+        });
         // Logout (session epoch) or an account switch while in flight: the quota is
         // another session's and must not be written into this one.
         if (self.categorySession !== session || self.currentUser?.userId !== userId) return;
@@ -896,7 +848,6 @@ interface PanelEntityOverrides {
   readonly providerKeys: Instance<typeof ProviderKeyModel>[];
   readonly channelAccounts: Instance<typeof ChannelAccountModel>[];
   readonly channelManager: Instance<typeof ChannelManagerModel>;
-  readonly llmManager: Instance<typeof LLMProviderModel>;
   readonly ecommerceInventory: Instance<typeof EcommerceInventoryModel>;
   readonly ecommerceAfterSale: Instance<typeof EcommerceAfterSaleModel>;
   readonly ecommerceBadReview: Instance<typeof EcommerceBadReviewModel>;
@@ -967,14 +918,12 @@ interface PanelRootActions {
   fetchShops(): Promise<void>;
   setShopPickupReminderEnabled(shopId: string, enabled: boolean): Promise<void>;
   setShopDeliveryFailureReminderEnabled(shopId: string, enabled: boolean): Promise<void>;
-  setShopMessageAutoTranslation(shopId: string, level: GQL.CustomerServiceMessageAutoTranslation): Promise<void>;
+  setShopMessageAutoTranslation(
+    shopId: string,
+    level: GQL.CustomerServiceMessageAutoTranslation,
+  ): Promise<void>;
   fetchPlatformApps(): Promise<void>;
   refreshToolSpecs(): Promise<void>;
-  createProviderKey(input: any): Promise<any>;
-  startOAuthFlow(input: any): Promise<any>;
-  pollOAuthStatus(input: any): Promise<any>;
-  completeManualOAuth(...args: any[]): Promise<any>;
-  saveOAuthFlow(...args: any[]): Promise<any>;
   initiateTikTokOAuth(input?: any): Promise<any>;
   initiateTikTokAdsOAuth(input?: unknown): Promise<{ authUrl: string; state: string }>;
   refreshBilling(): Promise<void>;

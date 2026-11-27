@@ -3,7 +3,6 @@ import { observer } from "mobx-react-lite";
 import { GQL } from "@rivonclaw/core";
 import type { Shop } from "@rivonclaw/core/models";
 import { Select } from "../../../components/inputs/Select.js";
-import { KeyModelSelector } from "../../../components/inputs/KeyModelSelector.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { CustomerServiceBillingCta } from "../../../components/billing/CustomerServiceBillingCta.js";
 import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
@@ -31,11 +30,6 @@ interface AiCustomerServiceTabProps {
   selectedRunProfile: { selectedToolIds: string[] } | null;
   savingRunProfile: boolean;
   onRunProfileChange: (profileId: string) => void;
-  // CS model override
-  selectedCSProvider: string;
-  selectedCSModel: string;
-  savingModel: boolean;
-  onCSModelChange: (provider: string, model: string) => void;
   // Unpaid-order reachout
   draftUnpaidReachoutEnabled: boolean;
   draftUnpaidReachoutStages: UnpaidReachoutStageDraft[];
@@ -86,10 +80,6 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
   selectedRunProfile,
   savingRunProfile,
   onRunProfileChange,
-  selectedCSProvider,
-  selectedCSModel,
-  savingModel,
-  onCSModelChange,
   draftUnpaidReachoutEnabled,
   draftUnpaidReachoutStages,
   draftUnpaidExperimentEnabled,
@@ -235,42 +225,12 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
         </div>
       </section>
 
-      <section id="shop-workspace-aiCustomerService-model" className="shop-workspace-section">
-        <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.csModelOverride")}</div>
-        <div className="shop-info-card">
-          <div className="shop-runprofile-row">
-            <label className="form-label-block">
-              {t("ecommerce.shopDrawer.aiCS.csModelOverride")}
-            </label>
-            <KeyModelSelector
-              keys={entityStore.providerKeys.map((k) => ({
-                id: k.id,
-                provider: k.provider,
-                label: k.label,
-                model: k.model,
-                isDefault: k.isDefault,
-              }))}
-              catalog={entityStore.llmManager.catalog}
-              selectedProvider={selectedCSProvider}
-              selectedModel={selectedCSModel}
-              onChange={onCSModelChange}
-              disabled={savingModel}
-              variant="form"
-              allowDefault
-            />
-          </div>
-          <div className="shop-info-card-hint">
-            {t("ecommerce.shopDrawer.aiCS.csModelOverrideHint")}
-          </div>
-        </div>
-      </section>
-      <section
-        id="shop-workspace-aiCustomerService-reminders"
-        className="shop-workspace-section"
-      >
+      <section id="shop-workspace-aiCustomerService-reminders" className="shop-workspace-section">
         <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.reminders")}</div>
         <section id="shop-workspace-aiCustomerService-unpaid-reachout">
-          <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.unpaidReachout")}</div>
+          <div className="drawer-section-label">
+            {t("ecommerce.shopDrawer.aiCS.unpaidReachout")}
+          </div>
           <UnpaidOrderReachoutSettings
             shop={shop}
             enabled={draftUnpaidReachoutEnabled}

@@ -94,8 +94,8 @@ import {
   useFollowedCampaignDefaultName,
 } from "./hooks/useCampaignDefaultName.js";
 import "./components/AffiliateUi.css";
-import { generateAffiliateCampaignMessageTemplate } from "../../api/affiliate-campaign-ai.js";
 import {
+  SUGGEST_AFFILIATE_CAMPAIGN_MESSAGE_TEMPLATE_MUTATION,
   AFFILIATE_CAMPAIGNS_QUERY,
   AFFILIATE_CAMPAIGN_SELECTION_READINESS_QUERY,
   AFFILIATE_CAMPAIGN_AI_READINESS_QUERY,
@@ -858,6 +858,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     { deleteAffiliateCampaignDraft: boolean },
     { input: GQL.DeleteAffiliateCampaignDraftInput }
   >(DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION);
+  const [suggestMessageTemplate] = useMutation<
+    { suggestAffiliateCampaignMessageTemplate: GQL.AffiliateCampaignMessageTemplateSuggestion },
+    { input: GQL.SuggestAffiliateCampaignMessageTemplateInput }
+  >(SUGGEST_AFFILIATE_CAMPAIGN_MESSAGE_TEMPLATE_MUTATION);
   const [retrySearchPlan, retrySearchPlanState] = useMutation(
     RETRY_AFFILIATE_CAMPAIGN_SEARCH_PLAN_MUTATION,
   );
@@ -1465,17 +1469,23 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       const hasPreviousDraft = skipDirectMessage
         ? form.collaborationInvitationText.trim() !== ""
         : form.templateText.trim() !== "";
-      const suggestion = await generateAffiliateCampaignMessageTemplate({
-        shopId: form.shopId,
-        productId: leadProductId,
-        uiLocale: i18n.resolvedLanguage ?? i18n.language,
-        guidance: form.templateGuidance.trim() || undefined,
-        mode: hasPreviousDraft
-          ? GQL.AffiliateCampaignTemplateGenerationMode.Alternative
-          : GQL.AffiliateCampaignTemplateGenerationMode.Initial,
-        previousDraft: skipDirectMessage ? undefined : form.templateText.trim() || undefined,
-        previousInvitationText: form.collaborationInvitationText.trim() || undefined,
+      const result = await suggestMessageTemplate({
+        variables: {
+          input: {
+            shopId: form.shopId,
+            productId: leadProductId,
+            uiLocale: i18n.resolvedLanguage ?? i18n.language,
+            guidance: form.templateGuidance.trim() || undefined,
+            mode: hasPreviousDraft
+              ? GQL.AffiliateCampaignTemplateGenerationMode.Alternative
+              : GQL.AffiliateCampaignTemplateGenerationMode.Initial,
+            previousDraft: skipDirectMessage ? undefined : form.templateText.trim() || undefined,
+            previousInvitationText: form.collaborationInvitationText.trim() || undefined,
+          },
+        },
       });
+      const suggestion = result.data?.suggestAffiliateCampaignMessageTemplate;
+      if (!suggestion) throw new Error("CAMPAIGN_AI_SUGGESTION_FAILED");
       setForm((current) => ({ ...current, ...applyCampaignAiSuggestion(current, suggestion) }));
       const requiresPlaceholderRepair =
         !skipDirectMessage &&
@@ -5534,6 +5544,7 @@ export const CAMPAIGN_ERROR_MESSAGE_KEYS: ReadonlyArray<readonly [string, string
   ["CAMPAIGN_AI_SUGGESTION_INVALID", "errors.suggestionInvalid"],
   ["CAMPAIGN_AI_SUGGESTION_FAILED", "errors.suggestionFailed"],
   ["CAMPAIGN_AI_TEMPLATE_INVALID", "errors.aiTemplatePlaceholderMissing"],
+  ["CAMPAIGN_AI_CLOUD_QUOTA_EXHAUSTED", "errors.templateQuotaExhausted"],
   ["CAMPAIGN_COPY_REQUIRED", "errors.copyRequired"],
   ["CAMPAIGN_PRODUCT_NOT_ACTIVE", "errors.productNotActive"],
   ["CAMPAIGN_PRODUCT_SNAPSHOT_REQUIRED", "errors.productSnapshotRequired"],

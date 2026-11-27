@@ -420,10 +420,7 @@ export class AffiliateSession {
   }
 
   private resolveCurrentSessionModel(): { provider: string; model: string } {
-    return rootStore.llmManager.resolveModelForDispatch(this.scopeKey, {
-      type: ScopeType.AFFILIATE_SESSION,
-      shopId: this.shop.objectId,
-    });
+    return rootStore.llmManager.resolveModelForDispatch();
   }
 
   private async dispatch(params: {

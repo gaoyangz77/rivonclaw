@@ -90,7 +90,6 @@ export default {
   },
   nav: {
     chat: "Obrolan",
-    providers: "Model",
     channels: "Pesan",
     usage: "Penggunaan",
     extras: "Fitur Ekstra",
@@ -144,7 +143,7 @@ export default {
     historyEnd: "Awal percakapan",
     loadError: "Gagal terhubung ke gateway",
     noProviderError:
-      "Tidak ada penyedia LLM yang dikonfigurasi. Silakan buka halaman Model dan tambahkan kunci API.",
+      "TK Copilot AI tidak tersedia. Silakan masuk dan pastikan langganan Anda aktif.",
     timeoutError:
       "Waktu permintaan habis. Modelnya mungkin tidak tersedia atau model ID mungkin salah.",
     emoji: "emoji",
@@ -160,25 +159,14 @@ export default {
       "Kunci API Anda kehabisan kredit. Periksa dasbor penagihan penyedia Anda atau alihkan ke kunci lain.",
     errorTimeout: "Waktu permintaan habis.",
     errorContextOverflow:
-      "Percakapannya terlalu panjang untuk model ini. Gunakan /reset untuk memulai dari awal, atau beralih ke model dengan jendela konteks yang lebih besar.",
-    errorAuth:
-      "Otentikasi gagal. Silakan periksa kunci API Anda atau autentikasi ulang di halaman Model.",
+      "Percakapan terlalu panjang untuk model. Gunakan /reset untuk memulai percakapan baru.",
+    errorAuth: "Otentikasi gagal. Silakan masuk kembali atau periksa langganan TK Copilot AI Anda.",
     disconnectedError:
       "Koneksi terputus. Menghubungkan kembali — Anda dapat segera mengirim ulang pesan Anda.",
     stalledError:
       "Respons terhenti — tidak ada balasan akhir yang diterima. Tugas mungkin telah selesai di server. Coba gulir ke atas atau kirim ulang.",
     watchdogError:
       "Tidak ada aktivitas respons selama 5 menit. Koneksi mungkin terputus secara diam-diam. Anda dapat mencoba mengirim ulang pesan Anda.",
-    contextWindowWarning:
-      "Percakapan saat ini (~token {{currentTokens}}) melebihi 80% jendela konteks model baru ({{newContextWindow}}). Pertimbangkan untuk memulai percakapan baru.",
-    contextOverflowTitle: "Jendela konteks terlampaui",
-    contextOverflowBody:
-      "Percakapan saat ini (~token {{current}}) melebihi jendela konteks model baru (token {{max}}). Pilih cara melanjutkan:",
-    contextOverflowContinue: "Ganti model",
-    contextOverflowContinueHint:
-      "Sistem akan secara otomatis memampatkan percakapan pada pesan berikutnya",
-    contextOverflowClear: "Beralih & hapus percakapan",
-    contextOverflowClearHint: "Ganti model dan mulai dari awal",
     imageOnlyPlaceholder: "Silakan lihat gambar ini",
     phase_queued: "Pesan diterima, antri...",
     phase_processing: "Memproses...",
@@ -219,13 +207,6 @@ export default {
     deleteSession: "Hapus",
     contextUsage: "{{current}} / {{max}}",
     contextUsageTooltip: "Penggunaan token sesi vs jendela konteks model",
-    defaultBadge: "bawaan",
-    modelSearchPlaceholder: "Telusuri model...",
-    noProviderKeys: "Tidak ada kunci penyedia",
-    noModelsMatch: "Tidak ada model yang cocok",
-    noModels: "Tidak ada model yang tersedia",
-    globalDefault: "standar global",
-    followGlobalDefault: "Ikuti default global",
     imageAttachment: "[Gambar]",
     imageExpired: "[ Gambar kedaluwarsa ]",
     channelTelegram: "PT",
@@ -258,280 +239,6 @@ export default {
     channelTooltipMatrix: "Matriks",
     channelTooltipMsteams: "Tim Microsoft",
     channelTooltipMattermost: "Yang paling penting",
-  },
-  providers: {
-    title: "Model",
-    description:
-      "Konfigurasikan penyedia LLM dan kunci API Anda. Anda dapat menambahkan beberapa penyedia dan beralih di antara penyedia tersebut.",
-    providerLabel: "Penyedia",
-    apiKeyLabel: "Kunci API",
-    apiKeyPlaceholder:
-      "Disimpan dengan aman di gantungan kunci OS Anda. Tidak pernah ditulis ke file konfigurasi.",
-    updateKeyPlaceholder: "Masukkan kunci API baru",
-    apiKeyHelp:
-      "Disimpan dengan aman di gantungan kunci OS Anda. Tidak pernah ditulis ke file konfigurasi.",
-    getApiKey: "Dapatkan kunci API",
-    getSubscription: "Dapatkan berlangganan",
-    subscribeForValue: "atau berlangganan untuk mendapatkan nilai terbaik",
-    addKey: "Tambahkan Kunci",
-    updateKey: "Pembaruan",
-    setDefault: "Tetapkan Default",
-    configured: "Dikonfigurasi",
-    default: "Bawaan",
-    validating: "Memvalidasi...",
-    invalidKey: "Kunci API tidak valid. Silakan periksa dan coba lagi.",
-    anthropicTokenLabel: "Tanda",
-    anthropicTokenPlaceholder:
-      "Disimpan dengan aman di gantungan kunci OS Anda. Tidak pernah ditulis ke file konfigurasi.",
-    anthropicUpdatePlaceholder: "Masukkan token baru atau kunci API",
-    anthropicTokenWarning:
-      'Token OAuth dari "claude setup-token" berumur panjang (1 tahun). Hanya token pertama yang valid — membuat ulang token baru sebelum masa berlakunya habis akan menghasilkan token yang tidak dapat digunakan.',
-    failedToLoad: "Gagal memuat pengaturan: ",
-    oauthFailed: "Gagal masuk OAuth: ",
-    errorDetails: "Detail",
-    failedToSave: "Gagal menyimpan: ",
-    colProvider: "Penyedia",
-    colStatus: "Status",
-    colActions: "Tindakan",
-    activate: "Aktifkan",
-    removeKey: "Hapus",
-    usage: "Penggunaan",
-    reauthenticate: "Otentikasi ulang",
-    usageModal: {
-      title: "Penggunaan Berlangganan — {{label}}",
-      loading: "Memuat penggunaan…",
-      empty: "Tidak ada jendela kuota yang dilaporkan oleh penyedia ini.",
-      refreshesAt: "Menyegarkan di {{time}}",
-    },
-    expiresOn: "Kedaluwarsa {{date}}",
-    expiresInDays: "Kedaluwarsa dalam {{count}} hari",
-    expiresInDays_one: "Berakhir pada hari {{count}}",
-    expiresInDays_other: "Kedaluwarsa dalam {{count}} hari",
-    expiresToday: "Kedaluwarsa hari ini",
-    expired: "Kedaluwarsa",
-    reauthModal: {
-      title: "Otentikasi ulang {{label}}",
-      intro:
-        "Masuk lagi untuk merotasi kredensial OAuth untuk kunci ini. Label, model, dan proksi Anda dipertahankan — hanya token tersimpan yang diganti.",
-      "signIn_openai-codex": "Masuk dengan ChatGPT",
-      waitingForBrowser: "Menunggu masuk browser…",
-      authUrlLabel: "Otorisasi URL",
-      callbackLabel: "Alihkan URL",
-      callbackPlaceholder: "Rekatkan pengalihan URL dari browser Anda di sini",
-      "callbackHelp_openai-codex":
-        "Setelah masuk dengan ChatGPT, salin pengalihan lengkap URL dari bilah alamat browser Anda dan tempel di sini.",
-      completeSignIn: "Selesaikan Masuk",
-      confirm: "Konfirmasi Otentikasi Ulang",
-      tokenReady:
-        "Token OAuth baru sudah siap. Anda dapat mencoba lagi merotasi kredensial yang disimpan.",
-      autoSaving: "Terotorisasi. Merotasi kredensial yang disimpan secara otomatis…",
-      starting: "Mulai…",
-      rotating: "Memutar kredensial…",
-      cancel: "Batalkan",
-      captureWarning:
-        "Token diputar, tetapi kami tidak dapat membaca masa berlaku token. Jika permintaan Anda berikutnya gagal, harap autentikasi ulang lagi.",
-    },
-    modelLabel: "Model",
-    labelPlaceholder: "Label (opsional)",
-    labelDefault: "Bawaan",
-    keyLabel: "Label",
-    advancedSettings: "Pengaturan Lanjutan",
-    proxyLabel: "Proksi URL (opsional)",
-    proxyPlaceholder: "http://user:pass@proxy.example.com:8080 atau kaus kaki5://user:pass@...",
-    proxyHelp:
-      "Proksi HTTP/HTTPS/SOCKS5 untuk kunci ini. Kredensial disimpan dengan aman di gantungan kunci OS Anda.",
-    proxyTooltip: "Panggilan LLM dengan kunci ini disalurkan melalui proxy",
-    colLabel: "Label",
-    colModel: "Model",
-    active: "Aktif",
-    authTypeSubscription: "Berlangganan",
-    authTypeApiKey: "Kunci API",
-    authTypeCustom: "Adat",
-    noKeys: "Belum ada kunci API yang dikonfigurasi. Tambahkan satu di bawah.",
-    pricingTitle: "Harga Model",
-    pricingRecommended: "Direkomendasikan",
-    pricingFree: "Gratis",
-    pricingInput: "Masukan",
-    pricingOutput: "Keluaran",
-    pricingPerMillion: "Harga per 1 juta token",
-    pricingModel: "Model",
-    pricingUnavailable: "Data harga tidak tersedia.",
-    pricingViewFull: "Lihat harga lengkap",
-    pricingCurrency: "Mata uang",
-    pricingDisclaimer:
-      "Harga yang tertera adalah harga daftar resmi. Biaya sebenarnya mungkin berbeda menurut tingkat akun, promosi, atau perjanjian penagihan.",
-    pricingPlansTitle: "Paket Berlangganan",
-    pricingPlansUnavailable: "Detail paket tidak tersedia.",
-    configuredKeysTitle: "Kunci yang Dikonfigurasi",
-    addTitle: "Tambahkan Kunci",
-    tabSubscription: "Berlangganan",
-    tabApi: "Kunci API",
-    tabLocal: "LLM lokal",
-    tabCustom: "Adat",
-    noProviders: "Belum ada penyedia yang dikonfigurasi. Tambahkan satu di bawah.",
-    configuredTitle: "Penyedia yang Dikonfigurasi",
-    "label_rivonclaw-pro": "TK Copilot AI",
-    cloudModelName: "Andalan",
-    label_openai: "OpenAI",
-    label_anthropic: "Anthropic",
-    label_claude: "Claude (Berlangganan)",
-    label_google: "Google (Gemini)",
-    label_deepseek: "DeepSeek",
-    label_zhipu: "Zhipu (GLM) - Cina",
-    "label_zhipu-coding": "Paket Pengkodean Zhipu (GLM)",
-    label_zai: "Z.ai (GLM) - Global",
-    label_moonshot: "Moonshot (Kimi) - Global",
-    label_kimi: "Kimi - Tiongkok",
-    "label_moonshot-coding": "Kode Kimi - Cina",
-    label_qwen: "Qwen",
-    "label_qwen-coding": "Paket Pengkodean Qwen",
-    label_modelscope: "Lingkup Model",
-    label_groq: "Groq",
-    label_mistral: "Mistral",
-    label_xai: "xAI (Grok)",
-    label_openrouter: "OpenRouter",
-    label_minimax: "MiniMax - Global",
-    "label_minimax-cn": "MiniMax - Cina",
-    "label_minimax-coding": "Paket Pengodean MiniMax - Tiongkok",
-    label_venice: "Venesia AI",
-    label_xiaomi: "Xiaomi",
-    label_volcengine: "Volcengine (Doubao)",
-    "label_volcengine-coding": "Paket Pengkodean Volcengine (Doubao)",
-    label_nvidia: "NVIDIA (NIM)",
-    "label_nvidia-nim": "NVIDIA NIM",
-    "label_amazon-bedrock": "Batuan Dasar Amazon",
-    label_ollama: "Ollama",
-    "label_openai-codex": "Kodeks OpenAI (OAuth)",
-    desc_ollama: "Jalankan model secara lokal dengan Ollama",
-    "desc_openai-codex":
-      "Masuk dengan akun ChatGPT Anda untuk menggunakan model Codex melalui berlangganan.",
-    "hint_openai-codex": "",
-    "oauthSignIn_openai-codex": "Masuk dengan ChatGPT",
-    oauthLoading: "Menyiapkan...",
-    oauthBadge: "OAuth",
-    oauthSectionTitle: "Penyedia OAuth",
-    "oauthInfo_openai-codex":
-      "Masuk dengan akun ChatGPT Anda untuk menggunakan model Codex OpenAI. Memerlukan langganan ChatGPT Plus atau Pro. Token OAuth disimpan dengan aman di gantungan kunci OS Anda.",
-    oauthTokenLabel: "Token OAuth",
-    "oauthTokenHelp_openai-codex":
-      "Token diperoleh melalui OpenAI OAuth. Disimpan dengan aman di gantungan kunci OS Anda.",
-    "oauthManualInfo_openai-codex":
-      "Selesaikan proses masuk di browser. Jika menggunakan mesin jarak jauh, salin otorisasi URL di bawah dan tempelkan kembali pengalihan URL setelah masuk.",
-    oauthWaitingForBrowser: "Menunggu masuk browser...",
-    oauthManualUrlLabel: "Otorisasi URL",
-    oauthManualCallbackLabel: "Alihkan URL",
-    oauthManualCallbackPlaceholder: "Rekatkan pengalihan URL dari browser Anda di sini",
-    "oauthManualCallbackHelp_openai-codex":
-      "Setelah masuk dengan ChatGPT, browser Anda akan dialihkan ke localhost URL — salin URL lengkap dari bilah alamat browser Anda dan tempelkan di sini.",
-    oauthManualSubmit: "Selesaikan Masuk",
-    desc_openai: "Pembuat GPT & ChatGPT. Pemimpin industri dalam AI tujuan umum.",
-    desc_anthropic:
-      "Pembuat Claude. Dikenal dengan model yang berfokus pada keselamatan dan berkemampuan tinggi.",
-    desc_claude:
-      "Claude Pro ($20/bln), Maks ($100/bln, $200/bln). Berlangganan untuk batas penggunaan yang lebih tinggi.",
-    desc_google: "Model Gemini Google. Kemampuan multimodal dan konteks panjang yang kuat.",
-    desc_deepseek:
-      "Laboratorium AI Tiongkok. Model bobot terbuka yang kompetitif dengan biaya rendah.",
-    desc_zhipu: "Layanan Zhipu AI di China (open.bigmodel.cn). Harga dalam CNY.",
-    "desc_zhipu-coding": "Untuk pelanggan Paket Pengodean GLM (open.bigmodel.cn). Harga dalam CNY.",
-    desc_zai: "Layanan global Zhipu AI (z.ai). Harga dalam USD.",
-    desc_moonshot: "Layanan global Moonshot AI (moonshot.ai). Harga dalam USD.",
-    desc_kimi: "Layanan Kimi di China (moonshot.cn). Harga dalam CNY.",
-    "desc_moonshot-coding":
-      "Paket berlangganan Kimi Code untuk Kimi CLI, Claude Code, dan alat pengembang lainnya.",
-    desc_qwen: "Model AI Alibaba. Kemampuan multibahasa dan pengkodean yang kuat.",
-    "desc_qwen-coding":
-      "Langganan Alibaba Cloud Coding Plan untuk Kode Claude dan alat pengembangan lainnya.",
-    desc_modelscope: "Inferensi gratis komunitas ModelScope. Akses model Qwen dengan kuota gratis.",
-    desc_groq:
-      "Platform inferensi ultra-cepat. Menjalankan model sumber terbuka dengan kecepatan tinggi.",
-    desc_mistral: "Pemimpin AI Eropa. Model bobot terbuka yang efisien dan berkualitas tinggi.",
-    desc_xai: "Perusahaan AI milik Elon Musk. Pencipta Grok dengan pengetahuan waktu nyata.",
-    desc_openrouter: "Gerbang API terpadu untuk 100+ model dari berbagai penyedia.",
-    desc_minimax: "Layanan global MiniMax. Harga dalam USD.",
-    "desc_minimax-cn": "Layanan MiniMax Cina (minimaxi.com). Harga dalam CNY.",
-    "desc_minimax-coding":
-      "Langganan MiniMax Coding Plan untuk Kode Claude dan alat pengembang lainnya.",
-    desc_venice: "Platform AI yang berfokus pada privasi. Hosting model tanpa sensor.",
-    desc_xiaomi: "Laboratorium AI Xiaomi. Model ringan dioptimalkan untuk efisiensi.",
-    desc_volcengine: "Platform awan ByteDance. Rumah model bahasa besar Doubao.",
-    "desc_volcengine-coding":
-      "Langganan Paket Coding Volcengine untuk Kode Claude dan alat pengembangan lainnya.",
-    desc_nvidia: "Platform AI NVIDIA. Akses model sumber terbuka yang dioptimalkan GPU.",
-    "desc_nvidia-nim":
-      "Layanan mikro NIM NVIDIA. Akses model yang dioptimalkan GPU di cloud NVIDIA.",
-    "desc_amazon-bedrock": "Layanan terkelola AWS. Akses beberapa penyedia melalui satu API.",
-    hint_openai: "Dapatkan kunci API Anda di platform.openai.com.",
-    hint_anthropic:
-      "Dapatkan kunci API Anda di console.anthropic.com, atau jalankan {{cmd}} untuk token OAuth.",
-    hint_claude:
-      "Berlangganan di claude.ai, lalu dapatkan kunci API Anda di console.anthropic.com atau jalankan {{cmd}} untuk token OAuth.",
-    hint_google: "Dapatkan kunci API Anda di aistudio.google.com.",
-    hint_deepseek: "Dapatkan kunci API Anda di platform.deepseek.com.",
-    hint_zhipu: "Dapatkan kunci API Anda di open.bigmodel.cn.",
-    "hint_zhipu-coding":
-      "Dapatkan kunci API Anda di open.bigmodel.cn. Memerlukan langganan Paket Coding GLM.",
-    hint_zai: "Dapatkan kunci API Anda di z.ai.",
-    hint_moonshot: "Dapatkan kunci API Anda di platform.moonshot.ai.",
-    hint_kimi: "Dapatkan kunci API Anda di platform.moonshot.cn.",
-    "hint_moonshot-coding":
-      "Berlangganan di kimi.com/code, lalu dapatkan kunci API Anda dari konsol.",
-    hint_qwen: "Dapatkan kunci API Anda di dashscope.console.aliyun.com.",
-    "hint_qwen-coding":
-      "Berlangganan di Coding Plan aliyun.com, lalu dapatkan kunci API Anda dari konsol.",
-    hint_modelscope: "Dapatkan token akses Anda di modelscope.cn/my/myaccesstoken.",
-    hint_groq: "Dapatkan kunci API Anda di console.groq.com.",
-    hint_mistral: "Dapatkan kunci API Anda di console.mistral.ai.",
-    hint_xai: "Dapatkan kunci API Anda di console.x.ai.",
-    hint_openrouter: "Dapatkan kunci API Anda di openrouter.ai/keys.",
-    hint_minimax: "Dapatkan kunci API Anda di platform.minimaxi.com.",
-    "hint_minimax-cn": "Dapatkan kunci API Anda di platform.minimaxi.com.",
-    "hint_minimax-coding":
-      "Berlangganan di platform.minimaxi.com, lalu dapatkan kunci API Anda dari konsol.",
-    hint_venice: "Dapatkan kunci API Anda di venice.ai/settings.",
-    hint_xiaomi: "Dapatkan kunci API Anda di developer.xiaomi.com.",
-    hint_volcengine: "Dapatkan kunci API Anda di console.volcengine.com.",
-    "hint_volcengine-coding":
-      "Berlangganan Coding Plan di volcengine.com, lalu dapatkan kunci API Anda dari konsol.",
-    hint_nvidia: "Dapatkan kunci API Anda di build.nvidia.com/settings/api-keys.",
-    "hint_nvidia-nim": "Dapatkan kunci API Anda di build.nvidia.com/settings/api-keys.",
-    "hint_amazon-bedrock": "Konfigurasikan kredensial AWS dengan {{cmd}}.",
-    baseUrlLabel: "Server URL",
-    baseUrlPlaceholder: "http://localhost:11434",
-    baseUrlHelp: "URL dari server Ollama Anda yang sedang berjalan",
-    modelNameLabel: "Model",
-    modelNamePlaceholder: "misalnya llama3.2, qwen2.5, deepseek-r1",
-    modelNameHelp: "Pilih atau ketikkan nama model Ollama",
-    modelCapabilities: "Kemampuan Model",
-    modalityText: "Teks",
-    modalityImage: "Gambar",
-    modelCapabilitiesHelp: "Pilih jenis masukan yang didukung model lokal Anda.",
-    localApiKeyHelp: "Opsional. Biarkan kosong jika server Ollama Anda tidak memiliki otentikasi.",
-    localInfoTitle: "Memulai dengan Ollama",
-    localInfoBody:
-      "Saat ini hanya Ollama yang didukung.\n\n1. Instal Ollama dari ollama.com\n2. Jalankan: ollama tarik llama3.2\n3. Mulai server: ollama melayani\n4. Masuk ke server URL di sebelah kiri",
-    connectionSuccess: "Terhubung",
-    connectionFailed: "Tidak dapat terhubung",
-    badgeLocal: "Lokal",
-    updateUrl: "Perbarui URL",
-    customDefault: "Penyedia Kustom",
-    customInfoTitle: "Penyedia Kustom",
-    customInfoBody:
-      "Hubungkan titik akhir API yang kompatibel dengan OpenAI atau Anthropic. Masukkan URL dasar, kunci API, dan ID model secara manual.",
-    customNameLabel: "Nama Penyedia",
-    customNamePlaceholder: "misalnya, Server vLLM Saya",
-    customProtocolLabel: "Protokol",
-    customProtocolOpenAI: "Kompatibel dengan OpenAI",
-    customProtocolAnthropic: "Anthropic",
-    customEndpointLabel: "Titik akhir URL",
-    customEndpointPlaceholder: "https://api.example.com/v1",
-    customModelsLabel: "Model",
-    customModelsPlaceholder: "Ketik model ID dan tekan Enter",
-    customModelsHelp:
-      "Tekan Enter untuk menambahkan setiap model. Model pertama akan dipilih secara default.",
-    fetchModels: "Ambil Model",
-    fetchingModels: "Mengambil…",
-    refreshModels: "Segarkan Model",
   },
   channels: {
     title: "Pesan",
@@ -1224,7 +931,6 @@ export default {
     skipSetup: "Lewati penyiapan",
     welcomeTitle: "Selamat datang di TK Copilot",
     welcomeDesc: "Mari siapkan agen AI Anda. Pertama, konfigurasikan penyedia LLM Anda.",
-    providerLabel: "Penyedia",
     modelLabel: "Model",
     apiKeyLabel: "Kunci API",
     anthropicTokenLabel: "Token / Kunci API",
@@ -1241,8 +947,6 @@ export default {
     skipStep: "Lewati langkah ini",
     allSetTitle: "Anda sudah siap!",
     allSetDesc: "Inilah yang dapat Anda lakukan di panel manajemen:",
-    sectionProviders: "Model",
-    sectionProvidersDesc: "Kelola penyedia dan kunci API",
     sectionChannels: "Saluran",
     sectionChannelsDesc: "Hubungkan platform perpesanan (Telegram, Slack, dll.)",
     sectionUsage: "Penggunaan",
@@ -1624,7 +1328,6 @@ export default {
     cloudQuotaLowBody:
       "Kuota LLM cloud Anda tersisa 5% atau kurang. Untuk menghindari gangguan, tingkatkan paket Anda atau tambahkan kunci LLM lain.",
     openBilling: "Penagihan",
-    addLlmKey: "Tambahkan kunci LLM",
     changeAccountPlan: "Berlangganan / Tingkatkan",
     subscribeAccountPlan: "Berlangganan",
     upgradeAccountPlan: "Tingkatkan",
@@ -2155,59 +1858,6 @@ export default {
       trendTitle: "Bandingkan tren toko",
       trendBody:
         "Setiap garis mewakili satu toko. TikTok saat ini mengembalikan maksimal 90 pengamatan harian.",
-    },
-    providers: {
-      welcomeTitle: "Selamat datang di Model",
-      welcomeBody:
-        "Di sinilah Anda mengonfigurasi penyedia LLM yang mendukung agen Anda. Mari kita telusuri setiap bagian halaman ini.",
-      tabBarTitle: "Jenis Penyedia",
-      tabBarBody:
-        "Empat tab yang dapat dipilih: Berlangganan (layanan terkelola dengan tagihan bulanan), Kunci API (bawa kunci Anda sendiri dari penyedia seperti OpenAI, Anthropic, dll.), Lokal (model yang dihosting sendiri melalui Ollama, LM Studio), atau Kustom (titik akhir apa pun yang kompatibel dengan OpenAI/Anthropic).",
-      providerSelectTitle: "Pilih Penyedia",
-      providerSelectBody:
-        "Klik tarik-turun ini untuk memilih penyedia LLM Anda. Daftar ini diurutkan berdasarkan popularitas bahasa Anda. Setiap opsi menunjukkan nama penyedia dan penjelasan singkat.",
-      labelFieldTitle: "Label Kunci",
-      labelFieldBody:
-        "Berikan nama yang ramah pada kunci ini (misalnya, 'Akun Kerja', 'Pribadi'). Ini membantu Anda membedakan kunci ketika Anda memiliki beberapa penyedia yang dikonfigurasi.",
-      modelFieldTitle: "Pemilihan Model",
-      modelFieldBody:
-        "Pilih model mana yang akan digunakan dengan penyedia ini. Model yang berbeda memiliki kemampuan dan biaya yang berbeda. Anda dapat mengubah model nanti dari daftar kunci yang dikonfigurasi.",
-      apiKeyFieldTitle: "Kunci API",
-      apiKeyFieldBody:
-        "Rekatkan kunci API Anda di sini. Kuncinya dienkripsi dan disimpan dengan aman di perangkat Anda. Sistem akan memvalidasi kunci dengan membuat permintaan pengujian ke penyedia.",
-      providerLinksTitle: "Dapatkan Kunci Anda",
-      providerLinksBody:
-        "Belum punya kunci API? Klik tautan ini untuk membuka situs web penyedia tempat Anda dapat mendaftar dan membuatnya.",
-      advancedTitle: "Pengaturan Lanjutan",
-      advancedBody:
-        "Klik untuk memperluas opsi lanjutan. Di sini Anda dapat mengonfigurasi proxy URL jika jaringan Anda memerlukannya untuk mencapai API penyedia (misalnya, untuk firewall perusahaan atau pembatasan regional).",
-      saveButtonTitle: "Simpan",
-      saveButtonBody:
-        "Klik Simpan untuk memvalidasi dan menyimpan konfigurasi penyedia Anda. Sistem akan menguji kunci API Anda sebelum menyimpannya. Jika validasi gagal, Anda akan melihat pesan kesalahan dengan detailnya.",
-      pricingPanelTitle: "Harga & Info",
-      pricingPanelBody:
-        "Panel samping ini menampilkan detail harga untuk penyedia dan model yang dipilih, membantu Anda membandingkan biaya. Untuk penyedia langganan, ini menunjukkan opsi paket.",
-      configuredTitle: "Kunci yang Dikonfigurasi",
-      configuredBody:
-        "Semua kunci penyedia Anda yang tersimpan muncul di bawah. Yang bertanda 'Aktif' sedang digunakan oleh agen Anda. Anda dapat memiliki banyak kunci dan beralih di antara kunci tersebut.",
-      keyCardTitle: "Kartu Kunci Penyedia",
-      keyCardBody:
-        "Setiap kartu menunjukkan: nama penyedia, jenis autentikasi (Kunci API / Langganan / Lokal / Khusus), dan apakah itu kunci yang aktif. Lencana 'Aktif' berarti ini adalah kunci yang sedang digunakan agen Anda.",
-      keyModelTitle: "Label & Model",
-      keyModelBody:
-        "Label kunci ditampilkan di sini (klik ikon pensil untuk mengganti namanya). Di bawah ini adalah pemilih model — Anda dapat mengganti model kapan saja tanpa memasukkan kembali kunci Anda.",
-      keyActionsTitle: "Tindakan Utama",
-      keyActionsBody:
-        "Tersedia tiga tindakan: 'Aktifkan' menjadikan kunci ini sebagai default untuk agen Anda. 'Pembaruan' memungkinkan Anda mengubah kunci API atau pengaturan proxy. 'Hapus' menghapus kunci ini secara permanen.",
-      updateBtnTitle: "Perbarui Kunci",
-      updateBtnBody:
-        "Mengklik 'Perbarui' akan memperluas formulir di bawah kartu kunci tempat Anda dapat memasukkan kunci API baru atau mengubah pengaturan proxy. Mari kita lihat seperti apa bentuknya.",
-      updateFormTitle: "Perbarui Formulir",
-      updateFormBody:
-        "Di sini Anda dapat menempelkan kunci API baru untuk menggantikan kunci saat ini. Di bawahnya, Anda dapat mengonfigurasi proxy URL untuk kunci khusus ini. Klik Simpan untuk menerapkan perubahan.",
-      removeBtnTitle: "Hapus Kunci",
-      removeBtnBody:
-        "Tindakan ini akan menghapus kunci dari perangkat Anda secara permanen. Jika ini adalah satu-satunya kunci aktif Anda, agen Anda tidak akan dapat melakukan panggilan LLM sampai Anda menambahkan kunci baru. Hati-hati!",
     },
     settings: {
       toggle: "Modus Tutorial",
@@ -3036,11 +2686,15 @@ export default {
         softReject: "Abaikan",
         sampleSyncUnknown: "Status platform perlu disinkronkan.",
         sampleReviewSaved: "Keputusan disimpan.",
-        ignoreChecking: "Respons lebih lama dari biasanya. Memeriksa apakah tindakan abaikan sudah disimpan…",
-        ignoreUnconfirmed: "Hasil belum dikonfirmasi dan mungkin sudah disimpan. Periksa status terlebih dahulu; ini tidak akan mengirim permintaan abaikan lagi.",
+        ignoreChecking:
+          "Respons lebih lama dari biasanya. Memeriksa apakah tindakan abaikan sudah disimpan…",
+        ignoreUnconfirmed:
+          "Hasil belum dikonfirmasi dan mungkin sudah disimpan. Periksa status terlebih dahulu; ini tidak akan mengirim permintaan abaikan lagi.",
         ignoreCheckAgain: "Periksa status",
-        ignoreStateChanged: "Permintaan sampel ini telah berubah. Muat ulang sebelum mengambil keputusan lain.",
-        reviewRefreshFailed: "Keputusan disimpan, tetapi tampilan gagal diperbarui. Silakan muat ulang secara manual.",
+        ignoreStateChanged:
+          "Permintaan sampel ini telah berubah. Muat ulang sebelum mengambil keputusan lain.",
+        reviewRefreshFailed:
+          "Keputusan disimpan, tetapi tampilan gagal diperbarui. Silakan muat ulang secara manual.",
         rejectReason: "Alasan",
         rejectExplanation: "Jelaskan alasan",
         reviewNote: "Catatan tinjauan (opsional)",
@@ -3087,7 +2741,8 @@ export default {
         "Secara default menampilkan semua toko ber-Affiliate; pilih satu toko untuk mempersempit tampilan.",
       creatorAttentionOnly: "Hanya perlu perhatian",
       creatorIncludeWithoutUsername: "Tampilkan kreator tanpa nama pengguna",
-      creatorIncludeWithoutUsernameHint: "TikTok tidak memberikan nama pengguna untuk kreator ini (sebagian besar akun nonaktif). Disembunyikan secara default; pencarian ID persis tetap menemukannya.",
+      creatorIncludeWithoutUsernameHint:
+        "TikTok tidak memberikan nama pengguna untuk kreator ini (sebagian besar akun nonaktif). Disembunyikan secara default; pencarian ID persis tetap menemukannya.",
       sampleTiers: {
         SAMPLE_APPROVED: "Sampel disetujui",
         SAMPLE_SHIPPED: "Sampel dikirim",
@@ -3098,7 +2753,8 @@ export default {
       sampleTierColumnLabel: "Progres saat ini",
       sampleTierColumnHint: "Tingkat tertinggi yang dicapai di semua toko",
       sampleTierFilterLabel: "Progres saat ini",
-      sampleTierFilterHint: "Pilih satu tahap. Pengiriman, penerimaan dan pemenuhan diurutkan menurut waktu terbaru kreator di semua toko; tanggal tak diketahui di akhir. Klik lagi untuk menghapus.",
+      sampleTierFilterHint:
+        "Pilih satu tahap. Pengiriman, penerimaan dan pemenuhan diurutkan menurut waktu terbaru kreator di semua toko; tanggal tak diketahui di akhir. Klik lagi untuk menghapus.",
       sampleTierEmpty: "Belum ada progres kolaborasi",
       manualTagFilterLabel: "Tag manual",
       systemTagFilterLabel: "Tag sistem",
@@ -3282,7 +2938,8 @@ export default {
         managedByPartner: "Dikelola oleh {{partner}}",
         partnerBadge: "Penyedia layanan",
         refundableSampleBadge: "Beli & refund",
-        refundableSampleHint: "Sampel yang dibeli sendiri oleh Kreator dan dikembalikan dananya oleh penjual kemudian, tanpa peninjauan. Di TikTok Seller Center, sampel ini ada di tab sampel beli-dan-refund, bukan di sampel gratis.",
+        refundableSampleHint:
+          "Sampel yang dibeli sendiri oleh Kreator dan dikembalikan dananya oleh penjual kemudian, tanpa peninjauan. Di TikTok Seller Center, sampel ini ada di tab sampel beli-dan-refund, bukan di sampel gratis.",
         productId: "ID produk",
         collaborationId: "ID kolaborasi",
         openCollaborationId: "ID kolaborasi terbuka",
@@ -3773,7 +3430,8 @@ export default {
         sampleReviewAllResults: "Semua hasil",
         sampleReviewApproveOnly: "Hanya penerimaan yang memerlukan persetujuan",
         sampleReviewRejectOnly: "Hanya penolakan / Abaikan yang memerlukan persetujuan",
-        sampleReviewDecisionsHint: "Penolakan mencakup Abaikan (biarkan permintaan kedaluwarsa). Jika ada tindakan yang cocok, seluruh rangkaian memerlukan persetujuan; kebijakan lain dan permintaan tinjauan manusia tetap berlaku.",
+        sampleReviewDecisionsHint:
+          "Penolakan mencakup Abaikan (biarkan permintaan kedaluwarsa). Jika ada tindakan yang cocok, seluruh rangkaian memerlukan persetujuan; kebijakan lain dan permintaan tinjauan manusia tetap berlaku.",
         manualTagsLabel: "Tag manual",
         allManualTags: "Berlaku untuk semua tag manual.",
         excludedManualTagsLabel: "Tag manual yang dikecualikan",
@@ -3900,7 +3558,8 @@ export default {
           "Staf meminta rekomendasi yang direvisi. Catatan revisi akan disertakan dalam eksekusi agen berikutnya.",
       },
       sampleWorkStatusDescriptions: {
-        REQUEST_PENDING_PARTNER_REVIEW: "Permintaan ini dikelola oleh penyedia layanan (MCN). Penyedia layanan yang meninjaunya, sehingga kamu tidak dapat menyetujui atau menolaknya di sini.",
+        REQUEST_PENDING_PARTNER_REVIEW:
+          "Permintaan ini dikelola oleh penyedia layanan (MCN). Penyedia layanan yang meninjaunya, sehingga kamu tidak dapat menyetujui atau menolaknya di sini.",
         REQUEST_PENDING_REVIEW:
           "Kreator telah mengirim permintaan sampel dan menunggu keputusan Anda.",
         APPROVED_AWAITING_SHIPMENT:
@@ -3987,10 +3646,14 @@ export default {
       details: "Detail",
       conversationDetails: "Detail percakapan",
       search: "Cari",
-      conversationSearchPlaceholder: "Pembeli, percakapan, atau pesanan (maks. 100, dipisahkan koma)",
-      orderSearchInvalid: "Setiap item harus berupa ID pesanan 18 digit yang diawali angka 5. Periksa seluruh daftar.",
-      orderSearchTooMany: "Cari maksimal 100 ID pesanan unik sekaligus. Bagi daftar menjadi beberapa kelompok kecil.",
-      conversationSearchTooLong: "Pencarian terlalu panjang. Gunakan maksimal 128 karakter untuk pembeli atau percakapan, atau daftar pesanan yang lebih pendek.",
+      conversationSearchPlaceholder:
+        "Pembeli, percakapan, atau pesanan (maks. 100, dipisahkan koma)",
+      orderSearchInvalid:
+        "Setiap item harus berupa ID pesanan 18 digit yang diawali angka 5. Periksa seluruh daftar.",
+      orderSearchTooMany:
+        "Cari maksimal 100 ID pesanan unik sekaligus. Bagi daftar menjadi beberapa kelompok kecil.",
+      conversationSearchTooLong:
+        "Pencarian terlalu panjang. Gunakan maksimal 128 karakter untuk pembeli atau percakapan, atau daftar pesanan yang lebih pendek.",
       searchPlaceholder: "Cari ID, pesanan, pembeli, percakapan, alasan...",
       pageSummary: "Menampilkan {{start}}-{{end}} dari {{total}} | Halaman {{page}} / {{pages}}",
       page: "Halaman {{page}} / {{pages}}",
@@ -4261,9 +3924,6 @@ export default {
         csUnbind: "Hentikan penanganan CS pada perangkat ini",
         csThisDevice: "Ditangani oleh perangkat ini",
         csOtherDevice: "Ditangani oleh perangkat lain",
-        csModelOverride: "Model CS",
-        csModelOverrideHint:
-          "Pilih model spesifik untuk sesi layanan pelanggan. Defaultnya menggunakan model yang aktif secara global.",
         csModelDefault: "Bawaan (model global)",
         csModelUnavailable: "Model yang dipilih tidak lagi tersedia",
         bridgeDisconnected: "Jembatan CS terputus — pesan pelanggan tidak akan diterima.",
@@ -4613,7 +4273,7 @@ export default {
     upgradeRequired: "Fitur ini memerlukan langganan. Harap tingkatkan paket Anda.",
     llmUnavailableTitle: "AI model unavailable",
     llmUnavailableBody:
-      "No active AI model key is available. Renew TK Copilot AI, or add and activate an API key in Models.",
+      "TK Copilot AI tidak tersedia. Silakan perpanjang langganan Anda atau masuk kembali.",
     customerServiceRoutingUnavailableTitle:
       "Eskalasi layanan pelanggan AI tidak tersedia di perangkat ini",
     customerServiceRoutingUnavailableBody:

@@ -454,161 +454,8 @@
    Its inset, column layout and scroll region come from TkPanel padding="none"
    + TkPanelHeader / TkPanelBody scroll / TkPanelFooter - see the design-system
    README, "The inset lives on the element that scrolls". */
-.pricing-card {
-  font-size: 11px;
-  height: 100%;
-}
-
-.pricing-heading {
-  margin: 0 0 4px 0;
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.pricing-status {
-  padding: 24px 0;
-  text-align: center;
-  color: var(--color-text-muted);
-  font-size: 12px;
-}
-
-.pricing-status-compact {
-  padding: 16px 0;
-  text-align: center;
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-.pricing-link {
-  color: var(--color-primary);
-  font-size: 12px;
-}
-
-.pricing-currency-note {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-
-.pricing-inner-table {
-  width: 100%;
-  font-size: 11px;
-  border-collapse: collapse;
-}
-
-.pricing-inner-table thead tr {
-  border-bottom: 1px solid var(--color-border);
-}
-
-.pricing-inner-table th {
-  padding: 4px 6px;
-  font-weight: 400;
-  color: var(--color-text-secondary);
-  background-color: transparent;
-  text-transform: none;
-  letter-spacing: normal;
-  font-size: 11px;
-  border-bottom: none;
-}
-
-[data-theme="dark"] .pricing-inner-table th {
-  background-color: transparent;
-}
-
-.pricing-inner-table th:first-child {
-  text-align: left;
-}
-
-.pricing-inner-table th:not(:first-child) {
-  text-align: right;
-  white-space: nowrap;
-}
-
-.pricing-inner-table tbody tr {
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.pricing-inner-table tbody tr:nth-child(even) {
-  background-color: rgba(0, 0, 0, 0.02);
-}
-
-.pricing-inner-table td {
-  padding: 3px 6px;
-}
-
-.pricing-model-name {
-  font-weight: 400;
-}
-
-.pricing-model-note {
-  font-size: 10px;
-  color: var(--color-text-muted);
-  margin-top: 1px;
-}
-
-.pricing-price {
-  text-align: right;
-  font-family: var(--font-mono);
-  white-space: nowrap;
-}
-
-.pricing-disclaimer {
-  font-size: 10px;
-  color: var(--color-text-muted);
-  line-height: 1.4;
-}
-
-.pricing-plan-block {
-  margin-bottom: 10px;
-}
-
-.pricing-plan-block:last-of-type {
-  margin-bottom: 4px;
-}
-
-.pricing-plan-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: var(--tk-v1-space-1);
-  padding: var(--tk-v1-space-1) 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.pricing-plan-name {
-  font-weight: 600;
-  font-size: 12px;
-  color: var(--color-text);
-}
-
-.pricing-plan-price {
-  font-weight: 600;
-  font-size: 12px;
-  color: var(--color-primary);
-}
-
-.pricing-plan-volume {
-  text-align: right;
-  white-space: nowrap;
-  color: var(--color-text-secondary);
-}
-
-.pricing-footer-link {
-  margin-top: var(--tk-v1-space-1);
-}
 
 /* Provider info card — local/custom info in pricing-card shell */
-.provider-info-card {
-  font-size: 13px;
-}
-
-.provider-info-body {
-  white-space: pre-line;
-  line-height: 1.7;
-  color: var(--color-text-secondary);
-  margin: 0;
-}
 
 /* ===== 39. Form Elements (in modals) ===== */
 
@@ -647,41 +494,12 @@
   font-size: 12px;
 }
 
-.oauth-manual-url-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
 /* -- OAuth waiting indicator -- */
-.oauth-waiting {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--color-text-muted);
-}
-
-.oauth-waiting::before {
-  content: "";
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--color-border-strong);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: oauth-spin 0.8s linear infinite;
-  flex-shrink: 0;
-}
 
 @keyframes oauth-spin {
   to {
     transform: rotate(360deg);
   }
-}
-
-.form-checkbox-group {
-  display: flex;
-  gap: 16px;
-  align-items: center;
 }
 
 .form-checkbox-row {

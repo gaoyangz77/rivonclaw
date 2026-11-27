@@ -37,24 +37,11 @@
   color: var(--color-text-secondary);
 }
 
-.text-sm {
-  font-size: 12px;
-}
-
 .font-medium {
   font-weight: 500;
 }
 
-.mb-sm {
-  margin-bottom: 8px;
-}
-
 /* Page header layout */
-
-.flex-1 {
-  flex: 1;
-  min-width: 0;
-}
 
 .sr-only {
   position: absolute;
@@ -73,15 +60,7 @@
   align-items: center;
 }
 
-.inline-flex-center {
-  display: inline-flex;
-  align-items: center;
-}
-
 /* Spacing utilities */
-.mt-sm {
-  margin-top: 6px;
-}
 
 .mt-lg {
   margin-top: 20px;
@@ -154,11 +133,6 @@
 }
 
 /* Provider key section border */
-.key-section-border {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-border-light);
-}
 
 /* App loading screen */
 .app-loading {
@@ -170,9 +144,6 @@
 }
 
 /* Spinner inline (inside buttons) */
-.spinner-inline {
-  margin-right: 6px;
-}
 
 /* Card entry animation — opacity only to avoid creating a containing block
    that breaks position:fixed dropdowns inside cards */

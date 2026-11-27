@@ -217,10 +217,6 @@ export interface CSShopContext {
   platform?: string;
   /** Assembled CS system prompt for this shop. */
   systemPrompt: string;
-  /** Provider override for CS sessions. Undefined = use global default provider. */
-  csProviderOverride?: string;
-  /** LLM model override for CS sessions. Undefined = use global default. */
-  csModelOverride?: string;
   /** RunProfile ID configured for this shop's CS sessions. */
   runProfileId?: string;
 }
@@ -2165,10 +2161,7 @@ export class CustomerServiceSession {
           `attachments=${params.attachments?.length ?? 0} promptChars=${extraSystemPrompt.length} ` +
           `messageChars=${params.message.length}`,
       );
-      const resolvedModel = rootStore.llmManager.resolveModelForDispatch(this.scopeKey, {
-        type: ScopeType.CS_SESSION,
-        shopId: this.shop.objectId,
-      });
+      const resolvedModel = rootStore.llmManager.resolveModelForDispatch();
       const agentParams = {
         sessionKey: this.dispatchKey,
         provider: resolvedModel.provider,

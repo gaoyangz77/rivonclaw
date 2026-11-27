@@ -1,7 +1,6 @@
 import type { RouteRegistry } from "../infra/api/route-registry.js";
 import { registerAuthHandlers } from "../auth/api.js";
 import { registerSettingsHandlers } from "../settings/api.js";
-import { registerProviderHandlers } from "../providers/api.js";
 import { registerChannelsHandlers } from "../channels/api.js";
 import { registerCsBridgeHandlers } from "../cs-bridge/api.js";
 import { registerChatSessionsHandlers } from "../chat/api.js";
@@ -13,12 +12,10 @@ import { registerLogsHandlers } from "../logs/api.js";
 import { registerDoctorHandlers } from "../doctor/api.js";
 import { registerToolRegistryHandlers } from "../gateway/api.js";
 import { registerMediaCacheHandlers } from "../media-cache/api.js";
-import { registerAffiliateCampaignAiHandlers } from "../affiliate/campaign-ai-api.js";
 
 export function registerAllHandlers(registry: RouteRegistry): void {
   registerAuthHandlers(registry);
   registerSettingsHandlers(registry);
-  registerProviderHandlers(registry);
   registerChannelsHandlers(registry);
   registerCsBridgeHandlers(registry);
   registerChatSessionsHandlers(registry);
@@ -30,5 +27,4 @@ export function registerAllHandlers(registry: RouteRegistry): void {
   registerLogsHandlers(registry);
   registerDoctorHandlers(registry);
   registerToolRegistryHandlers(registry);
-  registerAffiliateCampaignAiHandlers(registry);
 }

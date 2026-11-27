@@ -45,7 +45,12 @@ describe("panel i18n resources", () => {
   it("localizes bulk CS order search and its validation errors in every language", () => {
     for (const language of LANGUAGE_OPTIONS) {
       const t = i18n.getFixedT(language.code);
-      for (const suffix of ["conversationSearchPlaceholder", "orderSearchInvalid", "orderSearchTooMany", "conversationSearchTooLong"]) {
+      for (const suffix of [
+        "conversationSearchPlaceholder",
+        "orderSearchInvalid",
+        "orderSearchTooMany",
+        "conversationSearchTooLong",
+      ]) {
         const key = `ecommerce.customerServiceWorkspace.${suffix}`;
         expect(t(key), `${language.code} ${suffix}`).not.toBe(key);
         expect(t(key).trim()).not.toBe("");
@@ -122,9 +127,6 @@ describe("panel i18n resources", () => {
     for (const language of LANGUAGE_OPTIONS) {
       const values = flattenValues(language.resource);
       expect(values["common.brandName"]).toBe(language.code === "zh" ? "TK匠" : "TK Copilot");
-      expect(values["providers.label_rivonclaw-pro"]).toBe(
-        language.code === "zh" ? "TK匠 AI" : "TK Copilot AI",
-      );
       for (const [key, value] of Object.entries(values)) {
         expect(value, `${language.code} ${key}`).not.toMatch(/RivonClaw|EasyClaw|爪爪|TKå|�/);
       }

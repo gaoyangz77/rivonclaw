@@ -25,7 +25,10 @@ describe("commerce navigation", () => {
 
 describe("product knowledge navigation", () => {
   it("is one first-level commerce entry that Affiliate and Customer Service members both see", () => {
-    const entries = ROUTES.filter((route) => route.component === ROUTES.find((r) => r.path === "/commerce/product-knowledge")?.component);
+    const entries = ROUTES.filter(
+      (route) =>
+        route.component === ROUTES.find((r) => r.path === "/commerce/product-knowledge")?.component,
+    );
     expect(entries.map((route) => route.path)).toEqual(["/commerce/product-knowledge"]);
     const [entry] = entries;
     expect(entry.parentPath).toBeUndefined();
@@ -39,7 +42,10 @@ describe("product knowledge navigation", () => {
       expect(canSeeRoute(entry, { isOwner: false, permissionScopes: [scope] })).toBe(true);
     }
     expect(
-      canSeeRoute(entry, { isOwner: false, permissionScopes: [GQL.PermissionScope.ShopManagement] }),
+      canSeeRoute(entry, {
+        isOwner: false,
+        permissionScopes: [GQL.PermissionScope.ShopManagement],
+      }),
     ).toBe(false);
   });
 });
@@ -50,7 +56,6 @@ describe("runtime navigation", () => {
 
     expect(routeByPath.get("/automation/crons")?.navGroupKey).toBeUndefined();
     expect(routeByPath.get("/connections/channels")?.navGroupKey).toBeUndefined();
-    expect(routeByPath.get("/connections/models")?.navGroupKey).toBeUndefined();
     expect(routeByPath.get("/automation/skills")).toMatchObject({
       navLabelKey: "nav.skills",
       navGroupKey: "nav.extras",
@@ -107,7 +112,6 @@ describe("permission-scope navigation", () => {
       "/commerce/product-knowledge",
       "/automation/crons",
       "/connections/channels",
-      "/connections/models",
       "/automation/skills",
       "/connections/extensions",
       "/account/usage",
@@ -139,7 +143,6 @@ describe("permission-scope navigation", () => {
     const basePages = [
       "/automation/crons",
       "/connections/channels",
-      "/connections/models",
       "/automation/skills",
       "/connections/extensions",
       "/account/usage",
@@ -177,7 +180,10 @@ describe("permission-scope navigation", () => {
       )
         .map((route) => route.path)
         .filter((path) => path.startsWith("/commerce/")),
-    ).toEqual(["/commerce/affiliate", ...permitted.filter((path) => path.startsWith("/commerce/"))]);
+    ).toEqual([
+      "/commerce/affiliate",
+      ...permitted.filter((path) => path.startsWith("/commerce/")),
+    ]);
   });
 
   it("gives a region admin the four pages plus Campaigns; the gate decides by permission", () => {
@@ -237,10 +243,15 @@ describe("permission-scope navigation", () => {
 
   it("keeps Campaigns away from a team lead and offers them to a region admin and a BD (ADR-118)", () => {
     const campaigns = ROUTES.find((route) => route.path === "/commerce/affiliate/campaigns")!;
-    const login = (...permissionScopes: GQL.PermissionScope[]) => ({ isOwner: false, permissionScopes });
+    const login = (...permissionScopes: GQL.PermissionScope[]) => ({
+      isOwner: false,
+      permissionScopes,
+    });
     expect(canSeeRoute(campaigns, login(GQL.PermissionScope.AffiliateTeamLead))).toBe(false);
     expect(canSeeRoute(campaigns, login(GQL.PermissionScope.AffiliateRegionAdmin))).toBe(true);
-    expect(canSeeRoute(campaigns, login(GQL.PermissionScope.AffiliateBusinessDeveloper))).toBe(true);
+    expect(canSeeRoute(campaigns, login(GQL.PermissionScope.AffiliateBusinessDeveloper))).toBe(
+      true,
+    );
     expect(canSeeRoute(campaigns, login(GQL.PermissionScope.Affiliate))).toBe(true);
   });
 
