@@ -564,6 +564,14 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
         if (current) applySnapshot(current, stripTypename(result.data.updateShop) as any);
       }),
 
+      setShopDeliveryFailureReminderEnabled: flow(function* (shopId: string, enabled: boolean) {
+        const result = yield client().mutate({ mutation: UPDATE_SHOP_MUTATION,
+          variables: { id: shopId, input: { services: { customerService: { deliveryFailureReminderEnabled: enabled } } } } });
+        if (!result.data?.updateShop) throw new Error('Shop settings update returned no shop');
+        const current = self.shops.find(shop => shop.id === shopId);
+        if (current) applySnapshot(current, stripTypename(result.data.updateShop) as any);
+      }),
+
       setShopMessageAutoTranslation: flow(function* (
         shopId: string,
         level: GQL.CustomerServiceMessageAutoTranslation,
@@ -958,6 +966,7 @@ interface PanelRootActions {
   clearAuth(): void;
   fetchShops(): Promise<void>;
   setShopPickupReminderEnabled(shopId: string, enabled: boolean): Promise<void>;
+  setShopDeliveryFailureReminderEnabled(shopId: string, enabled: boolean): Promise<void>;
   setShopMessageAutoTranslation(shopId: string, level: GQL.CustomerServiceMessageAutoTranslation): Promise<void>;
   fetchPlatformApps(): Promise<void>;
   refreshToolSpecs(): Promise<void>;

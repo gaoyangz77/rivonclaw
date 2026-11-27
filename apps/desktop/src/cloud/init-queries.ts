@@ -178,6 +178,7 @@ export const INIT_SHOPS_QUERY = `
         customerService {
           enabled
           pickupReminderEnabled
+          deliveryFailureReminderEnabled
           messageAutoTranslation
           unpaidOrderReachoutEnabled
           unpaidOrderReachoutStages { id enabled delayMinutes messageTemplate }

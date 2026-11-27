@@ -14,6 +14,8 @@ describe("Customer reminder settings translations", () => {
       for (const key of ["title", "enabled", "hint", "saveFailed"] as const) {
         expect(copy.pickupReminder[key].trim()).not.toBe("");
         expect(t(`ecommerce.pickupReminder.${key}`)).toBe(copy.pickupReminder[key]);
+        expect(copy.deliveryFailureReminder[key].trim()).not.toBe("");
+        expect(t(`ecommerce.deliveryFailureReminder.${key}`)).toBe(copy.deliveryFailureReminder[key]);
       }
     }
   });

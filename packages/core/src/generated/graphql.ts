@@ -6048,6 +6048,8 @@ export interface AgentCsSettingsInput {
   csModelOverride?: InputMaybe<Scalars["String"]["input"]>;
   /** CS provider override. When selected by updateMask, null or empty string clears the override. Reset both provider/model to restore full defaults. */
   csProviderOverride?: InputMaybe<Scalars["String"]["input"]>;
+  /** Delivery-failure reminders flag, same rules as pickupReminderEnabled. */
+  deliveryFailureReminderEnabled?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** CS enabled flag. When selected by updateMask, requires true/false. Otherwise unchanged. */
   enabled?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Existing escalation channel ID. When selected by updateMask, null or empty string clears it. Clear both channel/recipient to remove the full route. */
@@ -8682,6 +8684,8 @@ export interface CustomerServiceSettings {
   csModelOverride?: Maybe<Scalars["String"]["output"]>;
   /** LLM provider override for CS sessions (e.g. 'zhipu'). Null = use default provider. */
   csProviderOverride?: Maybe<Scalars["String"]["output"]>;
+  /** Whether CS sends one reminder per delivery-failure episode for eligible in-transit orders. */
+  deliveryFailureReminderEnabled: Scalars["Boolean"]["output"];
   enabled: Scalars["Boolean"]["output"];
   /** Channel ID for escalation messages. Null = not configured. */
   escalationChannelId?: Maybe<Scalars["String"]["output"]>;
@@ -8712,6 +8716,8 @@ export interface CustomerServiceSettingsInput {
   csModelOverride?: InputMaybe<Scalars["String"]["input"]>;
   /** CS provider override. When selected by updateMask, null or empty string clears the override. Reset both provider/model to restore full defaults. */
   csProviderOverride?: InputMaybe<Scalars["String"]["input"]>;
+  /** Delivery-failure reminders flag, same rules as pickupReminderEnabled. */
+  deliveryFailureReminderEnabled?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** CS enabled flag. When selected by updateMask, requires true/false. Otherwise unchanged. */
   enabled?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Existing escalation channel ID. When selected by updateMask, null or empty string clears it. Clear both channel/recipient to remove the full route. */

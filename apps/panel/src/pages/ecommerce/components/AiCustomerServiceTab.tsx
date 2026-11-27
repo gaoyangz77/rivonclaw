@@ -8,6 +8,7 @@ import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { CustomerServiceBillingCta } from "../../../components/billing/CustomerServiceBillingCta.js";
 import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
 import { PickupReminderSettings } from "./PickupReminderSettings.js";
+import { DeliveryFailureReminderSettings } from "./DeliveryFailureReminderSettings.js";
 import { MessageAutoTranslationSettings } from "./MessageAutoTranslationSettings.js";
 import { UnpaidOrderReachoutSettings } from "./UnpaidOrderReachoutSettings.js";
 import { TkSegmented, TkSwitchControl } from "../../../components/design-system/index.js";
@@ -283,6 +284,7 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
           />
         </section>
         <PickupReminderSettings shopId={shop.id} />
+        <DeliveryFailureReminderSettings shopId={shop.id} />
         <MessageAutoTranslationSettings shopId={shop.id} />
       </section>
 

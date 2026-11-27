@@ -19,6 +19,7 @@ export const SHOP_FIELDS_FRAGMENT = gql`
       customerService {
         enabled
         pickupReminderEnabled
+        deliveryFailureReminderEnabled
         messageAutoTranslation
         unpaidOrderReachoutEnabled
         unpaidOrderReachoutStages {
