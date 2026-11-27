@@ -6044,9 +6044,15 @@ export interface AgentCsSettingsInput {
   businessPrompt?: InputMaybe<Scalars["String"]["input"]>;
   /** Actual Desktop device ID handling CS; never invent it. When selected by updateMask, null or empty string unbinds without disabling CS. Otherwise unchanged. */
   csDeviceId?: InputMaybe<Scalars["String"]["input"]>;
-  /** CS model override. When selected by updateMask, null or empty string clears the override. Reset both provider/model to restore full defaults. */
+  /**
+   * Removed. Accepted and ignored.
+   * @deprecated Removed in ADR-123: every shop runs on the default cloud model. Always null / ignored; kept for older Desktop versions.
+   */
   csModelOverride?: InputMaybe<Scalars["String"]["input"]>;
-  /** CS provider override. When selected by updateMask, null or empty string clears the override. Reset both provider/model to restore full defaults. */
+  /**
+   * Removed. Accepted and ignored.
+   * @deprecated Removed in ADR-123: every shop runs on the default cloud model. Always null / ignored; kept for older Desktop versions.
+   */
   csProviderOverride?: InputMaybe<Scalars["String"]["input"]>;
   /** Delivery-failure reminders flag, same rules as pickupReminderEnabled. */
   deliveryFailureReminderEnabled?: InputMaybe<Scalars["Boolean"]["input"]>;
@@ -8680,9 +8686,15 @@ export interface CustomerServiceSessionsAcrossShopsResult {
 export interface CustomerServiceSettings {
   businessPrompt?: Maybe<Scalars["String"]["output"]>;
   csDeviceId?: Maybe<Scalars["String"]["output"]>;
-  /** LLM model override for CS sessions (e.g. 'glm-5'). Null = use default model. */
+  /**
+   * Removed. Always null.
+   * @deprecated Removed in ADR-123: every shop runs on the default cloud model. Always null / ignored; kept for older Desktop versions.
+   */
   csModelOverride?: Maybe<Scalars["String"]["output"]>;
-  /** LLM provider override for CS sessions (e.g. 'zhipu'). Null = use default provider. */
+  /**
+   * Removed. Always null.
+   * @deprecated Removed in ADR-123: every shop runs on the default cloud model. Always null / ignored; kept for older Desktop versions.
+   */
   csProviderOverride?: Maybe<Scalars["String"]["output"]>;
   /** Whether CS sends one reminder per delivery-failure episode for eligible in-transit orders. */
   deliveryFailureReminderEnabled: Scalars["Boolean"]["output"];
@@ -8712,9 +8724,9 @@ export interface CustomerServiceSettingsInput {
   businessPrompt?: InputMaybe<Scalars["String"]["input"]>;
   /** Actual Desktop device ID handling CS; never invent it. When selected by updateMask, null or empty string unbinds without disabling CS. Otherwise unchanged. */
   csDeviceId?: InputMaybe<Scalars["String"]["input"]>;
-  /** CS model override. When selected by updateMask, null or empty string clears the override. Reset both provider/model to restore full defaults. */
+  /** Removed. Accepted and ignored. */
   csModelOverride?: InputMaybe<Scalars["String"]["input"]>;
-  /** CS provider override. When selected by updateMask, null or empty string clears the override. Reset both provider/model to restore full defaults. */
+  /** Removed. Accepted and ignored. */
   csProviderOverride?: InputMaybe<Scalars["String"]["input"]>;
   /** Delivery-failure reminders flag, same rules as pickupReminderEnabled. */
   deliveryFailureReminderEnabled?: InputMaybe<Scalars["Boolean"]["input"]>;
