@@ -860,7 +860,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   >(DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION);
   const [suggestMessageTemplate] = useMutation<
     { suggestAffiliateCampaignMessageTemplate: GQL.AffiliateCampaignMessageTemplateSuggestion },
-    { input: SuggestAffiliateCampaignMessageTemplateInput }
+    { input: GQL.SuggestAffiliateCampaignMessageTemplateInput }
   >(SUGGEST_AFFILIATE_CAMPAIGN_MESSAGE_TEMPLATE_MUTATION);
   const [retrySearchPlan, retrySearchPlanState] = useMutation(
     RETRY_AFFILIATE_CAMPAIGN_SEARCH_PLAN_MUTATION,
@@ -5522,21 +5522,7 @@ export function isEnglishCampaignSearchPhrase(value: string): boolean {
  * are listed here as well so a gap between the two still names its reason.
  * Order matters where one message contains another.
  */
-/**
- * Declared locally until `GQL.SuggestAffiliateCampaignMessageTemplateInput` is
- * generated from the Backend schema; replace it with the generated type then.
- */
-type SuggestAffiliateCampaignMessageTemplateInput = {
-  shopId: string;
-  productId: string;
-  uiLocale: string;
-  guidance?: string;
-  mode: GQL.AffiliateCampaignTemplateGenerationMode;
-  previousDraft?: string;
-  previousInvitationText?: string;
-};
-
-export const CAMPAIGN_ERROR_MESSAGE_KEYS:ReadonlyArray<readonly [string, string]> = [
+export const CAMPAIGN_ERROR_MESSAGE_KEYS: ReadonlyArray<readonly [string, string]> = [
   ["AFFILIATE_CAMPAIGN_DAILY_CREATOR_OUTREACH_LIMIT_REQUIRED", "errors.dailyCreatorOutreachLimitRequired"],
   ["AFFILIATE_CAMPAIGN_DAILY_CREATOR_OUTREACH_LIMIT_INVALID", "errors.dailyCreatorOutreachLimitInvalid"],
   ["AFFILIATE_CAMPAIGN_MAINTENANCE", "errors.campaignMaintenance"],
