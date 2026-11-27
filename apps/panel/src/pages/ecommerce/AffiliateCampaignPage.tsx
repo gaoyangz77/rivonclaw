@@ -94,8 +94,8 @@ import {
   useFollowedCampaignDefaultName,
 } from "./hooks/useCampaignDefaultName.js";
 import "./components/AffiliateUi.css";
-import { generateAffiliateCampaignMessageTemplate } from "../../api/affiliate-campaign-ai.js";
 import {
+  SUGGEST_AFFILIATE_CAMPAIGN_MESSAGE_TEMPLATE_MUTATION,
   AFFILIATE_CAMPAIGNS_QUERY,
   AFFILIATE_CAMPAIGN_SELECTION_READINESS_QUERY,
   AFFILIATE_CAMPAIGN_AI_READINESS_QUERY,
@@ -858,6 +858,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     { deleteAffiliateCampaignDraft: boolean },
     { input: GQL.DeleteAffiliateCampaignDraftInput }
   >(DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION);
+  const [suggestMessageTemplate] = useMutation<
+    { suggestAffiliateCampaignMessageTemplate: GQL.AffiliateCampaignMessageTemplateSuggestion },
+    { input: SuggestAffiliateCampaignMessageTemplateInput }
+  >(SUGGEST_AFFILIATE_CAMPAIGN_MESSAGE_TEMPLATE_MUTATION);
   const [retrySearchPlan, retrySearchPlanState] = useMutation(
     RETRY_AFFILIATE_CAMPAIGN_SEARCH_PLAN_MUTATION,
   );
@@ -1465,17 +1469,23 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       const hasPreviousDraft = skipDirectMessage
         ? form.collaborationInvitationText.trim() !== ""
         : form.templateText.trim() !== "";
-      const suggestion = await generateAffiliateCampaignMessageTemplate({
-        shopId: form.shopId,
-        productId: leadProductId,
-        uiLocale: i18n.resolvedLanguage ?? i18n.language,
-        guidance: form.templateGuidance.trim() || undefined,
-        mode: hasPreviousDraft
-          ? GQL.AffiliateCampaignTemplateGenerationMode.Alternative
-          : GQL.AffiliateCampaignTemplateGenerationMode.Initial,
-        previousDraft: skipDirectMessage ? undefined : form.templateText.trim() || undefined,
-        previousInvitationText: form.collaborationInvitationText.trim() || undefined,
+      const result = await suggestMessageTemplate({
+        variables: {
+          input: {
+            shopId: form.shopId,
+            productId: leadProductId,
+            uiLocale: i18n.resolvedLanguage ?? i18n.language,
+            guidance: form.templateGuidance.trim() || undefined,
+            mode: hasPreviousDraft
+              ? GQL.AffiliateCampaignTemplateGenerationMode.Alternative
+              : GQL.AffiliateCampaignTemplateGenerationMode.Initial,
+            previousDraft: skipDirectMessage ? undefined : form.templateText.trim() || undefined,
+            previousInvitationText: form.collaborationInvitationText.trim() || undefined,
+          },
+        },
       });
+      const suggestion = result.data?.suggestAffiliateCampaignMessageTemplate;
+      if (!suggestion) throw new Error("CAMPAIGN_AI_SUGGESTION_FAILED");
       setForm((current) => ({ ...current, ...applyCampaignAiSuggestion(current, suggestion) }));
       const requiresPlaceholderRepair =
         !skipDirectMessage &&
@@ -5512,7 +5522,21 @@ export function isEnglishCampaignSearchPhrase(value: string): boolean {
  * are listed here as well so a gap between the two still names its reason.
  * Order matters where one message contains another.
  */
-export const CAMPAIGN_ERROR_MESSAGE_KEYS: ReadonlyArray<readonly [string, string]> = [
+/**
+ * Declared locally until `GQL.SuggestAffiliateCampaignMessageTemplateInput` is
+ * generated from the Backend schema; replace it with the generated type then.
+ */
+type SuggestAffiliateCampaignMessageTemplateInput = {
+  shopId: string;
+  productId: string;
+  uiLocale: string;
+  guidance?: string;
+  mode: GQL.AffiliateCampaignTemplateGenerationMode;
+  previousDraft?: string;
+  previousInvitationText?: string;
+};
+
+export const CAMPAIGN_ERROR_MESSAGE_KEYS:ReadonlyArray<readonly [string, string]> = [
   ["AFFILIATE_CAMPAIGN_DAILY_CREATOR_OUTREACH_LIMIT_REQUIRED", "errors.dailyCreatorOutreachLimitRequired"],
   ["AFFILIATE_CAMPAIGN_DAILY_CREATOR_OUTREACH_LIMIT_INVALID", "errors.dailyCreatorOutreachLimitInvalid"],
   ["AFFILIATE_CAMPAIGN_MAINTENANCE", "errors.campaignMaintenance"],

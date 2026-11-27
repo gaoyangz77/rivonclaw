@@ -617,13 +617,6 @@ export const API = {
     desc: "Generate local CS conversation summary",
   },
 
-  // ── Affiliate Campaign AI (user's Desktop default model) ──
-  "affiliate.campaignAi.messageTemplate": {
-    method: "POST",
-    path: "/api/affiliate/campaign-ai/message-template",
-    desc: "Generate and validate one Campaign first-touch template",
-  },
-
   // ── Dependencies ──
   "deps.provision": {
     method: "POST",
