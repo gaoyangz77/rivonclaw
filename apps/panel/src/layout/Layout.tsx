@@ -5,6 +5,7 @@ import { BottomActions } from "../components/BottomActions.js";
 import { GlobalBannerStack } from "../components/banners/GlobalBannerStack.js";
 import { MenuIcon, OfficeIcon, UserPlusIcon } from "../components/icons.js";
 import { ROUTES, isRouteAvailableOnHost, type RouteEntry } from "../routes.js";
+import { getHost, hostSupports } from "../host/index.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
@@ -138,6 +139,11 @@ export const Layout = observer(function Layout({
     if (!route) return;
     if (route.authRequired && authChecking) return;
     if (route.authRequired && !user) {
+      // The in-app sign-in modal runs through Desktop; a browser signs in on the account page.
+      if (!hostSupports("desktopAuthFlows")) {
+        getHost().auth.startSignIn(route.path);
+        return;
+      }
       setPendingAuthPath(route.path);
       setAuthModalOpen(true);
       return;
@@ -183,14 +189,16 @@ export const Layout = observer(function Layout({
               className="sidebar-hierarchical-nav"
             />
             <BottomActions collapsed={collapsed} />
-            <button
-              type="button"
-              className="office-screensaver-trigger"
-              onClick={shutter.open}
-              title={t("office.openHint")}
-            >
-              {collapsed ? <OfficeIcon /> : t("office.open")}
-            </button>
+            {hostSupports("office") && (
+              <button
+                type="button"
+                className="office-screensaver-trigger"
+                onClick={shutter.open}
+                title={t("office.openHint")}
+              >
+                {collapsed ? <OfficeIcon /> : t("office.open")}
+              </button>
+            )}
             {!collapsed && <div className="sidebar-resize-handle" onMouseDown={handleMouseDown} />}
           </aside>
           <div className="main-content">

@@ -1,26 +1,15 @@
 import { fetchJson, fetchVoid, cachedFetch, invalidateCache } from "./client.js";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
+import { getHost, hostSupports } from "../host/index.js";
 
 // --- Settings ---
 
 export async function fetchSettings(): Promise<Record<string, string>> {
-  return cachedFetch(
-    "settings",
-    async () => {
-      const data = await fetchJson<{ settings: Record<string, string> }>(
-        clientPath(API["settings.getAll"]),
-      );
-      return data.settings;
-    },
-    5000,
-  );
+  return cachedFetch("settings", () => getHost().settings.getAll(), 5000);
 }
 
 export async function updateSettings(settings: Record<string, string>): Promise<void> {
-  await fetchJson(clientPath(API["settings.update"]), {
-    method: "PUT",
-    body: JSON.stringify(settings),
-  });
+  await getHost().settings.update(settings);
   invalidateCache("settings");
 }
 
@@ -100,6 +89,8 @@ export async function provisionDeps(): Promise<void> {
 
 /** Fire-and-forget telemetry event relay to desktop main process. */
 export function trackEvent(eventType: string, metadata?: Record<string, unknown>): void {
+  // Panel analytics are reported through Desktop's telemetry client.
+  if (!hostSupports("desktopSettings")) return;
   fetchVoid(clientPath(API["telemetry.track"]), {
     method: "POST",
     body: JSON.stringify({ eventType, metadata }),

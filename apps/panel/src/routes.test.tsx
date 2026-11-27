@@ -332,3 +332,37 @@ describe("host requirements", () => {
     }
   });
 });
+
+describe("routes on a host with no Desktop capability (the web host)", () => {
+  function withWebHost<T>(run: () => T): T {
+    const desktop = getHost();
+    installHost({ ...desktop, kind: "web", capabilities: new Set() } as HostAdapter);
+    try {
+      return run();
+    } finally {
+      installHost(desktop);
+    }
+  }
+
+  it("serves exactly the routes that need no capability", () => {
+    const served = withWebHost(() =>
+      ROUTES.filter((r) => isRouteAvailableOnHost(r)).map((r) => r.path),
+    );
+    expect(served).toEqual(ROUTES.filter((r) => r.requires.length === 0).map((r) => r.path));
+    expect(served).toContain("/commerce/shops");
+    expect(served).toContain("/commerce/affiliate/campaigns");
+    expect(served).toContain("/account/profile");
+    expect(served).not.toContain("/");
+    expect(served).not.toContain("/connections/channels");
+  });
+
+  it("lands on a page the host can serve, never on the chat page", () => {
+    withWebHost(() => {
+      expect(resolveLandingPath([GQL.PermissionScope.Chat])).toBe("/account/profile");
+      expect(resolveLandingPath([GQL.PermissionScope.Chat, GQL.PermissionScope.Ads])).toBe("/commerce/ads");
+      expect(resolveLandingPath([])).toBe("/account/profile");
+    });
+    expect(resolveLandingPath([GQL.PermissionScope.Chat])).toBe("/");
+    expect(resolveLandingPath([])).toBe(FALLBACK_LANDING_PATH);
+  });
+});

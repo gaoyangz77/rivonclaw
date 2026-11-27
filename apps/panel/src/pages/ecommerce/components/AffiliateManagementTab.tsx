@@ -1,3 +1,4 @@
+import { hostSupports } from "../../../host/index.js";
 import { useEffect, useState } from "react";
 import { useQuery } from "@apollo/client/react";
 import { useTranslation } from "react-i18next";
@@ -271,6 +272,8 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
           {t("ecommerce.shopDrawer.affiliate.serviceStatus")}
         </div>
 
+        {/* Which device runs the Agent is a Desktop concept; a browser has none. */}
+        {hostSupports("csBridge") && (
         <div className="shop-toggle-card">
           <div className="shop-toggle-card-left">
             <span className="shop-toggle-card-label">
@@ -301,6 +304,7 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
             disabled={togglingBindShopId === shop.id || !myDeviceId}
           />
         </div>
+        )}
         <AffiliateOutreachOpsPanel shopId={shop.id} />
       </section>
 

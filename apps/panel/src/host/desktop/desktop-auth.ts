@@ -54,6 +54,10 @@ export function createDesktopAuth(): HostAuth {
       window.location.assign("/account/profile");
     },
 
+    startSignIn(returnPath) {
+      window.dispatchEvent(new CustomEvent("rivonclaw:open-auth", { detail: { path: returnPath } }));
+    },
+
     async returnToOwner() {
       await fetchJson(clientPath(API["auth.returnToOwner"]), { method: "POST" });
       window.location.assign("/account/profile");

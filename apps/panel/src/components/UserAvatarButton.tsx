@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { AuthModal } from "./modals/AuthModal.js";
+import { getHost, hostSupports } from "../host/index.js";
 import { UserPlusIcon } from "./icons.js";
 import { getUserInitial } from "../lib/user-manager.js";
 
@@ -24,6 +25,8 @@ export const UserAvatarButton = observer(function UserAvatarButton({
       onNavigate("/account/profile");
     } else if (authChecking) {
       return;
+    } else if (!hostSupports("desktopAuthFlows")) {
+      getHost().auth.startSignIn("/account/profile");
     } else {
       setAuthModalOpen(true);
     }

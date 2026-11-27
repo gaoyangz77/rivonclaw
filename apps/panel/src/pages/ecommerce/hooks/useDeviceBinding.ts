@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "../../../components/Toast.js";
 import { fetchJson } from "../../../api/client.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
+import { hostSupports } from "../../../host/index.js";
 
 /**
  * This desktop's device id, fetched from Desktop `/status` on mount.
@@ -13,6 +14,8 @@ export function useMyDeviceId(): string | null {
   const [myDeviceId, setMyDeviceId] = useState<string | null>(null);
 
   useEffect(() => {
+    // A device id exists only where Desktop runs.
+    if (!hostSupports("csBridge")) return;
     fetchJson<{ deviceId?: string }>("/status")
       .then((status) => setMyDeviceId(status.deviceId || null))
       .catch(() => setMyDeviceId(null));

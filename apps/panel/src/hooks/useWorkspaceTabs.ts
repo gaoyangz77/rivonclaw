@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { WorkspaceDescriptor } from "@rivonclaw/core/api-contract";
 import { fetchWorkspace, saveWorkspace } from "../api/workspace.js";
 import { getClient } from "../api/apollo-client.js";
-import { ROUTE_MAP, resolveLandingPath } from "../routes.js";
+import { ROUTE_MAP, isRouteAvailableOnHost, resolveLandingPath } from "../routes.js";
 import { canSeeRoute } from "../lib/permission-scope.js";
 import {
   activateWorkspaceTab,
@@ -55,6 +55,7 @@ export function useWorkspaceTabs({
     (path: string) => {
       const route = ROUTE_MAP.get(path);
       if (!route || route.internal) return false;
+      if (!isRouteAvailableOnHost(route)) return false;
       if (route.authRequired && !userId) return false;
       return canSeeRoute(
         route,

@@ -1,4 +1,5 @@
 import { fetchJson } from "./client.js";
+import { hostSupports } from "../host/index.js";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
 import type { ChannelAccountSnapshot, ChannelsStatusSnapshot } from "@rivonclaw/core";
 export type { ChannelAccountSnapshot, ChannelsStatusSnapshot };
@@ -8,6 +9,8 @@ export type { ChannelAccountSnapshot, ChannelsStatusSnapshot };
  * @param probe - If true, trigger health checks for all channels
  */
 export async function fetchChannelStatus(probe = false): Promise<ChannelsStatusSnapshot | null> {
+  // Channels run in the local gateway; a host without one has no status to report.
+  if (!hostSupports("channels")) return null;
   const data = await fetchJson<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>(
     clientPath(API["channels.status"]) + `?probe=${probe}`,
   );
@@ -63,6 +66,8 @@ export async function fetchAllowlist(
   channelId: string,
   accountId?: string,
 ): Promise<AllowlistResult> {
+  // Pairing allowlists belong to local channels; without them there is nothing to list.
+  if (!hostSupports("channels")) return { allowlist: [], labels: {}, owners: {} };
   const qs = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
   return fetchJson<AllowlistResult>(clientPath(API["pairing.allowlist.get"], { channelId }) + qs);
 }

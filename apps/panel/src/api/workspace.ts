@@ -1,19 +1,13 @@
-import { API, clientPath, type WorkspaceDescriptor } from "@rivonclaw/core/api-contract";
-import { fetchJson } from "./client.js";
+import type { WorkspaceDescriptor } from "@rivonclaw/core/api-contract";
+import { getHost } from "../host/index.js";
 
-export async function fetchWorkspace(userId: string | null): Promise<WorkspaceDescriptor | null> {
-  const result = await fetchJson<{ workspace: WorkspaceDescriptor | null }>(
-    `${clientPath(API["settings.workspace.get"])}?userId=${encodeURIComponent(userId ?? "")}`,
-  );
-  return result.workspace;
+export function fetchWorkspace(userId: string | null): Promise<WorkspaceDescriptor | null> {
+  return getHost().settings.getWorkspace(userId);
 }
 
-export async function saveWorkspace(
+export function saveWorkspace(
   userId: string | null,
   workspace: WorkspaceDescriptor,
 ): Promise<void> {
-  await fetchJson(clientPath(API["settings.workspace.set"]), {
-    method: "PUT",
-    body: JSON.stringify({ userId, workspace }),
-  });
+  return getHost().settings.saveWorkspace(userId, workspace);
 }

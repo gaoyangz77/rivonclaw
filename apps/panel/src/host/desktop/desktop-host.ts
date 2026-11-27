@@ -1,5 +1,6 @@
 import { createHttpLink } from "@apollo/client";
-import { API } from "@rivonclaw/core/api-contract";
+import { API, clientPath, type WorkspaceDescriptor } from "@rivonclaw/core/api-contract";
+import { fetchJson } from "../../api/client.js";
 import type { HostAdapter, HostCapability } from "../host-adapter.js";
 import { HOST_CAPABILITIES } from "../host-adapter.js";
 import { createDesktopAuth } from "./desktop-auth.js";
@@ -28,5 +29,29 @@ export function createDesktopHost(
     },
     events: createDesktopEventStream(options.createEventSource),
     auth: createDesktopAuth(),
+    settings: {
+      getAll: async () =>
+        (await fetchJson<{ settings: Record<string, string> }>(clientPath(API["settings.getAll"])))
+          .settings,
+      getWorkspace: async (userId) =>
+        (
+          await fetchJson<{ workspace: WorkspaceDescriptor | null }>(
+            `${clientPath(API["settings.workspace.get"])}?userId=${encodeURIComponent(userId ?? "")}`,
+          )
+        ).workspace,
+      saveWorkspace: async (userId, workspace) => {
+        await fetchJson(clientPath(API["settings.workspace.set"]), {
+          method: "PUT",
+          body: JSON.stringify({ userId, workspace }),
+        });
+      },
+      update: async (entries) => {
+        await fetchJson(clientPath(API["settings.update"]), {
+          method: "PUT",
+          body: JSON.stringify(entries),
+        });
+      },
+    },
+    stateFeed: "stream",
   };
 }

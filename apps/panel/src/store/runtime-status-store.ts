@@ -1,5 +1,5 @@
 import { applySnapshot, applyPatch, types, type Instance, type IJsonPatch } from "mobx-state-tree";
-import { RuntimeStatusStoreModel } from "@rivonclaw/core/models";
+import { RuntimeStatusStoreModel, loadAppSettings } from "@rivonclaw/core/models";
 import { AppSettingsModel } from "./models/AppSettingsModel.js";
 import { getHost } from "../host/index.js";
 
@@ -11,6 +11,12 @@ import { getHost } from "../host/index.js";
 const PanelRuntimeStatusStoreModel = RuntimeStatusStoreModel.props({
   appSettings: types.optional(AppSettingsModel, {}),
 })
+  .actions((self) => ({
+    /** Web host: settings come from browser storage, not from Desktop's snapshot. */
+    applyLocalSettings(settings: Record<string, string>) {
+      loadAppSettings(self.appSettings, settings);
+    },
+  }))
   .volatile(() => ({
     /** True after the first SSE snapshot from Desktop has been applied.
      *  Pages that maintain local draft state should wait for this before
@@ -49,6 +55,13 @@ let unsubscribePatch: (() => void) | null = null;
  */
 export function connectRuntimeStatusStore(): void {
   disconnectRuntimeStatusStore();
+
+  // A host with a local feed sends no status snapshot. The store keeps its
+  // defaults (apart from settings the host applies) and is ready at once.
+  if (getHost().stateFeed === "local") {
+    if (!runtimeStatusStore.snapshotReceived) runtimeStatusStore.markSnapshotReceived();
+    return;
+  }
 
   unsubscribeSnapshot = getHost().events.subscribe("status-snapshot", (data) => {
     applySnapshot(runtimeStatusStore, data as Parameters<typeof applySnapshot>[1]);

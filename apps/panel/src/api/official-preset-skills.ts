@@ -1,6 +1,7 @@
 import { GQL } from "@rivonclaw/core";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
 import { getClient } from "./apollo-client.js";
+import { hostSupports } from "../host/index.js";
 import { fetchJson } from "./client.js";
 import { fetchInstalledSkills, writeSkillTemplate } from "./skills.js";
 import { PRESET_SKILL_MANIFEST_QUERY, PRESET_SKILLS_QUERY } from "./shops-queries.js";
@@ -116,6 +117,10 @@ async function syncOfficialPresetSkillsViaGraphql(
 export async function syncOfficialPresetSkills(
   mode: OfficialPresetSkillSyncMode = "safe",
 ): Promise<OfficialPresetSkillSyncResult> {
+  // Presets are installed into the local OpenClaw state directory.
+  if (!hostSupports("localSkills")) {
+    return { installed: 0, updated: 0, current: 0, skippedCustom: 0, failed: 0 };
+  }
   try {
     const response = await fetchJson<OfficialPresetSkillLocalSyncResponse>(
       clientPath(API["skills.syncOfficialPresets"]),

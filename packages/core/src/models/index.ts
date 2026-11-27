@@ -93,3 +93,6 @@ export type { OpenClawConnector } from "./OpenClawConnector.js";
 
 // Compile-time GQL ↔ MST drift detection (side-effect only, no runtime exports)
 import "./type-guards.js";
+
+export { sanitizeForMst } from "./graphql-ingestion.js";
+export { applyAppSetting, loadAppSettings, SETTING_APPLIERS } from "./app-setting-appliers.js";
