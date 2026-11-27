@@ -10,21 +10,10 @@ const bridgeState = vi.hoisted(() => ({
     getOrCreateSession: vi.fn(),
     dispatchCatchUp: vi.fn(),
   },
-  summary: {
-    getLocalConversationSummary: vi.fn(),
-    generateConversationSummary: vi.fn(),
-  },
 }));
 
 vi.mock("../gateway/connection.js", () => ({
   getCsBridge: () => bridgeState.bridge,
-}));
-
-vi.mock("./cs-conversation-summary-service.js", () => ({
-  getLocalConversationSummary: (...args: unknown[]) =>
-    bridgeState.summary.getLocalConversationSummary(...args),
-  generateConversationSummary: (...args: unknown[]) =>
-    bridgeState.summary.generateConversationSummary(...args),
 }));
 
 let registry: RouteRegistry;
@@ -34,8 +23,6 @@ beforeEach(() => {
   registerCsBridgeHandlers(registry);
   bridgeState.bridge.getOrCreateSession.mockReset();
   bridgeState.bridge.dispatchCatchUp.mockReset();
-  bridgeState.summary.getLocalConversationSummary.mockReset();
-  bridgeState.summary.generateConversationSummary.mockReset();
 });
 
 async function dispatch(
@@ -141,61 +128,6 @@ describe("POST /api/cs-bridge/start-conversation", () => {
       useMessageDelta: false,
       operatorInstruction:
         "This refund request looks suspicious. Review carefully before offering any compensation.",
-    });
-  });
-});
-
-describe("/api/cs-bridge/conversation-summary", () => {
-  it("reads a local summary by shop and conversation", async () => {
-    bridgeState.summary.getLocalConversationSummary.mockResolvedValue({
-      summary: "Buyer asked about delivery.",
-      messageId: "m-1",
-      updatedAt: "2026-05-21T00:00:00.000Z",
-      messageCount: 4,
-    });
-
-    const { handled, res } = await dispatch(
-      "GET",
-      "/api/cs-bridge/conversation-summary?shopId=shop-1&conversationId=conv-1",
-    );
-
-    expect(handled).toBe(true);
-    expect(res._status).toBe(200);
-    expect(res._body).toEqual({
-      summary: expect.objectContaining({ summary: "Buyer asked about delivery." }),
-    });
-    expect(bridgeState.summary.getLocalConversationSummary).toHaveBeenCalledWith({
-      shopId: "shop-1",
-      conversationId: "conv-1",
-    });
-  });
-
-  it("generates a summary through the authenticated desktop context", async () => {
-    const authSession = { graphqlFetch: vi.fn() };
-    bridgeState.summary.generateConversationSummary.mockResolvedValue({
-      summary: "Customer wants a replacement.",
-      messageId: "m-2",
-      updatedAt: "2026-05-21T00:00:00.000Z",
-      messageCount: 7,
-    });
-
-    const { handled, res } = await dispatch(
-      "POST",
-      "/api/cs-bridge/conversation-summary",
-      { shopId: "shop-1", conversationId: "conv-1", locale: "en" },
-      { authSession } as unknown as Partial<ApiContext>,
-    );
-
-    expect(handled).toBe(true);
-    expect(res._status).toBe(200);
-    expect(bridgeState.summary.generateConversationSummary).toHaveBeenCalledWith({
-      authSession,
-      shopId: "shop-1",
-      conversationId: "conv-1",
-      locale: "en",
-    });
-    expect(res._body).toEqual({
-      summary: expect.objectContaining({ summary: "Customer wants a replacement." }),
     });
   });
 });

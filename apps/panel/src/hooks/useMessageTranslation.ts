@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
-import { translationIdentity } from "../lib/message-translation.js";
-import type { MessageTranslationResult } from "@rivonclaw/core/api-contract";
+import { translationIdentity, type MessageTranslationResult } from "../lib/message-translation.js";
 
 export interface TranslationSendOutcome {
   complete: boolean;

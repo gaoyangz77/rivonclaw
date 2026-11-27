@@ -1,9 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getSnapshot } from "mobx-state-tree";
 import { MessageTranslationModel } from "./MessageTranslationModel.js";
-import { fetchJson } from "../../api/client.js";
-vi.mock("../../api/client.js", () => ({ fetchJson: vi.fn() }));
-const fetch = vi.mocked(fetchJson);
+import { CS_TRANSLATE_REPLY_MUTATION } from "../../api/shops-queries.js";
+// The backend answers `translateCsReply` with an upper-case source enum; tests script the decoded result.
+const mutate = vi.fn();
+const fetch = {
+  mockReset: () => mutate.mockReset(),
+  mockResolvedValue: (value: { language: string; source: string; text: string }) =>
+    mutate.mockResolvedValue({
+      data: { translateCsReply: { ...value, source: value.source.toUpperCase() } },
+    }),
+  mockImplementationOnce: (impl: () => Promise<unknown>) =>
+    mutate.mockImplementationOnce(async () => {
+      const value = (await impl()) as { language: string; source: string; text: string };
+      return { data: { translateCsReply: { ...value, source: value.source.toUpperCase() } } };
+    }),
+  mockRejectedValueOnce: (error: Error) => mutate.mockRejectedValueOnce(error),
+};
 const input = {
   identity: "owner",
   key: "chat-1",
@@ -14,12 +27,16 @@ const input = {
 };
 beforeEach(() => fetch.mockReset());
 function store() {
-  const model = MessageTranslationModel.create();
+  const model = MessageTranslationModel.create({}, { apolloClient: { mutate } });
   model.setIdentity("owner");
   return model;
 }
 function body() {
-  return JSON.parse(fetch.mock.calls.at(-1)![1]!.body as string);
+  const call = mutate.mock.calls.at(-1)![0];
+  expect(call.mutation).toBe(CS_TRANSLATE_REPLY_MUTATION);
+  const { target, ...rest } = call.variables.input;
+  // The backend enum is upper-case; the Panel's own decisions stay lower-case.
+  return target ? { ...rest, target: { ...target, source: target.source.toLowerCase() } } : rest;
 }
 describe("volatile language cache", () => {
   it("reuses detected language without history and does not persist cache", async () => {

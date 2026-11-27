@@ -1318,6 +1318,45 @@ export const CS_TRANSLATE_MESSAGES_MUTATION = gql`
   }
 `;
 
+const CS_CONVERSATION_SUMMARY_FIELDS = `
+  shopId
+  conversationId
+  summary
+  messageCount
+  messageId
+  messageIndex
+  createTime
+  updatedAt
+`;
+
+/** The stored AI summary of a conversation, generated on the backend (ADR-123). */
+export const CS_CONVERSATION_SUMMARY_QUERY = gql`
+  query CsConversationSummary($shopId: ID!, $conversationId: String!) {
+    csConversationSummary(shopId: $shopId, conversationId: $conversationId) {
+      ${CS_CONVERSATION_SUMMARY_FIELDS}
+    }
+  }
+`;
+
+export const CS_GENERATE_CONVERSATION_SUMMARY_MUTATION = gql`
+  mutation CsGenerateConversationSummary($shopId: ID!, $conversationId: String!, $locale: String) {
+    csGenerateConversationSummary(shopId: $shopId, conversationId: $conversationId, locale: $locale) {
+      ${CS_CONVERSATION_SUMMARY_FIELDS}
+    }
+  }
+`;
+
+/** Prepares a translation of an operator's draft reply without sending it (ADR-123). */
+export const CS_TRANSLATE_REPLY_MUTATION = gql`
+  mutation TranslateCsReply($input: TranslateCsReplyInput!) {
+    translateCsReply(input: $input) {
+      language
+      source
+      text
+    }
+  }
+`;
+
 export const CS_CONVERSATION_ORDER_IDS_QUERY = gql`
   query CustomerServiceConversationOrderIds($shopId: String!, $conversationId: String!) {
     ecommerceGetConversationOrderIds(shopId: $shopId, conversationId: $conversationId)

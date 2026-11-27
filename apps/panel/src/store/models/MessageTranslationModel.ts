@@ -1,11 +1,12 @@
-import { flow, types } from "mobx-state-tree";
+import { flow, getEnv, types } from "mobx-state-tree";
 import { observable } from "mobx";
-import { API, clientPath, type MessageTranslationResult } from "@rivonclaw/core/api-contract";
-import { fetchJson } from "../../api/client.js";
+import { CS_TRANSLATE_REPLY_MUTATION } from "../../api/shops-queries.js";
+import type { MessageLanguageSource, MessageTranslationResult } from "../../lib/message-translation.js";
+import type { PanelStoreEnv } from "../types.js";
 
 interface CachedLanguage {
   language: string;
-  source: "messages" | "site";
+  source: MessageLanguageSource;
   signature: string;
   fallbackLanguage: string;
 }
@@ -44,18 +45,28 @@ export const MessageTranslationModel = types
             cached.fallbackLanguage === input.fallbackLanguage))
           ? { language: cached.language, source: cached.source }
           : undefined;
-      const result: MessageTranslationResult = yield fetchJson(
-        clientPath(API["messaging.translate"]),
-        {
-          method: "POST",
-          signal: input.signal,
-          body: JSON.stringify({
+      const response = yield getEnv<PanelStoreEnv>(self).apolloClient.mutate({
+        mutation: CS_TRANSLATE_REPLY_MUTATION,
+        context: { fetchOptions: { signal: input.signal } },
+        variables: {
+          input: {
             text: input.text,
             fallbackLanguage: input.fallbackLanguage,
-            ...(target ? { target } : { samples: input.samples }),
-          }),
+            ...(target
+              ? { target: { language: target.language, source: target.source.toUpperCase() } }
+              : { samples: input.samples }),
+          },
         },
-      );
+      });
+      const translation = response.data?.translateCsReply as
+        | { language: string; source: string; text: string }
+        | undefined;
+      if (!translation) throw new Error("Translation returned no result");
+      const result: MessageTranslationResult = {
+        language: translation.language,
+        source: translation.source.toLowerCase() as MessageLanguageSource,
+        text: translation.text,
+      };
       if (input.signal?.aborted || self.revision !== revision || self.identity !== input.identity)
         throw new Error("Translation session changed");
       self.languages.set(input.key, {

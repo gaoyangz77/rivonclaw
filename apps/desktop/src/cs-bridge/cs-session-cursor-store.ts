@@ -20,17 +20,8 @@ export interface CustomerServiceCursorRecord extends CustomerServiceMessageCurso
   runId?: string;
 }
 
-export interface CustomerServiceSummaryRecord extends CustomerServiceMessageCursor {
-  summary: string;
-  updatedAt: string;
-  messageCount: number;
-  sessionKey?: string;
-  runId?: string;
-}
-
 interface ConversationCursorRecord {
   openclawSession?: CustomerServiceCursorRecord;
-  summary?: CustomerServiceSummaryRecord;
 }
 
 interface CursorStoreFile {
@@ -80,11 +71,7 @@ function pruneExpiredStore(store: CursorStoreFile, now = Date.now()): boolean {
       delete record.openclawSession;
       changed = true;
     }
-    if (record.summary && !isFresh(record.summary.updatedAt, now)) {
-      delete record.summary;
-      changed = true;
-    }
-    if (!record.openclawSession && !record.summary) {
+    if (!record.openclawSession) {
       delete store.conversations[key];
       changed = true;
     }
@@ -279,54 +266,6 @@ export async function advanceOpenClawSessionCursor(input: {
     return next;
   } catch (err) {
     log.warn("Failed to advance OpenClaw CS session cursor", {
-      shopId: input.shopId,
-      conversationId: input.conversationId,
-      error: err instanceof Error ? err.message : String(err),
-    });
-    return undefined;
-  }
-}
-
-export async function readConversationSummary(input: {
-  shopId: string;
-  conversationId: string;
-}): Promise<CustomerServiceSummaryRecord | undefined> {
-  const store = await readStore();
-  return store.conversations[conversationKey(input.shopId, input.conversationId)]?.summary;
-}
-
-export async function writeConversationSummary(input: {
-  shopId: string;
-  conversationId: string;
-  cursor: CustomerServiceMessageCursor;
-  summary: string;
-  messageCount: number;
-  sessionKey?: string;
-  runId?: string;
-}): Promise<CustomerServiceSummaryRecord | undefined> {
-  const cursor = normalizeCursor(input.cursor);
-  const summary = input.summary.trim();
-  if (!cursor || !summary) return undefined;
-
-  try {
-    const store = await readStore();
-    const key = conversationKey(input.shopId, input.conversationId);
-    const next: CustomerServiceSummaryRecord = {
-      ...cursor,
-      summary,
-      messageCount: Math.max(0, Math.floor(input.messageCount)),
-      sessionKey: input.sessionKey,
-      runId: input.runId,
-      updatedAt: new Date().toISOString(),
-    };
-    store.conversations[key] = {
-      ...store.conversations[key],
-      summary: next,
-    };
-    markStoreDirty();
-    return next;
-  } catch (err) {
-    log.warn("Failed to write CS conversation summary", {
       shopId: input.shopId,
       conversationId: input.conversationId,
       error: err instanceof Error ? err.message : String(err),

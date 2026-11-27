@@ -7,11 +7,3 @@ export function buildCustomerServiceSessionKey(input: {
 }): string {
   return `agent:${CUSTOMER_SERVICE_AGENT_ID}:cs:${input.platform}:${input.shopId}:${input.conversationId}`;
 }
-
-export function buildCustomerServiceSummarySessionKey(input: {
-  shopId: string;
-  conversationId: string;
-  nonce: string;
-}): string {
-  return `agent:${CUSTOMER_SERVICE_AGENT_ID}:cs-summary:${input.shopId}:${input.conversationId}:${input.nonce}`;
-}
