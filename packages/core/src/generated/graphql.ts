@@ -7223,6 +7223,25 @@ export const CsConversationSignalType = {
 
 export type CsConversationSignalType =
   (typeof CsConversationSignalType)[keyof typeof CsConversationSignalType];
+/** The latest AI summary of one customer-service conversation (ADR-123). The cursor fields locate the newest message the summary covers. */
+export interface CsConversationSummaryView {
+  /** Platform conversation ID. */
+  conversationId: Scalars["String"]["output"];
+  /** Unix seconds of the newest message the summary covers. */
+  createTime?: Maybe<Scalars["Int"]["output"]>;
+  /** How many platform messages the summary was written from. */
+  messageCount: Scalars["Int"]["output"];
+  /** Platform ID of the newest message the summary covers. */
+  messageId?: Maybe<Scalars["String"]["output"]>;
+  /** Platform index of the newest message the summary covers. */
+  messageIndex?: Maybe<Scalars["String"]["output"]>;
+  /** MongoDB shop ID. */
+  shopId: Scalars["ID"]["output"];
+  summary: Scalars["String"]["output"];
+  /** ISO-8601 time the summary was generated. */
+  updatedAt: Scalars["String"]["output"];
+}
+
 /** Whether csEscalate created a new escalation or updated the active one */
 export const CsEscalateAction = {
   Created: "CREATED",
@@ -7680,6 +7699,29 @@ export interface CsPendingEscalationPage {
   items: Array<CsPendingEscalation>;
   /** Matching escalations; equals items.length */
   total: Scalars["Int"]["output"];
+}
+
+/** A translated draft; nothing is sent. */
+export interface CsReplyTranslation {
+  /** Canonical BCP-47 language tag the draft was translated into. */
+  language: Scalars["String"]["output"];
+  source: CsReplyTranslationLanguageSource;
+  text: Scalars["String"]["output"];
+}
+
+/** Where a reply translation's target language came from: the recipient's own messages, or the site default. */
+export const CsReplyTranslationLanguageSource = {
+  Messages: "MESSAGES",
+  Site: "SITE",
+} as const;
+
+export type CsReplyTranslationLanguageSource =
+  (typeof CsReplyTranslationLanguageSource)[keyof typeof CsReplyTranslationLanguageSource];
+/** An already-decided translation target. */
+export interface CsReplyTranslationTargetInput {
+  /** BCP-47 language tag. */
+  language: Scalars["String"]["input"];
+  source: CsReplyTranslationLanguageSource;
 }
 
 /** Result returned after a manager responds to a CS escalation */
@@ -13000,6 +13042,8 @@ export interface Mutation {
   csEndSession: Scalars["Boolean"]["output"];
   /** Create or update the active cloud CS escalation and queue a local manager-notification side-effect event */
   csEscalate: CsEscalateResult;
+  /** Summarizes a conversation on the backend model (ADR-123) in the operator's UI locale and replaces the stored summary. Requires an account LLM subscription (CS_ONE_SHOT_SUBSCRIPTION_REQUIRED) and remaining quota (CS_ONE_SHOT_QUOTA_EXHAUSTED). */
+  csGenerateConversationSummary: CsConversationSummaryView;
   /** Get an existing CS session or create a new one for a conversation */
   csGetOrCreateSession: CsSessionResult;
   csIngestOrderStatusWebhook: CsOrderStatusWebhookResult;
@@ -13282,6 +13326,8 @@ export interface Mutation {
   tiktokIngestCancellationStatusWebhook: TikTokAfterSaleWebhookResult;
   tiktokIngestReturnStatusWebhook: TikTokAfterSaleWebhookResult;
   tiktokIngestSellerDeauthorizationWebhook: TikTokSellerDeauthorizationWebhookResult;
+  /** Translates an operator's draft reply on the backend model (ADR-123) without sending it. Used by Customer Service and Affiliate reply composers. Requires an account LLM subscription (CS_ONE_SHOT_SUBSCRIPTION_REQUIRED) and remaining quota (CS_ONE_SHOT_QUOTA_EXHAUSTED). Stores nothing. */
+  translateCsReply: CsReplyTranslation;
   /** Translates conversation messages the caller already holds into the target language, one result per message in input order. Requires an account LLM subscription (CS_MESSAGE_TRANSLATION_SUBSCRIPTION_REQUIRED) and, when messages are not cached, remaining quota (CS_MESSAGE_TRANSLATION_QUOTA_EXHAUSTED). Stores no messages. */
   translateCustomerServiceMessages: Array<CustomerServiceMessageTranslation>;
   unassignAffiliateEmailAccount: EmailAccountBinding;
@@ -13600,6 +13646,12 @@ export interface MutationCsEscalateArgs {
   conversationId: Scalars["String"]["input"];
   orderId?: InputMaybe<Scalars["String"]["input"]>;
   reason: Scalars["String"]["input"];
+  shopId: Scalars["ID"]["input"];
+}
+
+export interface MutationCsGenerateConversationSummaryArgs {
+  conversationId: Scalars["String"]["input"];
+  locale?: InputMaybe<Scalars["String"]["input"]>;
   shopId: Scalars["ID"]["input"];
 }
 
@@ -14364,6 +14416,10 @@ export interface MutationTiktokIngestReturnStatusWebhookArgs {
 
 export interface MutationTiktokIngestSellerDeauthorizationWebhookArgs {
   input: TikTokSellerDeauthorizationWebhookInput;
+}
+
+export interface MutationTranslateCsReplyArgs {
+  input: TranslateCsReplyInput;
 }
 
 export interface MutationTranslateCustomerServiceMessagesArgs {
@@ -15379,6 +15435,8 @@ export interface Query {
   creatorRelationships: Array<AffiliateCreatorRelationship>;
   /** Read concrete creator marketplace search runs from Mongo state. */
   creatorSearchRuns: Array<CreatorSearchRun>;
+  /** The stored AI summary of a conversation, or null when none was generated (or it expired). */
+  csConversationSummary?: Maybe<CsConversationSummaryView>;
   /** Read the current cloud status and result for a CS escalation */
   csGetEscalationResult?: Maybe<CsEscalationLookupResult>;
   /** Every customer-service escalation waiting for the merchant, longest-waiting first, with shop names (tool calls must persist the result) */
@@ -15989,6 +16047,11 @@ export interface QueryCreatorRelationshipsArgs {
 
 export interface QueryCreatorSearchRunsArgs {
   input: ReadCreatorSearchRunsInput;
+}
+
+export interface QueryCsConversationSummaryArgs {
+  conversationId: Scalars["String"]["input"];
+  shopId: Scalars["ID"]["input"];
 }
 
 export interface QueryCsGetEscalationResultArgs {
@@ -18834,6 +18897,17 @@ export interface ToolSpecsChangedPayload {
   publishedAt: Scalars["DateTimeISO"]["output"];
   reason?: Maybe<Scalars["String"]["output"]>;
   revision: Scalars["String"]["output"];
+}
+
+export interface TranslateCsReplyInput {
+  /** BCP-47 language used when the recipient's language cannot be told. */
+  fallbackLanguage: Scalars["String"]["input"];
+  /** Up to 5 recent inbound messages of the recipient (newest first), at most 4000 characters in total. Ignored when `target` is given. */
+  samples?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  /** Reuse an earlier language decision instead of inferring it from `samples`. */
+  target?: InputMaybe<CsReplyTranslationTargetInput>;
+  /** The operator's draft, 1 to 16000 characters. */
+  text: Scalars["String"]["input"];
 }
 
 export interface TranslateCustomerServiceMessagesInput {
