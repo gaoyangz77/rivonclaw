@@ -1,6 +1,6 @@
 import { types, flow, getRoot } from "mobx-state-tree";
-import { resolveGatewayModelParts, getApiBaseUrl } from "@rivonclaw/core";
-import type { GQL, ProviderKeyEntry } from "@rivonclaw/core";
+import { resolveGatewayModelParts, resolveGatewayProvider, getApiBaseUrl } from "@rivonclaw/core";
+import type { GQL, LLMProvider, ProviderKeyEntry } from "@rivonclaw/core";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
 import type { GatewayRpcClient } from "@rivonclaw/gateway";
@@ -41,6 +41,8 @@ export interface LLMProviderManagerEnv {
     secretStore: SecretStore,
     lastSystemProxy: string | null,
   ) => Promise<void>;
+  /** Drop every auth profile of one OpenClaw runtime provider (derived data, not the keychain secret). */
+  removeAuthProfilesForRuntimeProvider: (stateDir: string, gwProvider: string) => void;
   writeDefaultModelToConfig: (gwProvider: string, modelId: string, productProvider: string) => void;
   /** Rewrite the full gateway config (used when the cloud provider definition changes). */
   writeFullGatewayConfig: () => Promise<void>;
@@ -59,7 +61,7 @@ export interface LLMProviderManagerEnv {
   getLastSystemProxy: () => string | null;
 }
 
-const CLOUD_PROVIDER_ID = "rivonclaw-pro";
+export const CLOUD_PROVIDER_ID = "rivonclaw-pro";
 const CLOUD_KEY_LABEL = "TK Copilot AI";
 const CLOUD_DEFAULT_MODEL_ID = "rivonclaw-flagship";
 const NO_ACTIVE_LLM_PROVIDER_ERROR =
@@ -302,34 +304,53 @@ export const LLMProviderManagerModel = types
 
       /**
        * Startup reconciliation for installs created before model selection was
-       * removed: provider keys other than the cloud provider (own API keys,
-       * local models, custom endpoints, OAuth subscriptions) are no longer
-       * supported, so they are removed together with their secrets, and the
-       * cloud provider — when present — becomes the gateway default on its
-       * default model.
+       * removed. A seller's own provider keys (own API keys, local models,
+       * custom endpoints, OAuth subscriptions) are KEPT by product decision
+       * (ADR-123) — their rows and secrets (`provider-key-*`, `proxy-auth-*`,
+       * `oauth-cred-*`) must not be deleted, so do not "clean them up" — but
+       * they are inert: the runtime projector hides them from every reader (see
+       * `projectCloudOnlyProviderMetadata`), so nothing uses them.
+       *
+       * What is left to do here is to clear the derived copies an older version
+       * already wrote for them (auth profiles, provider definitions in the
+       * OpenClaw config, canonical per-provider secrets) and to pin the cloud
+       * provider, when present, as the gateway default on its default model.
+       * Everything is idempotent, so running it on every startup changes
+       * nothing after the first one.
        *
        * Runs before the gateway starts, so it only writes config; the gateway
        * reads it on launch.
        */
       reconcileCloudOnly: flow(function* () {
-        const { storage, secretStore, syncActiveKey, allKeysToMstSnapshots } = getEnvDeps();
+        const {
+          storage,
+          secretStore,
+          syncActiveKey,
+          allKeysToMstSnapshots,
+          removeAuthProfilesForRuntimeProvider,
+          stateDir,
+        } = getEnvDeps();
 
-        const unsupported = storage.providerKeys
-          .getAll()
+        const inert = storage.providerKeys
+          .getAllUnprojected()
           .filter((entry) => entry.provider !== CLOUD_PROVIDER_ID);
-        for (const entry of unsupported) {
+        for (const entry of inert) {
           yield persistVendorProviderDefinition(entry, true);
-          storage.providerKeys.delete(entry.id);
-          yield secretStore.delete(`provider-key-${entry.id}`);
-          yield secretStore.delete(`proxy-auth-${entry.id}`);
-          yield secretStore.delete(`oauth-cred-${entry.id}`);
+          const runtimeProvider =
+            entry.authType === "custom"
+              ? entry.provider
+              : resolveGatewayProvider(entry.provider as LLMProvider);
+          if (runtimeProvider !== CLOUD_PROVIDER_ID) {
+            removeAuthProfilesForRuntimeProvider(stateDir, runtimeProvider);
+          }
         }
-        for (const provider of new Set(unsupported.map((entry) => entry.provider))) {
+        // Readers no longer see these rows, so this clears the canonical
+        // `{provider}-api-key` copies; the keychain slots stay.
+        for (const provider of new Set(inert.map((entry) => entry.provider))) {
           yield syncActiveKey(provider, storage, secretStore);
         }
-        if (unsupported.length > 0) {
+        if (inert.length > 0) {
           yield syncAuthAndProxy();
-          log.info(`Removed ${unsupported.length} unsupported provider key(s)`);
         }
 
         const cloud = storage.providerKeys

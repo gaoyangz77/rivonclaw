@@ -340,6 +340,28 @@ export function removeAuthProfile(stateDir: string, provider: string): void {
 }
 
 /**
+ * Remove every auth profile (API key or OAuth, whatever its id) that belongs to
+ * one OpenClaw runtime provider, together with that provider's auth order.
+ */
+export function removeAuthProfilesForRuntimeProvider(stateDir: string, gwProvider: string): void {
+  const filePath = resolveAuthProfilePath(stateDir);
+  const databasePath = resolveAuthProfileDatabasePath(stateDir);
+  const store = readStore(filePath, databasePath);
+
+  const removedIds = Object.entries(store.profiles)
+    .filter(([, profile]) => profile.provider === gwProvider)
+    .map(([id]) => id);
+  const hadOrder = store.order !== undefined && gwProvider in store.order;
+  if (removedIds.length === 0 && !hadOrder) return;
+
+  for (const id of removedIds) delete store.profiles[id];
+  if (store.order) delete store.order[gwProvider];
+
+  writeStore(filePath, databasePath, store);
+  log.info(`Removed ${removedIds.length} auth profile(s) for runtime provider ${gwProvider}`);
+}
+
+/**
  * Sync ALL active provider keys to OpenClaw's auth stores.
  *
  * Reads every credential metadata row from storage, fetches the secret value

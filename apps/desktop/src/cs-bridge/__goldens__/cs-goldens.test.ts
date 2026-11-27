@@ -755,6 +755,7 @@ beforeEach(() => {
     allKeysToMstSnapshots: async () => [],
     syncActiveKey: async () => {},
     syncAllAuthProfiles: async () => {},
+    removeAuthProfilesForRuntimeProvider: () => {},
     activateAuthProfile: () => "openai:active",
     writeProxyRouterConfig: async () => {},
     writeFullGatewayConfig: async () => {},

@@ -375,6 +375,32 @@ describe("ProviderKeysRepository", () => {
     expect(storage.providerKeys.getById("k1")).toBeUndefined();
   });
 
+  it("lists rows hidden by the runtime projector through getAllUnprojected()", () => {
+    for (const id of ["live", "hidden"]) {
+      storage.providerKeys.create({
+        id,
+        provider: id === "live" ? "openai" : "anthropic",
+        label: id,
+        model: "m",
+        isDefault: false,
+        createdAt: "",
+        updatedAt: "",
+      });
+    }
+    storage.providerKeys.setRuntimeProjector((entries) =>
+      entries.filter((entry) => entry.id === "live"),
+    );
+
+    expect(storage.providerKeys.getAll().map((e) => e.id)).toEqual(["live"]);
+    expect(storage.providerKeys.getById("hidden")).toBeUndefined();
+    expect(
+      storage.providerKeys
+        .getAllUnprojected()
+        .map((e) => e.id)
+        .sort(),
+    ).toEqual(["hidden", "live"]);
+  });
+
   it("should return false when deleting non-existent key", () => {
     expect(storage.providerKeys.delete("nope")).toBe(false);
   });

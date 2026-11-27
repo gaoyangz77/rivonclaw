@@ -1002,6 +1002,7 @@ describe("affiliate work item dispatch", () => {
       allKeysToMstSnapshots: vi.fn(),
       syncActiveKey: vi.fn(),
       syncAllAuthProfiles: vi.fn(),
+      removeAuthProfilesForRuntimeProvider: vi.fn(),
       activateAuthProfile: vi.fn(),
       writeProxyRouterConfig: vi.fn(),
       writeDefaultModelToConfig: vi.fn(),
