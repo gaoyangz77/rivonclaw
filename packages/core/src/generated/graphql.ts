@@ -13257,6 +13257,8 @@ export interface Mutation {
   /** Create/connect the Evolution instance and return WhatsApp QR onboarding data. */
   startWhatsAppQrOnboarding: StartWhatsAppQrOnboardingPayload;
   submitAffiliateCampaignSearchPlan: AffiliateCampaignSearchPlan;
+  /** Generate and validate one Campaign first-touch template, product short name and Target Collaboration note on the backend model (ADR-123): product preview, one-shot model call and Campaign safety validation in one call. */
+  suggestAffiliateCampaignMessageTemplate: AffiliateCampaignMessageTemplateSuggestion;
   /** Queue an Airflow refresh of stores/shops visible to a connected TikTok Ads advertiser and return the current snapshot. */
   syncAdsStoreAccesses: Array<AdsStoreAccess>;
   /** Pull platform warehouse lists for one shop and auto-map official fulfillment warehouses when possible. */
@@ -14317,6 +14319,10 @@ export interface MutationStartWhatsAppQrOnboardingArgs {
 
 export interface MutationSubmitAffiliateCampaignSearchPlanArgs {
   input: SubmitAffiliateCampaignSearchPlanInput;
+}
+
+export interface MutationSuggestAffiliateCampaignMessageTemplateArgs {
+  input: SuggestAffiliateCampaignMessageTemplateInput;
 }
 
 export interface MutationSyncAdsStoreAccessesArgs {
@@ -17957,6 +17963,17 @@ export interface SubscriptionExpertRunEventsArgs {
 
 export interface SubscriptionUpdateAvailableArgs {
   clientVersion: Scalars["String"]["input"];
+}
+
+export interface SuggestAffiliateCampaignMessageTemplateInput {
+  guidance?: InputMaybe<Scalars["String"]["input"]>;
+  mode: AffiliateCampaignTemplateGenerationMode;
+  previousDraft?: InputMaybe<Scalars["String"]["input"]>;
+  previousInvitationText?: InputMaybe<Scalars["String"]["input"]>;
+  productId: Scalars["String"]["input"];
+  shopId: Scalars["ID"]["input"];
+  /** The seller's interface locale; the message itself targets the product's market. */
+  uiLocale: Scalars["String"]["input"];
 }
 
 /** Supported IANA timezone identifiers used by analytics date boundaries */
