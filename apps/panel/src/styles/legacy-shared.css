@@ -587,31 +587,6 @@
   margin-bottom: 16px;
 }
 
-.form-row {
-  display: flex;
-  gap: 8px;
-}
-
-.form-row-vcenter {
-  align-items: center;
-}
-
-.form-col-4 {
-  flex: 4;
-  min-width: 0;
-}
-
-.form-col-6 {
-  flex: 6;
-  min-width: 0;
-}
-
-.provider-links {
-  display: flex;
-  gap: 16px;
-  margin-top: 6px;
-}
-
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -626,38 +601,12 @@
   margin: 6px 0 0;
 }
 
-.form-help-sm {
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--color-text-muted);
-}
-
-.form-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.form-error-sm {
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--color-danger);
-}
-
 .input-full {
   width: 100%;
 }
 
 .input-mono {
   font-family: var(--font-mono);
-}
-
-.input-readonly {
-  background-color: var(--color-bg-alt);
-  color: var(--color-text-secondary);
-  cursor: default;
 }
 
 .required {
@@ -689,42 +638,7 @@
   text-decoration: underline;
 }
 
-.info-box-green {
-  background-color: rgba(0, 184, 132, 0.07);
-  border: 1px solid rgba(0, 184, 132, 0.12);
-  color: #1a7a5a;
-}
-
-.info-box-yellow {
-  background-color: rgba(245, 158, 11, 0.07);
-  border: 1px solid rgba(245, 158, 11, 0.12);
-  color: #92650a;
-}
-
 /* ===== 20. Advanced / Collapsible ===== */
-
-.advanced-toggle {
-  padding: 6px 0;
-  background: none;
-  border: none;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: color var(--transition-fast);
-}
-
-.advanced-toggle:hover {
-  color: var(--color-primary);
-}
-
-.advanced-content {
-  margin-top: 8px;
-  padding-left: 12px;
-  border-left: 2px solid var(--color-border-light);
-}
 
 /* ===== 21. Empty / Loading States ===== */
 
@@ -777,23 +691,6 @@
 }
 
 /* ===== 23. Two-Column Layout ===== */
-
-.page-two-col {
-  display: flex;
-  gap: 24px;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-
-.page-col-main {
-  flex: 1;
-  min-width: 320px;
-}
-
-.page-col-side {
-  width: 380px;
-  flex-shrink: 0;
-}
 
 /* ===== 24. Stat Cards ===== */
 
@@ -851,188 +748,35 @@
    panels, 2 on mid, 1 on narrow. Cards are self-contained tiles so per-
    provider variance in action count stops looking like a misaligned table
    row — each tile owns its own surface. */
-.pk-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 12px;
-}
 
 /* Each configured-key tile. Vertical layout with a consistent rhythm:
    meta row (name + badge + ancillary icons) → label+model → actions footer.
    `min-width: 0` lets descendants (especially long labels and baseUrl text)
    truncate instead of overflowing the tile. */
-.key-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px 18px;
-  min-width: 0;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
-  transition:
-    border-color var(--transition-fast),
-    background-color var(--transition-fast);
-}
-
-.key-card:hover {
-  border-color: var(--color-border);
-  background-color: var(--brand-tint-03);
-}
 
 /* Active tile: inset 3px left accent + diagonal gradient from brand tint
    into the base bg. Inset shadow rather than border-left so active and
    inactive tiles stay the same geometric size — avoids visual jitter when
    the grid re-layouts on activation. */
-.key-card-active {
-  border-color: var(--color-primary);
-  background: linear-gradient(
-    135deg,
-    var(--brand-tint-10) 0%,
-    var(--brand-tint-03) 45%,
-    var(--color-bg) 100%
-  );
-  box-shadow: inset 3px 0 0 var(--color-primary);
-}
-
-.key-card-active:hover {
-  background: linear-gradient(
-    135deg,
-    var(--brand-tint-16) 0%,
-    var(--brand-tint-06) 45%,
-    var(--color-bg) 100%
-  );
-}
-
-.key-card-inactive {
-  /* plain tile — hover/active rules above cover the other states */
-}
 
 /* Tile header: meta info on the left, Activate CTA on the right. Only
    one action lives here — activation is a state change, distinct from the
    administrative actions in the footer. `align-items: flex-start` keeps
    Activate pinned to the top-right even when the meta row wraps to a
    second line (long provider names, proxy + baseUrl, etc.). */
-.key-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  min-width: 0;
-}
-
-.key-header .key-meta {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.key-header .key-activate-btn {
-  flex-shrink: 0;
-}
-
-.provider-crown {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 2px;
-  opacity: 0.85;
-}
-
-.key-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
 
 /* Label above, model select below — stretched full-width so the dropdown
    fills the tile. `align-items: stretch` instead of `center`, no horizontal
    gap (vertical rhythm only). */
-.key-details {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  min-width: 0;
-}
-
-.cloud-model-name {
-  min-height: 36px;
-  display: flex;
-  align-items: center;
-  padding: 0 11px;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  color: var(--color-text);
-  background: var(--color-bg);
-  font-size: 13px;
-  font-weight: 600;
-}
 
 /* Label in tile context: takes available width, truncates with ellipsis
    when longer than the tile. The 240px fixed width from the previous row
    layout is gone — that was for horizontal alignment across list rows,
    which doesn't apply to tiles. */
-.key-label {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.key-label-edit-btn {
-  background: none;
-  border: none;
-  padding: 2px;
-  cursor: pointer;
-  color: var(--color-text-muted);
-  opacity: 0;
-  transition: opacity 0.15s;
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.key-label:hover .key-label-edit-btn {
-  opacity: 1;
-}
-
-.key-label-edit-btn:hover {
-  color: var(--color-primary);
-}
-
-.key-label-input {
-  font-size: 12px;
-  color: var(--color-text);
-  background: var(--color-bg);
-  border: 1px solid var(--color-primary);
-  border-radius: 4px;
-  padding: 2px 6px;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  outline: none;
-}
-
-.key-expanded {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--color-border-light);
-}
 
 /* In tile context, form rows stack vertically so the input gets full tile
    width (readable pasted tokens / URLs) and the Save button sits below
    right-aligned rather than squeezed to 60px. */
-.key-card .key-expanded .form-row {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-}
 
 .key-card .key-expanded .form-row .btn {
   align-self: flex-end;
@@ -1040,9 +784,5 @@
 
 /* Sub-section divider inside the expanded panel — tighten it up for the
    narrower tile width. */
-.key-card .key-expanded .key-section-border {
-  margin-top: 12px;
-  padding-top: 12px;
-}
 
 /* ===== 27. Toggle Switch ===== */

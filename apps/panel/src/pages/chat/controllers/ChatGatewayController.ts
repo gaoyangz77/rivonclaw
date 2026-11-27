@@ -1732,40 +1732,6 @@ export class ChatGatewayController {
       });
   }
 
-  resetSessionForOverflow(sessionKey: string): void {
-    if (!this.client || this.store.connectionState !== "connected") return;
-    this.client
-      .request("sessions.reset", { key: sessionKey })
-      .then(() => {
-        const session = this.store.sessions.get(sessionKey);
-        if (session) {
-          session.setMessages([]);
-          session.setAllFetched(true);
-          session.setHistoryHydrated(true);
-        }
-        clearImages(sessionKey).catch(() => {});
-        this.terminalErrors.delete(sessionKey);
-        this.clearTimersForSession(sessionKey);
-        this.runStateFor(sessionKey).resetAll();
-        const sess = this.store.sessions.get(sessionKey);
-        if (sess) {
-          sess.runState.setLastAgentStream(null);
-          sess.runState.setExternalPending(false);
-        }
-      })
-      .catch((err) => {
-        const errText = formatError(err) || this.t("chat.unknownError");
-        const session = this.store.sessions.get(sessionKey);
-        if (session) {
-          session.appendMessage({
-            role: "assistant",
-            text: `\u26A0 ${errText}`,
-            timestamp: Date.now(),
-          });
-        }
-      });
-  }
-
   pushRunProfileToScope(
     profileId: string,
     scopeKey: string,

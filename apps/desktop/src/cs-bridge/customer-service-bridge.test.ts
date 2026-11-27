@@ -50,13 +50,11 @@ vi.mock("../channels/feishu-cs-callback-config.js", () => ({
   ensureFeishuCsCallbackConfigured: mockEnsureFeishuCsCallbackConfigured,
 }));
 
-const mockReadFullModelCatalog = vi.fn().mockResolvedValue({});
 const { mockReadChannelOwnerAgentId } = vi.hoisted(() => ({
   // undefined = sole-agent roster, which is the default shape most tests assume.
   mockReadChannelOwnerAgentId: vi.fn<() => string | undefined>(() => undefined),
 }));
 vi.mock("@rivonclaw/gateway", () => ({
-  readFullModelCatalog: (...args: unknown[]) => mockReadFullModelCatalog(...args),
   readChannelOwnerAgentId: () => mockReadChannelOwnerAgentId(),
 }));
 
@@ -359,8 +357,6 @@ async function triggerMessage(
               businessPrompt: shop.systemPrompt,
               platformSystemPrompt: shop.systemPrompt,
               runProfileId: shop.runProfileId ?? null,
-              csProviderOverride: shop.csProviderOverride ?? null,
-              csModelOverride: shop.csModelOverride ?? null,
             },
             affiliateService: {
               enabled: false,
@@ -419,7 +415,6 @@ function setChannelManagerTestEnv(stateDir: string): void {
 beforeEach(() => {
   vi.clearAllMocks();
   csTestFramesByMessageId.clear();
-  rootStore.llmManager.clearVolatileSessionState();
   process.env.RIVONCLAW_CS_BUYER_QUIET_WINDOW_MS = "0";
   delete process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT;
   delete process.env.RIVONCLAW_CS_IMAGE_COMPRESSION;
@@ -428,7 +423,6 @@ beforeEach(() => {
   mockRpcRequest.mockResolvedValue({ ok: true });
   mockEnsureFeishuCsCallbackConfigured.mockResolvedValue(undefined);
   mockEnsureRpcReady.mockReturnValue({ request: mockRpcRequest, isConnected: () => true });
-  mockReadFullModelCatalog.mockResolvedValue({});
   mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, any>) => {
     if (query.includes("affiliateWorkItems")) {
       const creatorRelationshipId = variables?.input?.creatorRelationshipId;
@@ -1873,7 +1867,6 @@ describe("reactive entity cache sync", () => {
               enabled: true,
               csDeviceId: "test-gateway",
               businessPrompt: "You are a CS agent.",
-              csModelOverride: null,
               runProfileId: "rp-1",
               platformSystemPrompt: "PLATFORM CS PROMPT",
             },
@@ -2069,7 +2062,6 @@ describe("reactive entity cache sync", () => {
               csDeviceId: "test-gateway",
               businessPrompt: "Old prompt",
               runProfileId: null,
-              csModelOverride: null,
               platformSystemPrompt: "PLATFORM CS PROMPT",
             },
           },
@@ -2092,7 +2084,6 @@ describe("reactive entity cache sync", () => {
               csDeviceId: "test-gateway",
               businessPrompt: "Updated prompt",
               runProfileId: null,
-              csModelOverride: null,
               platformSystemPrompt: "PLATFORM CS PROMPT",
             },
           },
@@ -2608,152 +2599,28 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
   });
 });
 
-// ─── 11. Multi-provider model override (via LLMProviderManager) ──────────────
+// ─── 11. Default model dispatch (via LLMProviderManager) ─────────────────────
 //
-// Model resolution is delegated to rootStore.llmManager.resolveModelForDispatch.
-// The LLM manager reads csProviderOverride/csModelOverride from the MST shop entity
-// (not from bridge's CSShopContext), so we seed shops in the MST store.
+// Model resolution is delegated to rootStore.llmManager.resolveModelForDispatch,
+// which always answers with the gateway default (the cloud default model).
 
-describe("multi-provider model override", () => {
-  function expectDispatchedModel(provider: string, model: string): void {
+describe("default model dispatch", () => {
+  it("sends the gateway default provider/model directly with the agent run", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    await triggerMessage(bridge, createFrame({ messageId: "msg-model-default-1" }));
+
     expect(mockRpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({
         sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-789",
-        provider,
-        model,
+        provider: "rivonclaw-pro",
+        model: "gpt-5.5",
       }),
       360000,
     );
-  }
-
-  /** Helper: seed the model catalog on the LLM manager and seed a shop into MST store. */
-  async function seedCatalogAndShop(overrides?: {
-    csProviderOverride?: string | null;
-    csModelOverride?: string | null;
-  }): Promise<void> {
-    // Seed model catalog on LLM manager
-    mockReadFullModelCatalog.mockResolvedValue({
-      zhipu: [{ id: "glm-5" }, { id: "glm-4" }],
-      openai: [{ id: "gpt-4o" }, { id: "gpt-4o-mini" }],
-      anthropic: [{ id: "claude-sonnet-4-20250514" }],
-    });
-    await rootStore.llmManager.refreshModelCatalog();
-
-    // Seed shop in MST store with CS overrides (LLM manager reads from here)
-    rootStore.ingestGraphQLResponse({
-      shops: [
-        {
-          id: "mongo-id-123",
-          platform: "TIKTOK_SHOP",
-          platformShopId: "tiktok-shop-456",
-          shopName: "Test Shop",
-          services: {
-            customerService: {
-              enabled: true,
-              csDeviceId: "test-gateway",
-              businessPrompt: "You are a CS assistant.",
-              platformSystemPrompt: "You are a CS assistant.",
-              csProviderOverride: overrides?.csProviderOverride ?? null,
-              csModelOverride: overrides?.csModelOverride ?? null,
-              runProfileId: "CUSTOMER_SERVICE",
-            },
-          },
-        },
-      ],
-    });
-  }
-
-  it("two-field override: sends provider/model directly with the agent run", async () => {
-    const bridge = createBridge();
-    await seedCatalogAndShop({ csProviderOverride: "zhipu", csModelOverride: "glm-5" });
-    bridge.setShopContext(defaultShop);
-
-    await triggerMessage(bridge, createFrame());
-
-    expectDispatchedModel("zhipu", "glm-5");
-  });
-
-  it("two-field override: falls back to active default when provider/model not in catalog", async () => {
-    const bridge = createBridge();
-    await seedCatalogAndShop({ csProviderOverride: "zhipu", csModelOverride: "nonexistent-model" });
-    bridge.setShopContext(defaultShop);
-
-    await triggerMessage(bridge, createFrame());
-
-    expectDispatchedModel("rivonclaw-pro", "gpt-5.5");
-  });
-
-  it("no override: dispatches with the active default", async () => {
-    const bridge = createBridge();
-    await seedCatalogAndShop({ csProviderOverride: null, csModelOverride: null });
-    bridge.setShopContext(defaultShop);
-
-    await triggerMessage(bridge, createFrame());
-
-    expectDispatchedModel("rivonclaw-pro", "gpt-5.5");
-  });
-
-  it("refreshModelCatalog caches all providers, not just active provider", async () => {
-    const bridge = createBridge();
-    // Seed with OpenAI model override
-    await seedCatalogAndShop({ csProviderOverride: "openai", csModelOverride: "gpt-4o" });
-    bridge.setShopContext(defaultShop);
-
-    await triggerMessage(bridge, createFrame());
-
-    expectDispatchedModel("openai", "gpt-4o");
-  });
-
-  it("provider set without model: dispatches with active default", async () => {
-    const bridge = createBridge();
-    await seedCatalogAndShop({ csProviderOverride: "zhipu", csModelOverride: null });
-    bridge.setShopContext(defaultShop);
-
-    await triggerMessage(bridge, createFrame());
-
-    expectDispatchedModel("rivonclaw-pro", "gpt-5.5");
-  });
-
-  it("refreshes an existing CS session when the shop model override changes", async () => {
-    const bridge = createBridge();
-    await seedCatalogAndShop({ csProviderOverride: "zhipu", csModelOverride: "glm-5" });
-    bridge.setShopContext(defaultShop);
-
-    await triggerMessage(bridge, createFrame({ messageId: "msg-model-1" }));
-
-    expectDispatchedModel("zhipu", "glm-5");
-
-    await seedCatalogAndShop({ csProviderOverride: "openai", csModelOverride: "gpt-4o" });
-    mockRpcRequest.mockClear();
-
-    await triggerMessage(bridge, createFrame({ messageId: "msg-model-2" }));
-
-    expect(mockRpcRequest.mock.calls.some(([method]) => method === "cs_register_session")).toBe(
-      false,
-    );
-    expectDispatchedModel("openai", "gpt-4o");
-  });
-
-  it("clears an existing CS session model override when the shop returns to global default", async () => {
-    const bridge = createBridge();
-    await seedCatalogAndShop({ csProviderOverride: "zhipu", csModelOverride: "glm-5" });
-    bridge.setShopContext(defaultShop);
-
-    await triggerMessage(bridge, createFrame({ messageId: "msg-model-default-1" }));
-
-    expectDispatchedModel("zhipu", "glm-5");
-
-    await seedCatalogAndShop({ csProviderOverride: null, csModelOverride: null });
-    mockRpcRequest.mockClear();
-
-    await triggerMessage(bridge, createFrame({ messageId: "msg-model-default-2" }));
-
-    expect(mockRpcRequest.mock.calls.some(([method]) => method === "cs_register_session")).toBe(
-      false,
-    );
-    expectDispatchedModel("rivonclaw-pro", "gpt-5.5");
   });
 });
 
@@ -2800,8 +2667,6 @@ function seedShopWithEscalation(overrides?: {
             enabled: true,
             businessPrompt: "",
             csDeviceId: null,
-            csProviderOverride: null,
-            csModelOverride: null,
             escalationChannelId:
               overrides?.escalationChannelId !== undefined
                 ? overrides.escalationChannelId
@@ -4567,8 +4432,6 @@ describe("rapid buyer messages (abort + redispatch)", () => {
                 businessPrompt: defaultShop.systemPrompt,
                 platformSystemPrompt: defaultShop.systemPrompt,
                 runProfileId: defaultShop.runProfileId ?? null,
-                csProviderOverride: null,
-                csModelOverride: null,
               },
               affiliateService: {
                 enabled: false,

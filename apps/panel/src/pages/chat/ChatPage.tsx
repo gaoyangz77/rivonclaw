@@ -12,9 +12,7 @@ import { ChatMessageList } from "./components/ChatMessageList.js";
 import { ChatStatusBar } from "./components/ChatStatusBar.js";
 import { ChatExamples } from "./components/ChatExamples.js";
 import { ChatResetModal } from "./components/ChatResetModal.js";
-import { ChatContextOverflowModal } from "./components/ChatContextOverflowModal.js";
 import { useChatExamples } from "./hooks/useChatExamples.js";
-import { useChatModelControls } from "./hooks/useChatModelControls.js";
 import { PAGE_SIZE } from "./chat-utils.js";
 import "./ChatPage.css";
 
@@ -68,27 +66,10 @@ const ChatPageInner = observer(function ChatPageInner() {
   const streaming = runState.displayStreaming;
   const pendingImages = [...session.pendingImages];
 
-  // --- Model controls ---
-  const sessionKeyRef = useRef(store.activeSessionKey);
-  sessionKeyRef.current = store.activeSessionKey;
-
-  const modelControls = useChatModelControls({
-    sessionKeyRef,
-    connectionState,
-    sessions: store.sessionList,
-    activeSessionKey: store.activeSessionKey,
-    onOverflowClear: () => controller.resetSessionForOverflow(store.activeSessionKey),
-  });
-
   // --- History hydration on session switch / first active tab open ---
-  const prevActiveKeyRef = useRef(store.activeSessionKey);
   useEffect(() => {
-    const activeKey = store.activeSessionKey;
-    const switched = activeKey !== prevActiveKeyRef.current;
-    if (switched) prevActiveKeyRef.current = activeKey;
     if (!controller.gatewayClient || connectionState !== "connected") return;
     if (!session.historyHydrated) controller.loadHistory();
-    if (switched) modelControls.refreshModel(activeKey);
   }, [store.activeSessionKey, connectionState, session.historyHydrated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Auto-scroll ---
@@ -201,7 +182,7 @@ const ChatPageInner = observer(function ChatPageInner() {
   const showHistoryEnd = allFetched && visibleCount >= messages.length && messages.length > 0;
   const isStreaming = runId !== null;
   const totalTokens = session.totalTokens;
-  const contextWindow = modelControls.activeModel?.contextWindow ?? session.contextTokens ?? null;
+  const contextWindow = session.contextTokens ?? null;
   const sessionsWithRecipientAliases = entityStore.sessionTabsWithRecipientAliases(
     store.sessionList,
   );
@@ -273,14 +254,12 @@ const ChatPageInner = observer(function ChatPageInner() {
         <ChatStatusBar
           connectionState={connectionState}
           agentName={agentName}
-          activeModel={modelControls.activeModel}
           thinkingLevel={session.thinkingLevel}
           onThinkingLevelChange={(level) => session.setThinkingLevel(level)}
           totalTokens={totalTokens}
           contextWindow={contextWindow}
           selectedRunProfileId={selectedRunProfileId}
           onRunProfileChange={handleRunProfileChange}
-          onKeyModelChange={modelControls.handleKeyModelChange}
           onReset={handleReset}
         />
 
@@ -290,7 +269,7 @@ const ChatPageInner = observer(function ChatPageInner() {
           isStreaming={isStreaming}
           canAbort={runState.canAbort}
           connectionState={connectionState as "connecting" | "connected" | "disconnected"}
-          hasProviderKeys={modelControls.hasProviderKeys}
+          hasProviderKeys={entityStore.providerKeys.length > 0}
           onDraftChange={(text) => session.setDraft(text)}
           onPendingImagesChange={(imgs) => session.setPendingImages(imgs)}
           onSend={handleSend}
@@ -301,13 +280,6 @@ const ChatPageInner = observer(function ChatPageInner() {
         isOpen={showResetConfirm}
         onClose={() => setShowResetConfirm(false)}
         onConfirm={confirmReset}
-      />
-      <ChatContextOverflowModal
-        isOpen={modelControls.pendingModelSwitch !== null}
-        pendingModelSwitch={modelControls.pendingModelSwitch}
-        onClose={() => modelControls.setPendingModelSwitch(null)}
-        onContinue={modelControls.handleOverflowContinue}
-        onClear={modelControls.handleOverflowClear}
       />
       <Modal
         isOpen={examples.editingExample !== null}

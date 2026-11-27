@@ -2,7 +2,6 @@ import { registerMessagingHandlers } from "../messaging/api.js";
 import type { RouteRegistry } from "../infra/api/route-registry.js";
 import { registerAuthHandlers } from "../auth/api.js";
 import { registerSettingsHandlers } from "../settings/api.js";
-import { registerProviderHandlers } from "../providers/api.js";
 import { registerChannelsHandlers } from "../channels/api.js";
 import { registerCsBridgeHandlers } from "../cs-bridge/api.js";
 import { registerChatSessionsHandlers } from "../chat/api.js";
@@ -19,7 +18,6 @@ export function registerAllHandlers(registry: RouteRegistry): void {
   registerAuthHandlers(registry);
   registerMessagingHandlers(registry);
   registerSettingsHandlers(registry);
-  registerProviderHandlers(registry);
   registerChannelsHandlers(registry);
   registerCsBridgeHandlers(registry);
   registerChatSessionsHandlers(registry);

@@ -2,7 +2,6 @@ import type { ComponentType, ReactNode } from "react";
 import { GQL } from "@rivonclaw/core";
 import {
   ChatIcon,
-  ProvidersIcon,
   ChannelsIcon,
   ExtrasIcon,
   UsageIcon,
@@ -17,7 +16,6 @@ import {
   ModuleIcon,
 } from "./components/icons.js";
 import { ChatPage } from "./pages/chat/ChatPage.js";
-import { ProvidersPage } from "./pages/providers/ProvidersPage.js";
 import { ChannelsPage } from "./pages/channels/ChannelsPage.js";
 import { ExtrasPage } from "./pages/extras/ExtrasPage.js";
 import { KeyUsagePage } from "./pages/usage/KeyUsagePage.js";
@@ -374,13 +372,6 @@ export const ROUTES: RouteEntry[] = [
     component: ChannelsPage,
     icon: <ChannelsIcon />,
     navLabelKey: "nav.channels",
-  },
-  {
-    path: "/connections/models",
-    pageKey: "providers",
-    component: ProvidersPage,
-    icon: <ProvidersIcon />,
-    navLabelKey: "nav.providers",
   },
   {
     path: "/automation/skills",

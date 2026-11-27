@@ -802,17 +802,6 @@
 /* Subscription expiry hint, rendered as a sibling in `.key-meta`. Picks up
    the meta row's 8px gap — no own margin. Tabular numerals so 2/2-digit
    date components line up with the "Subscription" badge metrics. */
-.key-expiry {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.key-expiry-warning {
-  color: var(--color-danger);
-  font-weight: 500;
-}
 
 /* Tile-scoped action footer. Right-aligned so action buttons hug the
    bottom-right corner, balancing the top-right Activate button visually.

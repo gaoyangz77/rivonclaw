@@ -91,7 +91,6 @@ export default {
   },
   nav: {
     chat: "Chatten",
-    providers: "Modelle",
     channels: "Nachrichten",
     usage: "Nutzung",
     extras: "Zusätzliche Funktionen",
@@ -148,7 +147,7 @@ export default {
     historyEnd: "Beginn des Gesprächs",
     loadError: "Verbindung zum Gateway konnte nicht hergestellt werden",
     noProviderError:
-      "Kein LLM-Anbieter konfiguriert. Bitte gehen Sie zur Seite „Modelle“ und fügen Sie einen API-Schlüssel hinzu.",
+      "TK Copilot AI ist nicht verfügbar. Bitte melden Sie sich an und stellen Sie sicher, dass Ihr Abonnement aktiv ist.",
     timeoutError:
       "Zeitüberschreitung bei der Anfrage. Das Modell ist möglicherweise nicht verfügbar oder das Modell ID ist möglicherweise falsch.",
     emoji: "Emoji",
@@ -164,25 +163,15 @@ export default {
       "Ihr API-Schlüssel hat kein Guthaben mehr. Überprüfen Sie das Abrechnungs-Dashboard Ihres Anbieters oder wechseln Sie zu einem anderen Schlüssel.",
     errorTimeout: "Zeitüberschreitung bei der Anfrage.",
     errorContextOverflow:
-      "Das Gespräch ist für dieses Modell zu lang. Verwenden Sie /reset, um neu zu beginnen, oder wechseln Sie zu einem Modell mit einem größeren Kontextfenster.",
+      "Das Gespräch ist für das Modell zu lang. Verwenden Sie /reset, um ein neues Gespräch zu beginnen.",
     errorAuth:
-      "Die Authentifizierung ist fehlgeschlagen. Bitte überprüfen Sie Ihren API-Schlüssel oder authentifizieren Sie sich erneut auf der Seite „Modelle“.",
+      "Die Authentifizierung ist fehlgeschlagen. Bitte melden Sie sich erneut an oder prüfen Sie Ihr TK Copilot AI-Abonnement.",
     disconnectedError:
       "Verbindung unterbrochen. Verbindung wird wiederhergestellt – Sie können Ihre Nachricht in Kürze erneut senden.",
     stalledError:
       "Antwort ist ins Stocken geraten – keine endgültige Antwort erhalten. Die Aufgabe wurde möglicherweise auf dem Server abgeschlossen. Scrollen Sie nach oben oder senden Sie es erneut.",
     watchdogError:
       "Keine Antwortaktivität für 5 Minuten. Die Verbindung ist möglicherweise stillschweigend verloren gegangen. Sie können versuchen, Ihre Nachricht erneut zu senden.",
-    contextWindowWarning:
-      "Die aktuelle Konversation (~{{currentTokens}}-Tokens) übersteigt 80 % des Kontextfensters des neuen Modells ({{newContextWindow}}). Erwägen Sie, ein neues Gespräch zu beginnen.",
-    contextOverflowTitle: "Kontextfenster überschritten",
-    contextOverflowBody:
-      "Die aktuelle Konversation (~{{current}}-Tokens) überschreitet das Kontextfenster des neuen Modells ({{max}}-Tokens). Wählen Sie, wie Sie fortfahren möchten:",
-    contextOverflowContinue: "Modell wechseln",
-    contextOverflowContinueHint:
-      "Das System komprimiert die Konversation automatisch bei der nächsten Nachricht",
-    contextOverflowClear: "Wechseln und klare Gespräche führen",
-    contextOverflowClearHint: "Modell wechseln und neu starten",
     imageOnlyPlaceholder: "Bitte schauen Sie sich dieses Bild an",
     phase_queued: "Nachricht erhalten, in der Warteschlange...",
     phase_processing: "Verarbeitung...",
@@ -223,13 +212,6 @@ export default {
     deleteSession: "Löschen",
     contextUsage: "{{current}} / {{max}}",
     contextUsageTooltip: "Sitzungstoken-Nutzung im Vergleich zum Modellkontextfenster",
-    defaultBadge: "Standard",
-    modelSearchPlaceholder: "Modelle suchen...",
-    noProviderKeys: "Keine Anbieterschlüssel",
-    noModelsMatch: "Keine passenden Modelle",
-    noModels: "Keine Modelle verfügbar",
-    globalDefault: "Globaler Standard",
-    followGlobalDefault: "Befolgen Sie den globalen Standard",
     imageAttachment: "[Bild]",
     imageExpired: "[Bild abgelaufen]",
     channelTelegram: "TG",
@@ -262,285 +244,6 @@ export default {
     channelTooltipMatrix: "Matrix",
     channelTooltipMsteams: "Microsoft Teams",
     channelTooltipMattermost: "Am wichtigsten",
-  },
-  providers: {
-    title: "Modelle",
-    description:
-      "Konfigurieren Sie Ihre LLM-Anbieter und API-Schlüssel. Sie können mehrere Anbieter hinzufügen und zwischen ihnen wechseln.",
-    providerLabel: "Anbieter",
-    apiKeyLabel: "API-Schlüssel",
-    apiKeyPlaceholder:
-      "Sicher im Schlüsselbund Ihres Betriebssystems gespeichert. Nie in Konfigurationsdateien geschrieben.",
-    updateKeyPlaceholder: "Geben Sie den neuen API-Schlüssel ein",
-    apiKeyHelp:
-      "Sicher im Schlüsselbund Ihres Betriebssystems gespeichert. Nie in Konfigurationsdateien geschrieben.",
-    getApiKey: "Holen Sie sich den API-Schlüssel",
-    getSubscription: "Holen Sie sich ein Abonnement",
-    subscribeForValue: "oder abonnieren Sie für das beste Preis-Leistungs-Verhältnis",
-    addKey: "Schlüssel hinzufügen",
-    updateKey: "Aktualisieren",
-    setDefault: "Standard festlegen",
-    configured: "Konfiguriert",
-    default: "Standard",
-    validating: "Validierung...",
-    invalidKey: "Ungültiger API-Schlüssel. Bitte überprüfen Sie es und versuchen Sie es erneut.",
-    anthropicTokenLabel: "Token",
-    anthropicTokenPlaceholder:
-      "Sicher im Schlüsselbund Ihres Betriebssystems gespeichert. Nie in Konfigurationsdateien geschrieben.",
-    anthropicUpdatePlaceholder: "Geben Sie einen neuen Token oder API-Schlüssel ein",
-    anthropicTokenWarning:
-      "OAuth-Tokens von „claude setup-token“ sind langlebig (1 Jahr). Nur der erste Token ist gültig – die Neugenerierung eines neuen Tokens vor Ablauf führt zu einem unbrauchbaren Token.",
-    failedToLoad: "Einstellungen konnten nicht geladen werden: ",
-    oauthFailed: "OAuth-Anmeldung fehlgeschlagen: ",
-    errorDetails: "Details",
-    failedToSave: "Speichern fehlgeschlagen: ",
-    colProvider: "Anbieter",
-    colStatus: "Status",
-    colActions: "Aktionen",
-    activate: "Aktivieren",
-    removeKey: "Entfernen",
-    usage: "Nutzung",
-    reauthenticate: "Erneut authentifizieren",
-    usageModal: {
-      title: "Abonnementnutzung – {{label}}",
-      loading: "Nutzung wird geladen…",
-      empty: "Von diesem Anbieter wurden keine Kontingentfenster gemeldet.",
-      refreshesAt: "Aktualisierungen bei {{time}}",
-    },
-    expiresOn: "Läuft ab {{date}}",
-    expiresInDays: "Läuft in {{count}} Tagen ab",
-    expiresInDays_one: "Läuft am {{count}} Tag ab",
-    expiresInDays_other: "Läuft in {{count}} Tagen ab",
-    expiresToday: "Läuft heute ab",
-    expired: "Abgelaufen",
-    reauthModal: {
-      title: "Authentifizieren Sie {{label}} erneut",
-      intro:
-        "Melden Sie sich erneut an, um die OAuth-Anmeldeinformationen für diesen Schlüssel zu rotieren. Ihr Label, Ihr Modell und Ihr Proxy bleiben erhalten – nur der gespeicherte Token wird ersetzt.",
-      "signIn_openai-codex": "Melden Sie sich mit ChatGPT an",
-      waitingForBrowser: "Warten auf Browser-Anmeldung…",
-      authUrlLabel: "Autorisierung URL",
-      callbackLabel: "URL umleiten",
-      callbackPlaceholder: "Fügen Sie hier die Weiterleitung URL aus Ihrem Browser ein",
-      "callbackHelp_openai-codex":
-        "Nachdem Sie sich mit ChatGPT angemeldet haben, kopieren Sie die vollständige Weiterleitung URL aus der Adressleiste Ihres Browsers und fügen Sie sie hier ein.",
-      completeSignIn: "Schließen Sie die Anmeldung ab",
-      confirm: "Bestätigen Sie die erneute Authentifizierung",
-      tokenReady:
-        "Neuer OAuth-Token bereit. Sie können das Rotieren der gespeicherten Anmeldeinformationen erneut versuchen.",
-      autoSaving: "Autorisiert. Gespeicherte Anmeldeinformationen werden automatisch rotiert…",
-      starting: "Beginnend mit …",
-      rotating: "Rotierender Ausweis…",
-      cancel: "Abbrechen",
-      captureWarning:
-        "Token wurde rotiert, aber wir konnten den Token-Ablauf nicht lesen. Wenn Ihre nächste Anfrage fehlschlägt, authentifizieren Sie sich bitte erneut.",
-    },
-    modelLabel: "Modell",
-    labelPlaceholder: "Etikett (optional)",
-    labelDefault: "Standard",
-    keyLabel: "Etikett",
-    advancedSettings: "Erweiterte Einstellungen",
-    proxyLabel: "Proxy URL (optional)",
-    proxyPlaceholder: "http://user:pass@proxy.example.com:8080 oder sock5://user:pass@...",
-    proxyHelp:
-      "HTTP/HTTPS/SOCKS5-Proxy für diesen Schlüssel. Anmeldeinformationen werden sicher in Ihrem Betriebssystem-Schlüsselbund gespeichert.",
-    proxyTooltip: "LLM-Aufrufe mit diesem Schlüssel werden über einen Proxy weitergeleitet",
-    colLabel: "Etikett",
-    colModel: "Modell",
-    active: "Aktiv",
-    authTypeSubscription: "Abonnement",
-    authTypeApiKey: "API-Schlüssel",
-    authTypeCustom: "Benutzerdefiniert",
-    noKeys: "Noch keine API-Schlüssel konfiguriert. Fügen Sie unten eines hinzu.",
-    pricingTitle: "Modellpreise",
-    pricingRecommended: "Empfohlen",
-    pricingFree: "Kostenlos",
-    pricingInput: "Eingabe",
-    pricingOutput: "Ausgabe",
-    pricingPerMillion: "Preis pro 1 Mio. Token",
-    pricingModel: "Modell",
-    pricingUnavailable: "Preisdaten nicht verfügbar.",
-    pricingViewFull: "Vollständige Preise anzeigen",
-    pricingCurrency: "Währung",
-    pricingDisclaimer:
-      "Die angezeigten Preise sind offizielle Listenpreise. Die tatsächlichen Kosten können je nach Kontostufe, Werbeaktionen oder Abrechnungsvereinbarungen variieren.",
-    pricingPlansTitle: "Abonnementpläne",
-    pricingPlansUnavailable: "Plandetails nicht verfügbar.",
-    configuredKeysTitle: "Konfigurierte Schlüssel",
-    addTitle: "Schlüssel hinzufügen",
-    tabSubscription: "Abonnement",
-    tabApi: "API-Schlüssel",
-    tabLocal: "Lokal LLM",
-    tabCustom: "Benutzerdefiniert",
-    noProviders: "Noch keine Anbieter konfiguriert. Fügen Sie unten eines hinzu.",
-    configuredTitle: "Konfigurierte Anbieter",
-    "label_rivonclaw-pro": "TK Copilot AI",
-    cloudModelName: "Flaggschiff",
-    label_openai: "OpenAI",
-    label_anthropic: "Anthropic",
-    label_claude: "Claude (Abonnement)",
-    label_google: "Google (Gemini)",
-    label_deepseek: "DeepSeek",
-    label_zhipu: "Zhipu (GLM) – China",
-    "label_zhipu-coding": "Zhipu Kodierungsplan (GLM)",
-    label_zai: "Z.ai (GLM) – Global",
-    label_moonshot: "Moonshot (Kimi) – Global",
-    label_kimi: "Kimi – China",
-    "label_moonshot-coding": "Kimi-Code – China",
-    label_qwen: "Qwen",
-    "label_qwen-coding": "Qwen Codierungsplan",
-    label_modelscope: "ModelScope",
-    label_groq: "Groq",
-    label_mistral: "Mistral",
-    label_xai: "xAI (Grok)",
-    label_openrouter: "OpenRouter",
-    label_minimax: "MiniMax – Global",
-    "label_minimax-cn": "MiniMax – China",
-    "label_minimax-coding": "MiniMax-Kodierungsplan – China",
-    label_venice: "Venedig KI",
-    label_xiaomi: "Xiaomi",
-    label_volcengine: "Volcengine (Doubao)",
-    "label_volcengine-coding": "Volcengine Kodierungsplan (Doubao)",
-    label_nvidia: "NVIDIA (NIM)",
-    "label_nvidia-nim": "NVIDIA NIM",
-    "label_amazon-bedrock": "Amazonas-Grundgestein",
-    label_ollama: "Ollama",
-    "label_openai-codex": "OpenAI-Codex (OAuth)",
-    desc_ollama: "Führen Sie Modelle lokal mit Ollama aus",
-    "desc_openai-codex":
-      "Melden Sie sich mit Ihrem ChatGPT-Konto an, um Codex-Modelle per Abonnement zu nutzen.",
-    "hint_openai-codex": "",
-    "oauthSignIn_openai-codex": "Melden Sie sich mit ChatGPT an",
-    oauthLoading: "Einrichten...",
-    oauthBadge: "OAuth",
-    oauthSectionTitle: "OAuth-Anbieter",
-    "oauthInfo_openai-codex":
-      "Melden Sie sich mit Ihrem ChatGPT-Konto an, um OpenAI Codex-Modelle zu verwenden. Erfordert ein ChatGPT Plus- oder Pro-Abonnement. OAuth-Tokens werden sicher in Ihrem Betriebssystem-Schlüsselbund gespeichert.",
-    oauthTokenLabel: "OAuth-Token",
-    "oauthTokenHelp_openai-codex":
-      "Token erworben über OpenAI OAuth. Sicher im Schlüsselbund Ihres Betriebssystems gespeichert.",
-    "oauthManualInfo_openai-codex":
-      "Vollständige Anmeldung im Browser. Wenn Sie einen Remote-Computer verwenden, kopieren Sie die Autorisierung URL unten und fügen Sie die Umleitung URL nach der Anmeldung wieder ein.",
-    oauthWaitingForBrowser: "Warten auf Browser-Anmeldung...",
-    oauthManualUrlLabel: "Autorisierung URL",
-    oauthManualCallbackLabel: "URL umleiten",
-    oauthManualCallbackPlaceholder: "Fügen Sie hier die Weiterleitung URL aus Ihrem Browser ein",
-    "oauthManualCallbackHelp_openai-codex":
-      "Nachdem Sie sich mit ChatGPT angemeldet haben, leitet Ihr Browser zu einem lokalen Host URL weiter. Kopieren Sie den vollständigen URL aus der Adressleiste Ihres Browsers und fügen Sie ihn hier ein.",
-    oauthManualSubmit: "Schließen Sie die Anmeldung ab",
-    desc_openai: "Schöpfer von GPT & ChatGPT. Branchenführer im Bereich Allzweck-KI.",
-    desc_anthropic:
-      "Hersteller von Claude. Bekannt für sicherheitsorinombrete, leistungsstarke Modelle.",
-    desc_claude:
-      "Claude Pro (20 $/Monat), Max (100 $/Monat, 200 $/Monat). Abonnieren Sie für höhere Nutzungslimits.",
-    desc_google: "Googles Gemini-Modelle. Starke multimodale und Long-Context-Fähigkeiten.",
-    desc_deepseek:
-      "Chinesisches KI-Labor. Wettbewerbsfähige Open-Weight-Modelle zu niedrigen Kosten.",
-    desc_zhipu: "Zhipu AIs China-Dienst (open.bigmodel.cn). Preis in CNY.",
-    "desc_zhipu-coding": "Für GLM-Coding-Plan-Abonnenten (open.bigmodel.cn). Preis in CNY.",
-    desc_zai: "Zhipu AIs globaler Service (z.ai). Preis in USD.",
-    desc_moonshot: "Moonshot AIs globaler Service (moonshot.ai). Preis in USD.",
-    desc_kimi: "Kimis China-Dienst (moonshot.cn). Preis in CNY.",
-    "desc_moonshot-coding":
-      "Kimi Code-Abonnementplan für Kimi CLI, Claude Code und andere Entwicklungstools.",
-    desc_qwen: "Alibabas KI-Modelle. Starke Mehrsprachigkeit und Codierungsfähigkeiten.",
-    "desc_qwen-coding":
-      "Alibaba Cloud Coding Plan-Abonnement für Claude Code und andere Entwicklungstools.",
-    desc_modelscope:
-      "Kostenlose ModelScope-Community-Inferenz. Greifen Sie mit kostenlosem Kontingent auf Qwen-Modelle zu.",
-    desc_groq:
-      "Ultraschnelle Inferenzplattform. Führt Open-Source-Modelle mit hoher Geschwindigkeit aus.",
-    desc_mistral: "Europäischer KI-Führer. Effiziente, hochwertige Open-Weight-Modelle.",
-    desc_xai: "Elon Musks KI-Unternehmen. Schöpfer von Grok mit Echtzeitwissen.",
-    desc_openrouter: "Einheitliches API-Gateway für über 100 Modelle von mehreren Anbietern.",
-    desc_minimax: "Globaler MiniMax-Service. Preis in USD.",
-    "desc_minimax-cn": "MiniMax China-Service (minimaxi.com). Preis in CNY.",
-    "desc_minimax-coding":
-      "MiniMax-Coding-Plan-Abonnement für Claude-Code und andere Entwicklungstools.",
-    desc_venice: "Datenschutzorinombrete KI-Plattform. Unzensiertes Model-Hosting.",
-    desc_xiaomi: "Xiaomis KI-Labor. Auf Effizienz optimierte, leichte Modelle.",
-    desc_volcengine: "Die Cloud-Plattform von ByteDance. Heimat der großen Doubao-Sprachmodelle.",
-    "desc_volcengine-coding":
-      "Volcengine Coding Plan-Abonnement für Claude Code und andere Entwicklungstools.",
-    desc_nvidia:
-      "Die KI-Plattform von NVIDIA. Greifen Sie auf GPU-optimierte Open-Source-Modelle zu.",
-    "desc_nvidia-nim":
-      "NVIDIA NIM-Microservices. Greifen Sie auf GPU-optimierte Modelle in der Cloud von NVIDIA zu.",
-    "desc_amazon-bedrock":
-      "Von AWS verwalteter Service. Greifen Sie über einen API auf mehrere Anbieter zu.",
-    hint_openai: "Holen Sie sich Ihren API-Schlüssel unter platform.openai.com.",
-    hint_anthropic:
-      "Holen Sie sich Ihren API-Schlüssel unter console.anthropic.com oder führen Sie {{cmd}} aus, um ein OAuth-Token zu erhalten.",
-    hint_claude:
-      "Abonnieren Sie bei claude.ai und holen Sie sich dann Ihren API-Schlüssel unter console.anthropic.com oder führen Sie {{cmd}} aus, um einen OAuth-Token zu erhalten.",
-    hint_google: "Holen Sie sich Ihren API-Schlüssel unter aistudio.google.com.",
-    hint_deepseek: "Holen Sie sich Ihren API-Schlüssel unter platform.deepseek.com.",
-    hint_zhipu: "Holen Sie sich Ihren API-Schlüssel unter open.bigmodel.cn.",
-    "hint_zhipu-coding":
-      "Holen Sie sich Ihren API-Schlüssel unter open.bigmodel.cn. Erfordert ein GLM-Coding-Plan-Abonnement.",
-    hint_zai: "Holen Sie sich Ihren API-Schlüssel bei z.ai.",
-    hint_moonshot: "Holen Sie sich Ihren API-Schlüssel unter platform.moonshot.ai.",
-    hint_kimi: "Holen Sie sich Ihren API-Schlüssel unter platform.moonshot.cn.",
-    "hint_moonshot-coding":
-      "Melden Sie sich unter kimi.com/code an und holen Sie sich dann Ihren API-Schlüssel von der Konsole.",
-    hint_qwen: "Holen Sie sich Ihren API-Schlüssel unter dashscope.console.aliyun.com.",
-    "hint_qwen-coding":
-      "Abonnieren Sie den Coding-Plan bei aliyun.com und holen Sie sich dann Ihren API-Schlüssel von der Konsole.",
-    hint_modelscope: "Holen Sie sich Ihr Zugriffstoken unter modelscope.cn/my/myaccesstoken.",
-    hint_groq: "Holen Sie sich Ihren API-Schlüssel unter console.groq.com.",
-    hint_mistral: "Holen Sie sich Ihren API-Schlüssel unter console.mistral.ai.",
-    hint_xai: "Holen Sie sich Ihren API-Schlüssel unter console.x.ai.",
-    hint_openrouter: "Holen Sie sich Ihren API-Schlüssel unter openrouter.ai/keys.",
-    hint_minimax: "Holen Sie sich Ihren API-Schlüssel unter platform.minimaxi.com.",
-    "hint_minimax-cn": "Holen Sie sich Ihren API-Schlüssel unter platform.minimaxi.com.",
-    "hint_minimax-coding":
-      "Melden Sie sich unter platform.minimaxi.com an und holen Sie sich dann Ihren API-Schlüssel von der Konsole.",
-    hint_venice: "Holen Sie sich Ihren API-Schlüssel unter venice.ai/settings.",
-    hint_xiaomi: "Holen Sie sich Ihren API-Schlüssel unter Developers.xiaomi.com.",
-    hint_volcengine: "Holen Sie sich Ihren API-Schlüssel unter console.volcengine.com.",
-    "hint_volcengine-coding":
-      "Abonnieren Sie den Coding Plan auf volcengine.com und holen Sie sich dann Ihren API-Schlüssel von der Konsole.",
-    hint_nvidia: "Holen Sie sich Ihren API-Schlüssel unter build.nvidia.com/settings/api-keys.",
-    "hint_nvidia-nim":
-      "Holen Sie sich Ihren API-Schlüssel unter build.nvidia.com/settings/api-keys.",
-    "hint_amazon-bedrock": "Konfigurieren Sie AWS-Anmeldeinformationen mit {{cmd}}.",
-    baseUrlLabel: "Server URL",
-    baseUrlPlaceholder: "http://localhost:11434",
-    baseUrlHelp: "Der URL Ihres laufenden Ollama-Servers",
-    modelNameLabel: "Modell",
-    modelNamePlaceholder: "z.B. llama3.2, qwen2.5, deepseek-r1",
-    modelNameHelp: "Wählen Sie den Namen eines Ollama-Modells aus oder geben Sie ihn ein",
-    modelCapabilities: "Modellfähigkeiten",
-    modalityText: "Text",
-    modalityImage: "Bild",
-    modelCapabilitiesHelp: "Wählen Sie die Eingabetypen aus, die Ihr lokales Modell unterstützt.",
-    localApiKeyHelp:
-      "Optional. Lassen Sie das Feld leer, wenn Ihr Ollama-Server keine Authentifizierung hat.",
-    localInfoTitle: "Erste Schritte mit Ollama",
-    localInfoBody:
-      "Derzeit wird nur Ollama unterstützt.\n\n1. Installieren Sie Ollama von ollama.com\n2. Ausführen: olama pull llama3.2\n3. Server starten: Ollama Serve\n4. Geben Sie links den Server URL ein",
-    connectionSuccess: "Verbunden",
-    connectionFailed: "Es kann keine Verbindung hergestellt werden",
-    badgeLocal: "Lokal",
-    updateUrl: "Aktualisieren Sie URL",
-    customDefault: "Benutzerdefinierter Anbieter",
-    customInfoTitle: "Benutzerdefinierter Anbieter",
-    customInfoBody:
-      "Verbinden Sie jeden OpenAI-kompatiblen oder Anthropic-kompatiblen API-Endpunkt. Geben Sie den Basisschlüssel URL, den API und die Modell-IDs manuell ein.",
-    customNameLabel: "Anbietername",
-    customNamePlaceholder: "z. B. Mein vLLM-Server",
-    customProtocolLabel: "Protokoll",
-    customProtocolOpenAI: "OpenAI-kompatibel",
-    customProtocolAnthropic: "Anthropic",
-    customEndpointLabel: "Endpunkt URL",
-    customEndpointPlaceholder: "https://api.example.com/v1",
-    customModelsLabel: "Modelle",
-    customModelsPlaceholder: "Geben Sie ein Modell ID ein und drücken Sie die Eingabetaste",
-    customModelsHelp:
-      "Drücken Sie die Eingabetaste, um jedes Modell hinzuzufügen. Das erste Modell wird standardmäßig ausgewählt.",
-    fetchModels: "Modelle abrufen",
-    fetchingModels: "Abrufen…",
-    refreshModels: "Modelle aktualisieren",
   },
   channels: {
     title: "Nachrichten",
@@ -1254,7 +957,6 @@ export default {
     welcomeTitle: "Willkommen bei TK Copilot",
     welcomeDesc:
       "Lassen Sie uns Ihren KI-Agenten einrichten. Konfigurieren Sie zunächst Ihren LLM-Anbieter.",
-    providerLabel: "Anbieter",
     modelLabel: "Modell",
     apiKeyLabel: "API-Schlüssel",
     anthropicTokenLabel: "Token / API-Schlüssel",
@@ -1271,8 +973,6 @@ export default {
     skipStep: "Überspringen Sie diesen Schritt",
     allSetTitle: "Sie sind bereit!",
     allSetDesc: "Folgendes können Sie im Verwaltungsbereich tun:",
-    sectionProviders: "Modelle",
-    sectionProvidersDesc: "Verwalten Sie Anbieter und API-Schlüssel",
     sectionChannels: "Kanäle",
     sectionChannelsDesc: "Messaging-Plattformen verbinden (Telegram, Slack usw.)",
     sectionUsage: "Nutzung",
@@ -1663,7 +1363,6 @@ export default {
     cloudQuotaLowBody:
       "Ihr Cloud-LLM-Kontingent hat höchstens noch 5% übrig. Um Unterbrechungen zu vermeiden, aktualisieren Sie Ihren Tarif oder fügen Sie einen weiteren LLM-Schlüssel hinzu.",
     openBilling: "Abrechnung",
-    addLlmKey: "LLM-Schlüssel hinzufügen",
     changeAccountPlan: "Abonnieren / Upgraden",
     subscribeAccountPlan: "Abonnieren",
     upgradeAccountPlan: "Upgrade",
@@ -2197,59 +1896,6 @@ export default {
       metricsBody: "Ein Wechsel der SPS-Metrik aktualisiert alle Marktcharts und Shop-Diagnosen.",
       trendTitle: "Shop-Trends vergleichen",
       trendBody: "Jede Linie steht für einen Shop. TikTok liefert derzeit höchstens 90 Tageswerte.",
-    },
-    providers: {
-      welcomeTitle: "Willkommen bei Models",
-      welcomeBody:
-        "Hier konfigurieren Sie die LLM-Anbieter, die Ihren Agenten unterstützen. Lassen Sie uns jeden Teil dieser Seite durchgehen.",
-      tabBarTitle: "Anbietertypen",
-      tabBarBody:
-        "Vier Registerkarten zur Auswahl: Abonnement (verwalteter Dienst mit monatlicher Abrechnung), API-Schlüssel (bringen Sie Ihren eigenen Schlüssel von Anbietern wie OpenAI, Anthropic usw. mit), Lokal (selbst gehostete Modelle über Ollama, LM Studio) oder Benutzerdefiniert (jeder OpenAI/Anthropic-kompatible Endpunkt).",
-      providerSelectTitle: "Wählen Sie einen Anbieter aus",
-      providerSelectBody:
-        "Klicken Sie auf dieses Dropdown-Menü, um Ihren LLM-Anbieter auszuwählen. Die Liste ist nach Beliebtheit Ihrer Sprache sortiert. Jede Option zeigt den Anbieternamen und eine kurze Beschreibung.",
-      labelFieldTitle: "Schlüsseletikett",
-      labelFieldBody:
-        "Geben Sie diesem Schlüssel einen benutzerfreundlichen Namen (z. B. „Arbeitskonto“, „Persönlich“). Dies hilft Ihnen, Schlüssel voneinander zu unterscheiden, wenn Sie mehrere Anbieter konfiguriert haben.",
-      modelFieldTitle: "Modellauswahl",
-      modelFieldBody:
-        "Wählen Sie aus, welches Modell Sie bei diesem Anbieter nutzen möchten. Verschiedene Modelle haben unterschiedliche Fähigkeiten und Kosten. Sie können das Modell später über die Liste der konfigurierten Schlüssel ändern.",
-      apiKeyFieldTitle: "API-Schlüssel",
-      apiKeyFieldBody:
-        "Fügen Sie hier Ihren API-Schlüssel ein. Der Schlüssel wird verschlüsselt und sicher auf Ihrem Gerät gespeichert. Das System validiert den Schlüssel, indem es eine Testanfrage an den Anbieter stellt.",
-      providerLinksTitle: "Holen Sie sich Ihren Schlüssel",
-      providerLinksBody:
-        "Sie haben noch keinen API-Schlüssel? Klicken Sie auf diesen Link, um zur Website des Anbieters zu gelangen, wo Sie sich anmelden und ein Konto erstellen können.",
-      advancedTitle: "Erweiterte Einstellungen",
-      advancedBody:
-        "Klicken Sie, um die erweiterten Optionen zu erweitern. Hier können Sie einen Proxy URL konfigurieren, wenn Ihr Netzwerk einen benötigt, um den API des Anbieters zu erreichen (z. B. für Firmen-Firewalls oder regionale Einschränkungen).",
-      saveButtonTitle: "Speichern",
-      saveButtonBody:
-        "Klicken Sie auf Speichern, um Ihre Anbieterkonfiguration zu validieren und zu speichern. Das System testet Ihren API-Schlüssel vor dem Speichern. Wenn die Validierung fehlschlägt, wird eine Fehlermeldung mit Details angezeigt.",
-      pricingPanelTitle: "Preise und Informationen",
-      pricingPanelBody:
-        "In diesem Seitenbereich werden Preisdetails für den ausgewählten Anbieter und das ausgewählte Modell angezeigt, sodass Sie die Kosten vergleichen können. Für Abonnementanbieter werden Planoptionen angezeigt.",
-      configuredTitle: "Konfigurierte Schlüssel",
-      configuredBody:
-        "Alle Ihre gespeicherten Anbieterschlüssel werden unten angezeigt. Der mit „Aktiv“ gekennzeichnete Eintrag wird derzeit von Ihrem Agenten verwendet. Sie können mehrere Schlüssel haben und zwischen ihnen wechseln.",
-      keyCardTitle: "Anbieterschlüsselkarte",
-      keyCardBody:
-        "Auf jeder Karte werden Folgendes angezeigt: der Anbietername, der Authentifizierungstyp (API-Schlüssel/Abonnement/Lokal/Benutzerdefiniert) und ob es sich um den aktiven Schlüssel handelt. Das Abzeichen „Aktiv“ bedeutet, dass dies der Schlüssel ist, den Ihr Agent derzeit verwendet.",
-      keyModelTitle: "Etikett und Modell",
-      keyModelBody:
-        "Hier wird die Beschriftung des Schlüssels angezeigt (klicken Sie auf das Stiftsymbol, um ihn umzubenennen). Unten finden Sie die Modellauswahl – Sie können das Modell jederzeit wechseln, ohne Ihren Schlüssel erneut eingeben zu müssen.",
-      keyActionsTitle: "Schlüsselaktionen",
-      keyActionsBody:
-        "Drei Aktionen verfügbar: „Aktivieren“ macht diesen Schlüssel zum Standard für Ihren Agenten. Mit „Aktualisieren“ können Sie den API-Schlüssel oder die Proxy-Einstellungen ändern. „Entfernen“ löscht diesen Schlüssel dauerhaft.",
-      updateBtnTitle: "Schlüssel aktualisieren",
-      updateBtnBody:
-        "Wenn Sie auf „Aktualisieren“ klicken, wird unterhalb der Schlüsselkarte ein Formular erweitert, in dem Sie einen neuen API-Schlüssel eingeben oder Proxy-Einstellungen ändern können. Mal sehen, wie das aussieht.",
-      updateFormTitle: "Formular aktualisieren",
-      updateFormBody:
-        "Hier können Sie einen neuen API-Schlüssel einfügen, um den aktuellen zu ersetzen. Darunter können Sie einen Proxy URL für diesen bestimmten Schlüssel konfigurieren. Klicken Sie auf Speichern, um die Änderungen zu übernehmen.",
-      removeBtnTitle: "Schlüssel entfernen",
-      removeBtnBody:
-        "Dadurch wird der Schlüssel dauerhaft von Ihrem Gerät gelöscht. Wenn dies Ihr einziger aktiver Schlüssel ist, kann Ihr Agent keine LLM-Anrufe tätigen, bis Sie einen neuen hinzufügen. Seien Sie vorsichtig!",
     },
     settings: {
       toggle: "Tutorial-Modus",
@@ -3084,11 +2730,15 @@ export default {
         softReject: "Ignorieren",
         sampleSyncUnknown: "Plattformstatus muss synchronisiert werden.",
         sampleReviewSaved: "Entscheidung gespeichert.",
-        ignoreChecking: "Die Antwort dauert länger. Es wird geprüft, ob das Ignorieren gespeichert wurde…",
-        ignoreUnconfirmed: "Das Ergebnis ist noch unbestätigt und wurde möglicherweise bereits gespeichert. Prüfen Sie zuerst den Status; dabei wird kein weiterer Ignorieren-Auftrag gesendet.",
+        ignoreChecking:
+          "Die Antwort dauert länger. Es wird geprüft, ob das Ignorieren gespeichert wurde…",
+        ignoreUnconfirmed:
+          "Das Ergebnis ist noch unbestätigt und wurde möglicherweise bereits gespeichert. Prüfen Sie zuerst den Status; dabei wird kein weiterer Ignorieren-Auftrag gesendet.",
         ignoreCheckAgain: "Status prüfen",
-        ignoreStateChanged: "Diese Musteranfrage hat sich geändert. Aktualisieren Sie sie vor einer weiteren Entscheidung.",
-        reviewRefreshFailed: "Die Entscheidung wurde gespeichert, die Ansicht konnte jedoch nicht aktualisiert werden. Bitte manuell aktualisieren.",
+        ignoreStateChanged:
+          "Diese Musteranfrage hat sich geändert. Aktualisieren Sie sie vor einer weiteren Entscheidung.",
+        reviewRefreshFailed:
+          "Die Entscheidung wurde gespeichert, die Ansicht konnte jedoch nicht aktualisiert werden. Bitte manuell aktualisieren.",
         rejectReason: "Grund",
         rejectExplanation: "Grund erläutern",
         reviewNote: "Prüfnotiz (optional)",
@@ -3136,7 +2786,8 @@ export default {
         "Zeigt standardmäßig alle Affiliate-aktivierten Shops; wählen Sie einen Shop zum Eingrenzen.",
       creatorAttentionOnly: "Nur Handlungsbedarf",
       creatorIncludeWithoutUsername: "Creator ohne Benutzernamen anzeigen",
-      creatorIncludeWithoutUsernameHint: "TikTok liefert für diese Creator keinen Benutzernamen (meist deaktivierte Konten). Sie sind standardmäßig ausgeblendet; eine exakte ID-Suche findet sie weiterhin.",
+      creatorIncludeWithoutUsernameHint:
+        "TikTok liefert für diese Creator keinen Benutzernamen (meist deaktivierte Konten). Sie sind standardmäßig ausgeblendet; eine exakte ID-Suche findet sie weiterhin.",
       sampleTiers: {
         SAMPLE_APPROVED: "Muster genehmigt",
         SAMPLE_SHIPPED: "Muster versandt",
@@ -3147,7 +2798,8 @@ export default {
       sampleTierColumnLabel: "Aktueller Fortschritt",
       sampleTierColumnHint: "Höchste in allen Shops erreichte Stufe",
       sampleTierFilterLabel: "Aktueller Fortschritt",
-      sampleTierFilterHint: "Eine Stufe wählen. Versand, Zustellung und Erfüllung werden nach dem neuesten Creator-Zeitpunkt sortiert; unbekannte Zeiten zuletzt. Der Shopfilter ändert den Zeitbezug nicht. Erneut klicken zum Aufheben.",
+      sampleTierFilterHint:
+        "Eine Stufe wählen. Versand, Zustellung und Erfüllung werden nach dem neuesten Creator-Zeitpunkt sortiert; unbekannte Zeiten zuletzt. Der Shopfilter ändert den Zeitbezug nicht. Erneut klicken zum Aufheben.",
       sampleTierEmpty: "Kein Kooperationsfortschritt",
       manualTagFilterLabel: "Manuelle Tags",
       systemTagFilterLabel: "System-Tags",
@@ -3335,7 +2987,8 @@ export default {
         managedByPartner: "Verwaltet von {{partner}}",
         partnerBadge: "Dienstleister",
         refundableSampleBadge: "Kauf & Rückerstattung",
-        refundableSampleHint: "Ein Muster, das der Creator selbst gekauft hat und das der Verkäufer später erstattet, ohne Prüfung. Im TikTok Seller Center steht es auf dem Tab für Kauf-und-Rückerstattungs-Muster, nicht bei den Gratismustern.",
+        refundableSampleHint:
+          "Ein Muster, das der Creator selbst gekauft hat und das der Verkäufer später erstattet, ohne Prüfung. Im TikTok Seller Center steht es auf dem Tab für Kauf-und-Rückerstattungs-Muster, nicht bei den Gratismustern.",
         productId: "Produkt-ID",
         collaborationId: "Kooperations-ID",
         openCollaborationId: "Offene Kooperations-ID",
@@ -3830,7 +3483,8 @@ export default {
         sampleReviewAllResults: "Alle Ergebnisse",
         sampleReviewApproveOnly: "Nur Zusagen erfordern eine Freigabe",
         sampleReviewRejectOnly: "Nur Ablehnen / Ignorieren erfordert eine Freigabe",
-        sampleReviewDecisionsHint: "Ablehnen umfasst Ignorieren (Antrag ablaufen lassen). Jede passende Aktion hält das gesamte Aktionspaket an; andere Freigaberichtlinien und Anfragen zur manuellen Prüfung gelten weiterhin.",
+        sampleReviewDecisionsHint:
+          "Ablehnen umfasst Ignorieren (Antrag ablaufen lassen). Jede passende Aktion hält das gesamte Aktionspaket an; andere Freigaberichtlinien und Anfragen zur manuellen Prüfung gelten weiterhin.",
         manualTagsLabel: "Manuelle Tags",
         allManualTags: "Gilt für alle manuellen Tags.",
         excludedManualTagsLabel: "Ausgeschlossene manuelle Tags",
@@ -3957,7 +3611,8 @@ export default {
           "Mitarbeiter haben eine überarbeitete Empfehlung angefordert. Die Notiz zur Überarbeitung wird im nächsten Agentenlauf berücksichtigt.",
       },
       sampleWorkStatusDescriptions: {
-        REQUEST_PENDING_PARTNER_REVIEW: "Dieser Antrag wird von einem Dienstleister (MCN) verwaltet. Der Dienstleister prüft ihn, daher kannst du ihn hier weder genehmigen noch ablehnen.",
+        REQUEST_PENDING_PARTNER_REVIEW:
+          "Dieser Antrag wird von einem Dienstleister (MCN) verwaltet. Der Dienstleister prüft ihn, daher kannst du ihn hier weder genehmigen noch ablehnen.",
         REQUEST_PENDING_REVIEW:
           "Der Creator hat einen Probenantrag gestellt und wartet auf Ihre Entscheidung.",
         APPROVED_AWAITING_SHIPMENT:
@@ -4053,9 +3708,12 @@ export default {
       search: "Suchen",
       conversationSearchPlaceholder:
         "Käufer, Gespräch oder Bestellungen (max. 100, durch Kommas getrennt)",
-      orderSearchInvalid: "Jeder Eintrag muss eine 18-stellige Bestellnummer sein, die mit 5 beginnt. Prüfen Sie die gesamte Liste.",
-      orderSearchTooMany: "Suchen Sie höchstens 100 verschiedene Bestellnummern gleichzeitig. Teilen Sie die Liste in kleinere Gruppen auf.",
-      conversationSearchTooLong: "Die Suche ist zu lang. Verwenden Sie höchstens 128 Zeichen für Käufer oder Gespräche oder eine kürzere Bestellliste.",
+      orderSearchInvalid:
+        "Jeder Eintrag muss eine 18-stellige Bestellnummer sein, die mit 5 beginnt. Prüfen Sie die gesamte Liste.",
+      orderSearchTooMany:
+        "Suchen Sie höchstens 100 verschiedene Bestellnummern gleichzeitig. Teilen Sie die Liste in kleinere Gruppen auf.",
+      conversationSearchTooLong:
+        "Die Suche ist zu lang. Verwenden Sie höchstens 128 Zeichen für Käufer oder Gespräche oder eine kürzere Bestellliste.",
       searchPlaceholder: "Suche ID, Bestellung, Käufer, Gespräch, Grund...",
       pageSummary: "Zeigt {{start}}-{{end}} von {{total}} | Seite {{page}} / {{pages}}",
       page: "Seite {{page}} / {{pages}}",
@@ -4330,9 +3988,6 @@ export default {
         csUnbind: "Beenden Sie die Verarbeitung von CS auf diesem Gerät",
         csThisDevice: "Wird von diesem Gerät verarbeitet",
         csOtherDevice: "Wird von einem anderen Gerät verarbeitet",
-        csModelOverride: "CS-Modell",
-        csModelOverrideHint:
-          "Wählen Sie ein bestimmtes Modell für Kundendienstsitzungen aus. Standardmäßig wird das global aktive Modell verwendet.",
         csModelDefault: "Standard (globales Modell)",
         csModelUnavailable: "Das ausgewählte Modell ist nicht mehr verfügbar",
         bridgeDisconnected: "CS-Brücke getrennt – Kundennachrichten werden nicht empfangen.",
@@ -4689,7 +4344,7 @@ export default {
       "Für diese Funktion ist ein Abonnement erforderlich. Bitte aktualisieren Sie Ihren Plan.",
     llmUnavailableTitle: "AI model unavailable",
     llmUnavailableBody:
-      "No active AI model key is available. Renew TK Copilot AI, or add and activate an API key in Models.",
+      "TK Copilot AI ist nicht verfügbar. Bitte verlängern Sie Ihr Abonnement oder melden Sie sich erneut an.",
     customerServiceRoutingUnavailableTitle:
       "Die Eskalation des AI-Kundendienstes ist auf diesem Gerät nicht verfügbar",
     customerServiceRoutingUnavailableBody:

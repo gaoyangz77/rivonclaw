@@ -195,10 +195,7 @@ export async function generateConversationSummary(input: {
     conversationId: input.conversationId,
     nonce: randomUUID(),
   });
-  const resolvedModel = rootStore.llmManager.resolveModelForDispatch(sessionKey, {
-    type: ScopeType.CS_SESSION,
-    shopId: input.shopId,
-  });
+  const resolvedModel = rootStore.llmManager.resolveModelForDispatch();
   // The role line leads the message instead of riding on extraSystemPrompt: a
   // modelRun request is submitted with an empty provider system prompt, so an
   // extraSystemPrompt would be built and then dropped before the model saw it.

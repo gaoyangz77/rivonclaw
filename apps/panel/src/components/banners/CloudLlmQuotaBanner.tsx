@@ -72,13 +72,6 @@ export const CloudLlmQuotaBanner = observer(function CloudLlmQuotaBanner({
         >
           {t("billing.openBilling")}
         </button>
-        <button
-          type="button"
-          className="quota-banner-action"
-          onClick={() => onNavigate("/connections/models")}
-        >
-          {t("billing.addLlmKey")}
-        </button>
       </span>
     </div>
   );

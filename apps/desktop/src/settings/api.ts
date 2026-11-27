@@ -3,11 +3,7 @@ import { createLogger } from "@rivonclaw/logger";
 import { getApiBaseUrl } from "@rivonclaw/core";
 import { resolveOpenClawStateDir as resolveDefaultStateDir } from "@rivonclaw/core/node";
 import { resolveOpenClawConfigPath, resolveOpenClawStateDir } from "@rivonclaw/gateway";
-import {
-  API,
-  MAX_WORKSPACE_TABS,
-  type WorkspaceDescriptor,
-} from "@rivonclaw/core/api-contract";
+import { API, MAX_WORKSPACE_TABS, type WorkspaceDescriptor } from "@rivonclaw/core/api-contract";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
 import { isTrustedLoopbackOrigin, sendJson, parseBody } from "../infra/api/route-utils.js";
@@ -45,7 +41,11 @@ function isWorkspaceDescriptor(value: unknown): value is WorkspaceDescriptor {
     if (!tab.view || typeof tab.view !== "object" || Array.isArray(tab.view)) return false;
     const entries = Object.entries(tab.view);
     if (entries.length > 12) return false;
-    if (entries.some(([key, item]) => key.length > 60 || typeof item !== "string" || item.length > 256))
+    if (
+      entries.some(
+        ([key, item]) => key.length > 60 || typeof item !== "string" || item.length > 256,
+      )
+    )
       return false;
     if (ids.has(tab.id) || paths.has(tab.path)) return false;
     ids.add(tab.id);
@@ -210,54 +210,6 @@ const updateSettings: EndpointHandler = async (req, res, _url, _params, ctx: Api
   if (typeof body.locale === "string") updateCsBridgeLocale(body.locale);
 };
 
-// ── POST /api/settings/validate-key ──
-
-const validateKey: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
-  const { validateProviderApiKey } = await import("../providers/provider-validator.js");
-  const body = (await parseBody(req)) as {
-    provider?: string;
-    apiKey?: string;
-    proxyUrl?: string;
-    model?: string;
-  };
-  if (!body.provider || !body.apiKey) {
-    sendJson(res, 400, { valid: false, error: "Missing provider or apiKey" });
-    return;
-  }
-  const result = await validateProviderApiKey(
-    body.provider,
-    body.apiKey,
-    ctx.proxyRouterPort,
-    body.proxyUrl || undefined,
-    body.model || undefined,
-  );
-  sendJson(res, 200, result);
-};
-
-// ── POST /api/settings/validate-custom-key ──
-
-const validateCustomKey: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
-  const { validateCustomProviderApiKey } = await import("../providers/provider-validator.js");
-  const body = (await parseBody(req)) as {
-    baseUrl?: string;
-    apiKey?: string;
-    protocol?: string;
-    model?: string;
-  };
-  if (!body.baseUrl || !body.apiKey || !body.protocol || !body.model) {
-    sendJson(res, 400, { valid: false, error: "Missing required fields" });
-    return;
-  }
-  const result = await validateCustomProviderApiKey(
-    body.baseUrl,
-    body.apiKey,
-    body.protocol as "openai" | "anthropic",
-    body.model,
-    ctx.proxyRouterPort,
-  );
-  sendJson(res, 200, result);
-};
-
 // ── GET /api/settings/telemetry ──
 
 const getTelemetry: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext) => {
@@ -315,7 +267,6 @@ const telemetryTrack: EndpointHandler = async (req, res, _url, _params, ctx: Api
     "chat.session_switched",
     "chat.session_archived",
     "chat.session_restored",
-    "chat.model_switched",
     "rule.preset_used",
     "rule.deleted",
     "rule.edited",
@@ -694,8 +645,6 @@ export function registerSettingsHandlers(registry: RouteRegistry): void {
   registry.register(API["settings.update"], updateSettings);
   registry.register(API["settings.workspace.get"], getWorkspace);
   registry.register(API["settings.workspace.set"], setWorkspace);
-  registry.register(API["settings.validateKey"], validateKey);
-  registry.register(API["settings.validateCustomKey"], validateCustomKey);
 
   // Telemetry settings
   registry.register(API["settings.telemetry.get"], getTelemetry);

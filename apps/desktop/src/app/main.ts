@@ -10,11 +10,7 @@ import {
   syncAllAuthProfiles,
   activateAuthProfile,
   syncBackOAuthCredentials,
-  saveCodexOAuthCredentials,
-  refreshCodexOAuthCredentials,
-  startHybridCodexOAuthFlow,
 } from "@rivonclaw/gateway";
-import type { OAuthFlowResult, AcquiredCodexOAuthCredentials } from "@rivonclaw/gateway";
 import type { GatewayState } from "@rivonclaw/gateway";
 import {
   parseProxyUrl,
@@ -22,11 +18,8 @@ import {
   resolvePanelPort,
   resolveProxyRouterPort,
   DEFAULTS,
-  isReauthSupportedProvider,
   getFirstPartyDomainRoute,
   getTelegramDebugRelayApiRoot,
-  resolveGatewayProvider,
-  type LLMProvider,
 } from "@rivonclaw/core";
 import type { GQL } from "@rivonclaw/core";
 import { cleanupRemovedGeminiOAuthSecrets } from "../providers/removed-gemini-oauth-cleanup.js";
@@ -71,7 +64,7 @@ import {
   projectProviderMetadataFromVendor,
   writeVendorProviderDefinition,
 } from "../providers/vendor-provider-runtime.js";
-import { syncActiveKey } from "../providers/provider-validator.js";
+import { syncActiveKey } from "../providers/provider-secret-sync.js";
 import { reaction } from "mobx";
 import {
   rootStore,
@@ -684,73 +677,6 @@ app.whenReady().then(async () => {
   const merchantExtensionsDir = app.isPackaged
     ? join(process.resourcesPath, "extensions-merchant")
     : resolve(dirname(fileURLToPath(import.meta.url)), "../../../extensions-merchant");
-
-  // Pending OAuth flow state (replaces scalar variables with a flow map for async/non-blocking flows)
-  interface PendingOAuthFlow {
-    provider: string;
-    authUrl: string;
-    status: "pending" | "completed" | "failed";
-    creds?: AcquiredCodexOAuthCredentials;
-    error?: string;
-    _createdAt: number;
-    cancelCallback?: () => void;
-    resolveManualInput?: (url: string) => void;
-    rejectManualInput?: (err: Error) => void;
-    completionPromise?: Promise<AcquiredCodexOAuthCredentials>;
-  }
-  const pendingOAuthFlows = new Map<string, PendingOAuthFlow>();
-
-  /**
-   * Pick the most recently completed flow for a provider.
-   *
-   * Both `onOAuthSave` and `onOAuthReauth` consume a completed flow from the
-   * shared map, and a user can have multiple in the 10-minute GC window (e.g.
-   * abandoned auto-callback from a prior session). `Map` iterates in insertion
-   * order, so the naive "break on first match" ends up consuming the OLDEST
-   * flow — which in a two-flow scenario cross-wires save vs. reauth. Sorting
-   * by `_createdAt` desc gives us the one the user most likely just initiated.
-   */
-  function findLatestCompletedFlow(
-    flows: Map<string, PendingOAuthFlow>,
-    provider: string,
-  ): { flowId: string; flow: PendingOAuthFlow } | undefined {
-    let best: { flowId: string; flow: PendingOAuthFlow } | undefined;
-    for (const [flowId, flow] of flows) {
-      if (flow.provider !== provider || flow.status !== "completed" || !flow.creds) continue;
-      if (!best || flow._createdAt > best.flow._createdAt) {
-        best = { flowId, flow };
-      }
-    }
-    return best;
-  }
-
-  function findLatestManualCompletableFlow(
-    flows: Map<string, PendingOAuthFlow>,
-    provider: string,
-  ): { flowId: string; flow: PendingOAuthFlow } | undefined {
-    let best: { flowId: string; flow: PendingOAuthFlow } | undefined;
-    for (const [flowId, flow] of flows) {
-      if (flow.provider !== provider || (flow.status !== "pending" && flow.status !== "completed"))
-        continue;
-      if (!best || flow._createdAt > best.flow._createdAt) {
-        best = { flowId, flow };
-      }
-    }
-    return best;
-  }
-
-  // Clean up abandoned OAuth flows every 5 minutes
-  setInterval(() => {
-    const now = Date.now();
-    for (const [id, flow] of pendingOAuthFlows) {
-      if (now - flow._createdAt > 10 * 60 * 1000) {
-        flow.cancelCallback?.();
-        flow.rejectManualInput?.(new Error("Flow expired"));
-        pendingOAuthFlows.delete(id);
-        log.info(`Cleaned up abandoned OAuth flow ${id}`);
-      }
-    }
-  }, DEFAULTS.desktop.oauthCleanupIntervalMs);
 
   // Clean up any stale openclaw processes before starting.
   // With dynamic ports, orphaned processes won't block new instances,
@@ -1577,8 +1503,6 @@ app.whenReady().then(async () => {
       handleProviderChange(hint).catch((err) => {
         log.error("Failed to handle provider change:", err);
       });
-      // Refresh LLM Manager's model catalog so stale overrides are detected
-      rootStore.llmManager.refreshModelCatalog().catch(() => {});
     },
     onOpenFileDialog: async () => {
       const result = await dialog.showOpenDialog({
@@ -1660,260 +1584,6 @@ app.whenReady().then(async () => {
     },
     onAutoLaunchChange: (enabled: boolean) => {
       applyAutoLaunch(enabled);
-    },
-    onOAuthAcquire: async (provider: string) => {
-      if (provider !== "openai-codex") {
-        throw new Error(`OAuth is not supported for provider '${provider}'`);
-      }
-      const proxyRouterUrl = `http://127.0.0.1:${actualProxyRouterPort}`;
-      const flowId = randomUUID();
-      const hybrid = await startHybridCodexOAuthFlow(
-        {
-          openUrl: (url) => shell.openExternal(url),
-          onStatusUpdate: (msg) => log.info(`OAuth: ${msg}`),
-          proxyUrl: proxyRouterUrl,
-        },
-        vendorDir,
-      );
-
-      const flow: PendingOAuthFlow = {
-        provider,
-        authUrl: hybrid.authUrl,
-        status: "pending",
-        _createdAt: Date.now(),
-        resolveManualInput: hybrid.resolveManualInput,
-        rejectManualInput: hybrid.rejectManualInput,
-        cancelCallback: hybrid.cancel,
-        completionPromise: hybrid.completionPromise,
-      };
-
-      // Background: when auto callback completes, update flow status
-      hybrid.completionPromise
-        .then((creds) => {
-          flow.status = "completed";
-          flow.creds = creds;
-          log.info(`Codex OAuth auto-completed for flow ${flowId}`);
-        })
-        .catch((err) => {
-          if (flow.status === "pending") {
-            flow.status = "failed";
-            flow.error = err instanceof Error ? err.message : String(err);
-            log.error(`Codex OAuth failed for flow ${flowId}:`, flow.error);
-          }
-        });
-
-      pendingOAuthFlows.set(flowId, flow);
-      log.info(`Codex hybrid OAuth started, flowId=${flowId}`);
-      return {
-        email: undefined,
-        tokenPreview: "",
-        manualMode: true,
-        authUrl: hybrid.authUrl,
-        flowId,
-      };
-    },
-    onOAuthManualComplete: async (provider: string, callbackUrl: string) => {
-      if (provider !== "openai-codex") {
-        throw new Error(`OAuth is not supported for provider '${provider}'`);
-      }
-      const picked = findLatestManualCompletableFlow(pendingOAuthFlows, provider);
-      if (!picked) {
-        throw new Error("No pending OAuth flow. Please start the sign-in process first.");
-      }
-      const { flowId, flow } = picked;
-
-      // Auto-callback already completed — return its result directly
-      if (flow.status === "completed" && flow.creds) {
-        log.info(`OAuth flow ${flowId} already auto-completed, returning existing result`);
-        const creds = flow.creds;
-        return { email: creds.email, tokenPreview: creds.tokenPreview };
-      }
-      if (!flow.resolveManualInput) {
-        throw new Error("Codex flow missing manual input resolver");
-      }
-      if (flow.status !== "pending") {
-        return {
-          email: flow.creds?.email,
-          tokenPreview: flow.creds?.tokenPreview ?? "",
-        };
-      }
-      flow.resolveManualInput(callbackUrl);
-      const acquired = await flow.completionPromise!;
-      flow.status = "completed";
-      flow.creds = acquired;
-      log.info(`Codex OAuth manual-completed for flow ${flowId}`);
-      return { email: acquired.email, tokenPreview: acquired.tokenPreview };
-    },
-    onOAuthSave: async (
-      provider: string,
-      options: { proxyUrl?: string; label?: string; model?: string },
-    ): Promise<OAuthFlowResult> => {
-      if (provider !== "openai-codex") {
-        throw new Error(`OAuth is not supported for provider '${provider}'`);
-      }
-      // Find the MOST RECENT completed flow for this provider. Map iteration
-      // is insertion-ordered, so a plain break-on-first-match would pick the
-      // oldest — which can be a stale, abandoned flow still in the 10-min
-      // GC window. Sort candidates by _createdAt desc.
-      const picked = findLatestCompletedFlow(pendingOAuthFlows, provider);
-      if (!picked) {
-        throw new Error("No pending OAuth credentials. Please sign in first.");
-      }
-      const { flowId, flow } = picked;
-      const creds = flow.creds;
-
-      // Parse proxy URL if provided
-      let proxyBaseUrl: string | null = null;
-      let proxyCredentials: string | null = null;
-      if (options.proxyUrl?.trim()) {
-        const proxyConfig = parseProxyUrl(options.proxyUrl.trim());
-        proxyBaseUrl = proxyConfig.baseUrl;
-        if (proxyConfig.hasAuth && proxyConfig.credentials) {
-          proxyCredentials = proxyConfig.credentials;
-        }
-      }
-
-      const codexCreds = creds as AcquiredCodexOAuthCredentials;
-      const result = await saveCodexOAuthCredentials(codexCreds.credentials, storage, secretStore, {
-        proxyBaseUrl,
-        proxyCredentials,
-        label: options.label,
-        model: options.model,
-        fetchFn: ((url: string | URL, init?: RequestInit) =>
-          proxyNetwork.fetch(url, init)) as typeof fetch,
-      });
-      const activeProvider = "openai-codex";
-
-      // Clean up the flow
-      pendingOAuthFlows.delete(flowId);
-
-      // Sync the new credential, then activate it in Vendor-owned auth order
-      // and config. SQLite contains only the product metadata/Keychain join.
-      await syncAllAuthProfiles(stateDir, storage, secretStore);
-      activateAuthProfile(stateDir, activeProvider, "oauth");
-      await writeProxyRouterConfig(storage, secretStore, lastSystemProxy);
-      writeGatewayConfig(await buildFullGatewayConfig(actualGatewayPort));
-      const savedEntry = storage.providerKeys.getById(result.providerKeyId);
-      if (!savedEntry) {
-        throw new Error("Saved OAuth provider metadata could not be reloaded");
-      }
-      const runtimeProvider = resolveGatewayProvider(activeProvider as LLMProvider);
-      mutateDesktopOpenClawConfig(
-        configPath,
-        "OAuth default model",
-        (config) => {
-          const agents = (
-            typeof config.agents === "object" && config.agents !== null ? config.agents : {}
-          ) as Record<string, unknown>;
-          const defaults = (
-            typeof agents.defaults === "object" && agents.defaults !== null ? agents.defaults : {}
-          ) as Record<string, unknown>;
-          const model = (
-            typeof defaults.model === "object" && defaults.model !== null ? defaults.model : {}
-          ) as Record<string, unknown>;
-          model.primary = `${runtimeProvider}/${savedEntry.model}`;
-          defaults.model = model;
-          agents.defaults = defaults;
-          config.agents = agents;
-        },
-        { strict: true },
-      );
-
-      // Sync MST state after Vendor activation so isDefault/model are projected.
-      const oauthMstKeys = await allKeysToMstSnapshots(storage.providerKeys.getAll(), secretStore);
-      rootStore.loadProviderKeys(oauthMstKeys);
-
-      // Restart gateway to pick up new plugin + auth profile
-      await launcher.stop();
-      await launcher.start();
-      return result;
-    },
-    /**
-     * Re-authenticate an existing OAuth key (Issue B2 — see docs/PROGRESS).
-     *
-     * Pipeline:
-     *   1. Look up the existing Codex OAuth key.
-     *   2. Find the most recently completed pendingOAuthFlow for that provider.
-     *   3. Rotate credentials in place via the gateway's refresh* helpers.
-     *   4. Persist the new refresh-token expiry on the existing row.
-     *   5. Sync auth-profiles (gateway picks up on next LLM turn — no restart).
-     *   6. Push the updated row to MST → SSE patch → Panel auto-update.
-     *
-     * Intentionally does NOT change label/model/isDefault/proxyBaseUrl and does
-     * NOT create a new row — only the stored OAuth credential + expiry rotate.
-     */
-    onOAuthReauth: async (keyId: string): Promise<{ ok: true; idTokenCaptureFailed: boolean }> => {
-      const entry = storage.providerKeys.getById(keyId);
-      if (!entry) {
-        throw new Error(`Provider key ${keyId} not found`);
-      }
-      if (entry.authType !== "oauth" || !isReauthSupportedProvider(entry.provider as LLMProvider)) {
-        throw new Error("Re-authenticate is only supported for Codex OAuth subscription keys");
-      }
-
-      // Find the MOST RECENT completed flow for this provider — see the note
-      // on `findLatestCompletedFlow` re: why we can't break on first match.
-      const picked = findLatestCompletedFlow(pendingOAuthFlows, entry.provider);
-      if (!picked) {
-        throw new Error("No pending OAuth credentials. Please sign in first.");
-      }
-      const { flowId, flow } = picked;
-
-      // Rotate credentials in-place and derive new refresh-token expiry.
-      // `idTokenCaptureFailed` is propagated back to the Panel so the Reauth
-      // modal can warn the user that the OAuth token MAY be server-side-rotated
-      // past our last successful read — if so they'll hit 401 on next use.
-      const codexCreds = flow.creds as AcquiredCodexOAuthCredentials;
-      const { oauthExpiresAt, idTokenCaptureFailed } = await refreshCodexOAuthCredentials(
-        keyId,
-        codexCreds.credentials,
-        secretStore,
-        ((url: string | URL, init?: RequestInit) => proxyNetwork.fetch(url, init)) as typeof fetch,
-      );
-
-      // Persist the new expiry on the existing row. Pass `null` (not undefined)
-      // so the repo overwrites a stale value — `undefined` would be preserved.
-      storage.providerKeys.update(keyId, {
-        oauthExpiresAt: oauthExpiresAt ?? null,
-      });
-
-      // Consume the flow — a re-auth cannot be reused accidentally.
-      pendingOAuthFlows.delete(flowId);
-
-      // Hot-reload: gateway reads auth-profiles.json on each LLM turn, so no
-      // restart is needed (canonical pattern — see data-flow.md LLM Key Lifecycle).
-      await syncAllAuthProfiles(stateDir, storage, secretStore);
-
-      // MST push: single-entry update via toMstSnapshot is enough (isDefault
-      // didn't change, so sibling rows are untouched).
-      const updated = storage.providerKeys.getById(keyId);
-      if (updated) {
-        const mstEntry = await toMstSnapshot(updated, secretStore);
-        rootStore.upsertProviderKey(mstEntry);
-      }
-
-      log.info(
-        `Re-authenticated OAuth key ${keyId} (${entry.provider})` +
-          (idTokenCaptureFailed ? " [token refresh failed]" : ""),
-      );
-      return { ok: true, idTokenCaptureFailed };
-    },
-    onOAuthPoll: (flowId: string) => {
-      const flow = pendingOAuthFlows.get(flowId);
-      if (!flow) {
-        return { status: "failed" as const, error: "Unknown flow" };
-      }
-      if (flow.status === "completed" && flow.creds) {
-        return {
-          status: "completed" as const,
-          tokenPreview: flow.creds.tokenPreview ?? "",
-          email: flow.creds.email,
-        };
-      }
-      if (flow.status === "failed") {
-        return { status: "failed" as const, error: flow.error };
-      }
-      return { status: "pending" as const };
     },
     onChannelConfigured: (channelId) => {
       log.info(`Channel configured: ${channelId}`);
@@ -2081,13 +1751,17 @@ app.whenReady().then(async () => {
     getLastSystemProxy: () => lastSystemProxy,
   });
 
+  // Installs created before model selection was removed carry provider keys
+  // and default models that are no longer supported. Settle them on the cloud
+  // provider before the gateway starts reading its config.
+  await rootStore.llmManager.reconcileCloudOnly();
+
   // ── Register onRpcConnected callback ──────────────────────────────────────
   // The connector fires this callback every time the RPC client connects
   // (initial connect + reconnects after restart).
   openClawConnector.onRpcConnected(() => {
     const rpc = openClawConnector.ensureRpcReady();
     resetAgentToolingReadiness("gateway rpc connected");
-    rootStore.llmManager.clearAppliedSessionModelState();
 
     // 1. Initialize event bridge plugin so it captures the gateway broadcast function
     rpc
@@ -2112,6 +1786,10 @@ app.whenReady().then(async () => {
             run: () => loadClientToolSpecs(rpc),
           },
           {
+            name: "reset-session-model-overrides",
+            run: () => rootStore.llmManager.resetStaleSessionModelOverrides(),
+          },
+          {
             name: "cs-bridge",
             run: () =>
               tryStartCsBridge(deviceId ?? "unknown", storage.settings.get("locale") ?? locale),
@@ -2129,7 +1807,6 @@ app.whenReady().then(async () => {
   // delivery when the Desktop socket reconnects.
   openClawConnector.onRpcDisconnected(() => {
     resetAgentToolingReadiness("gateway rpc disconnected");
-    rootStore.llmManager.clearAppliedSessionModelState();
     suspendCsBridge();
   });
 
@@ -2186,9 +1863,11 @@ app.whenReady().then(async () => {
   let quitApproved = false;
   let quitCheckPending = false;
   async function confirmWorkspaceQuit(): Promise<boolean> {
-    if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return true;
+    if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed())
+      return true;
     let check: { dirtyCount: number; saveFailed: boolean; uncertain?: boolean } = {
-      dirtyCount: 0, saveFailed: false,
+      dirtyCount: 0,
+      saveFailed: false,
     };
     try {
       check = await Promise.race([
@@ -2196,7 +1875,8 @@ app.whenReady().then(async () => {
           "window.__rivonclawWorkspaceBeforeQuit?.() ?? { dirtyCount: 0, saveFailed: false }",
         ) as Promise<{ dirtyCount: number; saveFailed: boolean }>,
         new Promise<{ dirtyCount: number; saveFailed: boolean; uncertain: boolean }>((resolve) =>
-          setTimeout(() => resolve({ dirtyCount: 0, saveFailed: false, uncertain: true }), 2_000)),
+          setTimeout(() => resolve({ dirtyCount: 0, saveFailed: false, uncertain: true }), 2_000),
+        ),
       ]);
     } catch {
       check = { dirtyCount: 0, saveFailed: false, uncertain: true };
@@ -2210,18 +1890,22 @@ app.whenReady().then(async () => {
         buttons: isZh ? ["继续编辑", "放弃修改并退出"] : ["Keep editing", "Discard and quit"],
         defaultId: 0,
         cancelId: 0,
-        message: check.dirtyCount > 0
-          ? (isZh
-            ? `有 ${check.dirtyCount} 个页面包含未保存的修改`
-            : `${check.dirtyCount} page${check.dirtyCount === 1 ? " has" : "s have"} unsaved changes`)
-          : (isZh ? "无法确认页面布局已保存" : "Could not confirm the page layout was saved"),
-        detail: check.dirtyCount > 0
-          ? (isZh
-            ? "退出或安装更新后，这些未保存的修改无法恢复。"
-            : "These unsaved changes cannot be recovered after quitting or installing an update.")
-          : (isZh
-            ? "退出后，打开的页面可能无法恢复。"
-            : "Open pages may not be restored after quitting."),
+        message:
+          check.dirtyCount > 0
+            ? isZh
+              ? `有 ${check.dirtyCount} 个页面包含未保存的修改`
+              : `${check.dirtyCount} page${check.dirtyCount === 1 ? " has" : "s have"} unsaved changes`
+            : isZh
+              ? "无法确认页面布局已保存"
+              : "Could not confirm the page layout was saved",
+        detail:
+          check.dirtyCount > 0
+            ? isZh
+              ? "退出或安装更新后，这些未保存的修改无法恢复。"
+              : "These unsaved changes cannot be recovered after quitting or installing an update."
+            : isZh
+              ? "退出后，打开的页面可能无法恢复。"
+              : "Open pages may not be restored after quitting.",
       });
       return response === 1;
     } catch (error) {

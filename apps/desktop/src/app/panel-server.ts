@@ -135,34 +135,6 @@ export interface PanelServerOptions {
   onAuthChange?: (action?: string) => Promise<void>;
   onCloudLlmEntitlementAvailable?: () => Promise<void>;
   onChannelConfigured?: (channelId: string) => void;
-  onOAuthFlow?: (
-    provider: string,
-  ) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
-  onOAuthAcquire?: (provider: string) => Promise<{
-    email?: string;
-    tokenPreview: string;
-    manualMode?: boolean;
-    authUrl?: string;
-    flowId?: string;
-  }>;
-  onOAuthSave?: (
-    provider: string,
-    options: { proxyUrl?: string; label?: string; model?: string },
-  ) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
-  /** Rotate stored OAuth credentials for an existing key in place (no new row).
-   *  `idTokenCaptureFailed` propagates back to the Panel so the Reauth modal
-   *  can warn the user about the narrow OAuth server-side rotation race. */
-  onOAuthReauth?: (keyId: string) => Promise<{ ok: true; idTokenCaptureFailed: boolean }>;
-  onOAuthManualComplete?: (
-    provider: string,
-    callbackUrl: string,
-  ) => Promise<{ email?: string; tokenPreview: string }>;
-  onOAuthPoll?: (flowId: string) => {
-    status: "pending" | "completed" | "failed";
-    tokenPreview?: string;
-    email?: string;
-    error?: string;
-  };
   onTelemetryTrack?: (eventType: string, metadata?: Record<string, unknown>) => void;
   /** Emit a CS business-telemetry event (bypasses user opt-in). See `ApiContext.onCsTelemetryTrack`. */
   onCsTelemetryTrack?: (eventType: string, metadata?: Record<string, unknown>) => void;
@@ -223,12 +195,6 @@ export async function startPanelServer(
     onAuthChange,
     onCloudLlmEntitlementAvailable,
     onChannelConfigured,
-    onOAuthFlow,
-    onOAuthAcquire,
-    onOAuthSave,
-    onOAuthReauth,
-    onOAuthManualComplete,
-    onOAuthPoll,
     onTelemetryTrack,
     onCsTelemetryTrack,
     vendorDir,
@@ -305,12 +271,6 @@ export async function startPanelServer(
     onAuthChange,
     onCloudLlmEntitlementAvailable,
     onChannelConfigured,
-    onOAuthFlow,
-    onOAuthAcquire,
-    onOAuthSave,
-    onOAuthReauth,
-    onOAuthManualComplete,
-    onOAuthPoll,
     onTelemetryTrack,
     onCsTelemetryTrack,
     vendorDir,

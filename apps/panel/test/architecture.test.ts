@@ -278,7 +278,6 @@ describe("Panel architecture guardrails", () => {
       ["ecommerce", "InventoryManagementPage.tsx"],
       ["ecommerce", "ShopAnalyticsPage.tsx"],
       ["extras", "ExtrasPage.tsx"],
-      ["providers", "ProvidersPage.tsx"],
       ["settings", "SettingsPage.tsx"],
       ["skills", "SkillsPage.tsx"],
       ["stt", "SttPage.tsx"],
@@ -352,7 +351,10 @@ describe("Panel architecture guardrails", () => {
     const primitivePath = join(SRC_ROOT, "components", "design-system", "Primitives.tsx");
     const workspaceTabsPath = join(SRC_ROOT, "components", "design-system", "WorkspaceTabs.tsx");
     const violations = allFiles
-      .filter((filePath) => filePath.endsWith(".tsx") && filePath !== primitivePath && filePath !== workspaceTabsPath)
+      .filter(
+        (filePath) =>
+          filePath.endsWith(".tsx") && filePath !== primitivePath && filePath !== workspaceTabsPath,
+      )
       .filter((filePath) => readFileSync(filePath, "utf-8").includes('role="tablist"'))
       .map((filePath) => relative(SRC_ROOT, filePath).replace(/\\/g, "/"));
 

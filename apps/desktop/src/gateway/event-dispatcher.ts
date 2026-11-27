@@ -16,7 +16,6 @@ export interface GatewayEventDispatcherDeps {
     inserted: boolean;
     membershipChanged: boolean;
   };
-  onSessionActivity?: (sessionKey: string) => void;
   /**
    * Internal department run activity for the office view.
    *
@@ -59,7 +58,7 @@ function isInternalTelegramDebugAccount(input: {
 export function createGatewayEventDispatcher(
   deps: GatewayEventDispatcherDeps,
 ): GatewayEventHandler {
-  const { broadcastEvent, chatSessions, onRecipientSeen, onSessionActivity, onSceneEvent } = deps;
+  const { broadcastEvent, chatSessions, onRecipientSeen, onSceneEvent } = deps;
 
   return (evt: GatewayEventFrame): void => {
     if (evt.event === "plugin.rivonclaw.scene-event" || evt.event === "rivonclaw.scene-event") {
@@ -92,7 +91,6 @@ export function createGatewayEventDispatcher(
         seq?: number;
       };
       if (isInternalServiceSessionKey(p.sessionKey)) return;
-      onSessionActivity?.(p.sessionKey);
       broadcastEvent("chat-mirror", p);
     }
 
@@ -118,7 +116,6 @@ export function createGatewayEventDispatcher(
       )
         return;
       if (p?.sessionKey && p?.message) {
-        onSessionActivity?.(p.sessionKey);
         const session = chatSessions.getByKey(p.sessionKey);
         if (!session || session.archivedAt) {
           chatSessions.upsert(p.sessionKey, { archivedAt: null });

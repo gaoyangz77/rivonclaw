@@ -41,8 +41,6 @@ interface ShopUpdateInput {
       businessPrompt?: string | null;
       runProfileId?: string;
       csDeviceId?: string | null;
-      csProviderOverride?: string | null;
-      csModelOverride?: string | null;
       escalationChannelId?: string | null;
       escalationRecipientId?: string | null;
       reviewOptimization?: {

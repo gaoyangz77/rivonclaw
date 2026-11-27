@@ -108,8 +108,6 @@ export const OAUTH_COMPLETE_SUBSCRIPTION = `
             businessPrompt
             runProfileId
             csDeviceId
-            csProviderOverride
-            csModelOverride
             escalationChannelId
             escalationRecipientId
             platformSystemPrompt
@@ -201,8 +199,6 @@ export const SHOP_UPDATED_SUBSCRIPTION = `
           businessPrompt
           runProfileId
           csDeviceId
-          csProviderOverride
-          csModelOverride
           escalationChannelId
           escalationRecipientId
           platformSystemPrompt
@@ -3106,12 +3102,25 @@ export class BackendSubscriptionClient {
     const key = "affiliate-workbench-changed";
     const subscribe = (attempt: number): (() => void) => {
       if (!this.client) return () => {};
-      return this.client.subscribe<{ affiliateWorkbenchChanged: { creatorRelationshipId: string; shopIds: string[] } }>(
-        { query: "subscription AffiliateWorkbenchChanged { affiliateWorkbenchChanged { creatorRelationshipId shopIds } }" },
+      return this.client.subscribe<{
+        affiliateWorkbenchChanged: { creatorRelationshipId: string; shopIds: string[] };
+      }>(
+        {
+          query:
+            "subscription AffiliateWorkbenchChanged { affiliateWorkbenchChanged { creatorRelationshipId shopIds } }",
+        },
         {
           next: (result) => {
             this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(key, attempt, "Affiliate workbench subscription failed", result.errors)) return;
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "Affiliate workbench subscription failed",
+                result.errors,
+              )
+            )
+              return;
             const change = result.data?.affiliateWorkbenchChanged;
             if (!change) {
               this.logUnexpectedResult(key, attempt, "affiliateWorkbenchChanged", result as any);
@@ -3119,7 +3128,13 @@ export class BackendSubscriptionClient {
             }
             onChange(change);
           },
-          error: (error) => this.handleSubscriptionError(key, attempt, "Affiliate workbench subscription error", error),
+          error: (error) =>
+            this.handleSubscriptionError(
+              key,
+              attempt,
+              "Affiliate workbench subscription error",
+              error,
+            ),
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },
       );

@@ -1,7 +1,6 @@
 import type { TutorialStep } from "../types.js";
 import { chatSteps } from "./chat.js";
 import { channelsSteps } from "./channels.js";
-import { providersSteps } from "./providers.js";
 import { skillsSteps } from "./skills.js";
 import { cronsSteps } from "./crons.js";
 import { extrasSteps } from "./extras.js";
@@ -62,7 +61,6 @@ const stepRegistry: Record<string, TutorialStep[]> = {
   "/automation/skills": skillsSteps,
   "/automation/crons": cronsSteps,
   "/connections/channels": channelsSteps,
-  "/connections/models": providersSteps,
   "/connections/extensions": extrasSteps,
   "/account/usage": usageSteps,
   "/account/billing": billingSteps,

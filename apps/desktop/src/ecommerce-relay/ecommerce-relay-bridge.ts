@@ -339,8 +339,6 @@ export class EcommerceRelayBridge {
         shopName: shop.shopName,
         platform: shop.platform,
         systemPrompt: shop.systemPrompt,
-        csProviderOverride: shop.csProviderOverride ?? undefined,
-        csModelOverride: shop.csModelOverride ?? undefined,
         runProfileId: shop.runProfileId ?? undefined,
       };
 
@@ -1342,8 +1340,6 @@ export class EcommerceRelayBridge {
       a.platformShopId === b.platformShopId &&
       a.platform === b.platform &&
       a.systemPrompt === b.systemPrompt &&
-      a.csProviderOverride === b.csProviderOverride &&
-      a.csModelOverride === b.csModelOverride &&
       a.runProfileId === b.runProfileId
     );
   }

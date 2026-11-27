@@ -198,7 +198,6 @@ export function tryStartCsBridge(gatewayId: string, locale?: string): void {
         }
         _csBridge = bridge;
         _csBridgeSuspended = false;
-        rootStore.llmManager.refreshModelCatalog().catch(() => {});
         await flushPendingCsDispatches(bridge);
         log.info("CS bridge started (signed-in ecommerce workspace)");
       } finally {
