@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.9.63",
+    "date": "2026-11-26",
+    "en": [
+      "When a Campaign's invitations keep failing, the Campaign detail shows TikTok's reason, the Creators held back and the next retry",
+      "Set a default Campaign name template in the Creator business settings; new Campaigns and copies are named from it",
+      "Creator-list Campaigns can optionally reach protected Creators (off by default)",
+      "New product rows default to 10% commission and 5% Shop Ads commission, with clearer wizard wording and tooltips",
+      "The BD assignment settings no longer offer the retired partner and buy-and-refund sample scenarios"
+    ],
+    "zh": [
+      "推广计划邀约持续发送失败时，计划详情会显示 TikTok 给出的原因、被暂缓的达人和下次重试时间",
+      "达人业务设置中可以设置推广计划默认命名模板，新建和复制的计划会按模板命名",
+      "达人名单推广计划可选择触达受保护的达人（默认关闭）",
+      "新增商品默认佣金 10%、店铺广告佣金 5%，向导文案更清楚并补充了说明提示",
+      "BD 分配设置不再提供已下线的服务商申样和买返样品两种场景"
+    ]
+  },
+  {
     "version": "1.9.62",
     "date": "2026-11-25",
     "en": [
