@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createPanelEventBus } from "./event-bus.js";
+import { createDesktopEventStream } from "./event-stream.js";
 
 // ─── Fake EventSource ───────────────────────────────────────────────────────
 
@@ -45,9 +45,9 @@ beforeEach(() => {
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
-describe("createPanelEventBus", () => {
+describe("createDesktopEventStream", () => {
   it("opens the EventSource lazily on first subscribe", () => {
-    const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
+    const bus = createDesktopEventStream((url) => new FakeEventSource(url) as unknown as EventSource);
     expect(FakeEventSource.instances.length).toBe(0);
 
     bus.subscribe("ping", () => {});
@@ -59,7 +59,7 @@ describe("createPanelEventBus", () => {
   });
 
   it("delivers a payload to a single subscriber", () => {
-    const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
+    const bus = createDesktopEventStream((url) => new FakeEventSource(url) as unknown as EventSource);
     const handler = vi.fn();
     bus.subscribe("oauth-complete", handler);
 
@@ -71,7 +71,7 @@ describe("createPanelEventBus", () => {
   });
 
   it("fan-outs a single event to every subscriber", () => {
-    const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
+    const bus = createDesktopEventStream((url) => new FakeEventSource(url) as unknown as EventSource);
     const h1 = vi.fn();
     const h2 = vi.fn();
     bus.subscribe("inbound", h1);
@@ -85,7 +85,7 @@ describe("createPanelEventBus", () => {
   });
 
   it("routes different events independently", () => {
-    const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
+    const bus = createDesktopEventStream((url) => new FakeEventSource(url) as unknown as EventSource);
     const onA = vi.fn();
     const onB = vi.fn();
     bus.subscribe("a", onA);
@@ -102,7 +102,7 @@ describe("createPanelEventBus", () => {
   });
 
   it("unsubscribe stops delivery for that handler only", () => {
-    const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
+    const bus = createDesktopEventStream((url) => new FakeEventSource(url) as unknown as EventSource);
     const keep = vi.fn();
     const drop = vi.fn();
     bus.subscribe("evt", keep);
@@ -117,7 +117,7 @@ describe("createPanelEventBus", () => {
   });
 
   it("replays the latest snapshot to subscribers that attach after the frame arrived", () => {
-    const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
+    const bus = createDesktopEventStream((url) => new FakeEventSource(url) as unknown as EventSource);
     const first = vi.fn();
     const unsubscribe = bus.subscribe("entity-snapshot", first);
     unsubscribe();
@@ -134,7 +134,7 @@ describe("createPanelEventBus", () => {
   });
 
   it("does not replay non-snapshot events to late subscribers", () => {
-    const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
+    const bus = createDesktopEventStream((url) => new FakeEventSource(url) as unknown as EventSource);
     const first = vi.fn();
     const unsubscribe = bus.subscribe("oauth-complete", first);
     unsubscribe();
@@ -149,7 +149,7 @@ describe("createPanelEventBus", () => {
   });
 
   it("swallows malformed JSON without throwing", () => {
-    const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
+    const bus = createDesktopEventStream((url) => new FakeEventSource(url) as unknown as EventSource);
     const handler = vi.fn();
     bus.subscribe("broken", handler);
 
@@ -163,7 +163,7 @@ describe("createPanelEventBus", () => {
   });
 
   it("disconnect closes the source and drops handlers", () => {
-    const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
+    const bus = createDesktopEventStream((url) => new FakeEventSource(url) as unknown as EventSource);
     const handler = vi.fn();
     bus.subscribe("x", handler);
 
@@ -184,7 +184,7 @@ describe("snapshot frames written at connect time", () => {
   // so without listening from the start that frame is lost and - on a quiet
   // Desktop, which sends another only on change - the office opens empty.
   it("caches a snapshot that arrived before anyone subscribed to it", () => {
-    const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
+    const bus = createDesktopEventStream((url) => new FakeEventSource(url) as unknown as EventSource);
     // Something else opens the stream, as the entity store does at startup.
     bus.subscribe("entity-snapshot", vi.fn());
 
@@ -199,7 +199,7 @@ describe("snapshot frames written at connect time", () => {
   });
 
   it("still does not pre-listen for non-snapshot events", () => {
-    const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
+    const bus = createDesktopEventStream((url) => new FakeEventSource(url) as unknown as EventSource);
     bus.subscribe("entity-snapshot", vi.fn());
 
     const source = FakeEventSource.instances[0]!;

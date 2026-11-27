@@ -7,8 +7,9 @@ const mocks = vi.hoisted(() => ({
   returnToOwner: vi.fn(),
   store: { currentUser: { userId: "bd-1" } },
 }));
-vi.mock("../../api/client.js", () => ({ fetchJson: mocks.fetchJson }));
-vi.mock("../../api/account-switch.js", () => ({ returnToOwner: mocks.returnToOwner }));
+vi.mock("../../host/index.js", () => ({
+  getHost: () => ({ auth: { getSession: mocks.fetchJson, returnToOwner: mocks.returnToOwner } }),
+}));
 vi.mock("../../store/EntityStoreProvider.js", () => ({ useEntityStore: () => mocks.store }));
 beforeEach(async () => {
   vi.clearAllMocks();

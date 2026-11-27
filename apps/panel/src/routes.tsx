@@ -50,6 +50,8 @@ import { InventoryManagementPage } from "./pages/ecommerce/InventoryManagementPa
 import { ShopAnalyticsPage } from "./pages/ecommerce/ShopAnalyticsPage.js";
 import { ProductKnowledgePage } from "./pages/ecommerce/ProductKnowledgePage.js";
 import { DesignSystemPage } from "./pages/design-system/DesignSystemPage.js";
+import type { HostCapability } from "./host/host-adapter.js";
+import { hostSupports } from "./host/index.js";
 
 export interface RouteEntry {
   /** URL path */
@@ -66,6 +68,16 @@ export interface RouteEntry {
   navGroupKey?: string;
   /** Optional icon promoted from this route to its generated first-level group. */
   navGroupIcon?: ReactNode;
+  /**
+   * Host capabilities this page cannot work without (ADR-123 decision 3). A
+   * host missing any of them hides the route and refuses to navigate to it.
+   * Empty = served by every host. Every route states this explicitly.
+   *
+   * Coarse on purpose: it covers a page that is unusable without the capability.
+   * A page that is mostly backend-driven with one Desktop-only control stays
+   * `[]` and gates that control with `hostSupports()` instead.
+   */
+  requires: readonly HostCapability[];
   /** Navigation requires authentication */
   authRequired?: boolean;
   /** Always mounted, shown/hidden via CSS toggle (preserves component state) */
@@ -145,6 +157,7 @@ const PRODUCT_KNOWLEDGE_SCOPES: readonly GQL.PermissionScope[] = [
 export const ROUTES: RouteEntry[] = [
   {
     path: "/",
+    requires: ["localGateway"],
     pageKey: "chat",
     component: ChatPage,
     icon: <ChatIcon />,
@@ -154,6 +167,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/tiktok-shops",
+    requires: [],
     pageKey: "tiktok-shops",
     component: TikTokShopsPage,
     icon: <ShopIcon />,
@@ -164,6 +178,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/shops",
+    requires: [],
     pageKey: "ecommerce-shops",
     component: EcommercePage,
     icon: <ShopIcon />,
@@ -173,6 +188,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/shop-analytics",
+    requires: [],
     pageKey: "ecommerce-shop-analytics",
     component: ShopAnalyticsPage,
     icon: <EcommerceIcon />,
@@ -182,6 +198,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/customer-service",
+    requires: [],
     pageKey: "ecommerce-customer-service",
     component: CustomerServiceConversationsPage,
     icon: <ChannelsIcon />,
@@ -192,6 +209,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/customer-service/conversations",
+    requires: [],
     pageKey: "ecommerce-customer-service-conversations",
     component: CustomerServiceConversationsPage,
     icon: <ChannelsIcon />,
@@ -202,6 +220,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/customer-service/after-sales",
+    requires: [],
     pageKey: "ecommerce-customer-service-after-sales",
     component: AfterSaleReviewPage,
     icon: <ChannelsIcon />,
@@ -212,6 +231,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/customer-service/bad-reviews",
+    requires: [],
     pageKey: "ecommerce-customer-service-bad-reviews",
     component: BadReviewManagementPage,
     icon: <ChannelsIcon />,
@@ -222,6 +242,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/customer-service/performance",
+    requires: [],
     pageKey: "ecommerce-customer-service-performance",
     component: CustomerServicePerformancePage,
     icon: <ChannelsIcon />,
@@ -232,6 +253,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/customer-service/experiments",
+    requires: [],
     pageKey: "ecommerce-customer-service-experiments",
     component: CustomerServiceExperimentsPage,
     viewParams: ["view", "experimentId", "metric", "range"],
@@ -243,6 +265,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/affiliate",
+    requires: [],
     pageKey: "ecommerce-affiliate",
     component: AffiliateManagementPage,
     icon: <EcommerceIcon />,
@@ -253,6 +276,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/affiliate/campaigns",
+    requires: [],
     pageKey: "ecommerce-affiliate-campaigns",
     component: AffiliateCampaignRoute,
     icon: <AdsIcon />,
@@ -263,6 +287,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/affiliate/team",
+    requires: [],
     pageKey: "ecommerce-affiliate-team",
     component: AffiliateTeamPage,
     viewParams: ["view"],
@@ -274,6 +299,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/affiliate/attention",
+    requires: [],
     pageKey: "ecommerce-affiliate-attention",
     component: AffiliateWorkbenchRoute,
     icon: <EcommerceIcon />,
@@ -284,6 +310,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/affiliate/manual-workbench",
+    requires: [],
     pageKey: "ecommerce-affiliate-manual-workbench",
     component: AffiliateManualWorkbenchRoute,
     icon: <ShopIcon />,
@@ -294,6 +321,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/affiliate/creators",
+    requires: [],
     pageKey: "ecommerce-affiliate-creators",
     component: AffiliateCreatorsRoute,
     icon: <EcommerceIcon />,
@@ -304,6 +332,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/affiliate/history",
+    requires: [],
     pageKey: "ecommerce-affiliate-history",
     component: AffiliateHistoryRoute,
     icon: <EcommerceIcon />,
@@ -314,6 +343,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/affiliate/analytics",
+    requires: [],
     pageKey: "ecommerce-affiliate-analytics",
     component: AffiliateAnalyticsPage,
     icon: <EcommerceIcon />,
@@ -324,6 +354,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/affiliate/intelligence",
+    requires: [],
     pageKey: "ecommerce-affiliate-intelligence",
     component: AffiliateIntelligencePage,
     icon: <EcommerceIcon />,
@@ -334,6 +365,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/ads",
+    requires: [],
     pageKey: "tiktok-ads",
     component: AdsManagementPage,
     icon: <AdsIcon />,
@@ -343,6 +375,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/inventory",
+    requires: [],
     pageKey: "ecommerce-inventory",
     component: InventoryManagementPage,
     icon: <ModuleIcon />,
@@ -352,6 +385,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/commerce/product-knowledge",
+    requires: [],
     pageKey: "ecommerce-product-knowledge",
     component: ProductKnowledgePage,
     icon: <EcommerceIcon />,
@@ -361,6 +395,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/automation/crons",
+    requires: ["localCron"],
     pageKey: "crons",
     component: CronsPage,
     icon: <CronsIcon />,
@@ -368,6 +403,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/connections/channels",
+    requires: ["channels"],
     pageKey: "channels",
     component: ChannelsPage,
     icon: <ChannelsIcon />,
@@ -375,6 +411,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/automation/skills",
+    requires: ["localSkills"],
     pageKey: "skills",
     component: SkillsPage,
     icon: <SkillsIcon />,
@@ -384,6 +421,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/connections/extensions",
+    requires: ["stt"],
     pageKey: "extras",
     component: ExtrasPage,
     icon: <ExtrasIcon />,
@@ -392,6 +430,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/account/usage",
+    requires: ["localLlmUsage"],
     pageKey: "usage",
     component: KeyUsagePage,
     icon: <UsageIcon />,
@@ -399,6 +438,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/account/billing",
+    requires: [],
     pageKey: "billing",
     component: BillingPage,
     icon: <BillingIcon />,
@@ -409,6 +449,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/account/settings",
+    requires: ["desktopSettings"],
     pageKey: "settings",
     component: SettingsPage,
     icon: <SettingsIcon />,
@@ -416,6 +457,7 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/account/profile",
+    requires: [],
     pageKey: "account",
     component: AccountPage,
     icon: <AccountIcon />,
@@ -424,15 +466,33 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     path: "/design-system",
+    requires: [],
     pageKey: "design-system",
     component: DesignSystemPage,
     navHidden: true,
   },
-  { path: "/welcome", pageKey: "welcome", component: WelcomePage, internal: true },
+  {
+    path: "/welcome",
+    requires: ["desktopSettings"],
+    pageKey: "welcome",
+    component: WelcomePage,
+    internal: true,
+  },
 ];
 
-/** Valid user-navigable paths for URL resolution */
+/** Valid user-navigable paths for URL resolution, before host gating (see `isRoutableOnHost`). */
 export const VALID_PATHS = new Set(ROUTES.filter((r) => !r.internal).map((r) => r.path));
+
+/** Whether the installed host provides everything this route requires. */
+export function isRouteAvailableOnHost(route: Pick<RouteEntry, "requires">): boolean {
+  return hostSupports(...route.requires);
+}
+
+/** Whether a URL path may be opened on this host: a known, non-internal route the host can serve. */
+export function isRoutableOnHost(path: string): boolean {
+  const route = ROUTE_MAP.get(path);
+  return VALID_PATHS.has(path) && route !== undefined && isRouteAvailableOnHost(route);
+}
 
 /** Lookup map: path → route entry */
 export const ROUTE_MAP = new Map(ROUTES.map((r) => [r.path, r]));

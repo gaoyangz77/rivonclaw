@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
+import { cloudRestPath } from "@rivonclaw/core/api-contract";
+import { getHost } from "../../../host/index.js";
 import { TkPrivate, usePrivacyMode } from "../../../components/design-system/index.js";
 
 /** Signed attachment routes are read only after user interaction, never via raw Provider URLs. */
@@ -24,7 +26,7 @@ export function AffiliateMessageAttachmentCard({ part, creatorRelationshipId }: 
     if (!attachmentRef || loading || (isImage && privacyMode)) return;
     setLoading(true); setError(false);
     try {
-      const response = await fetch("/api/cloud/ecommerce/affiliate/read-message-attachment", {
+      const response = await getHost().cloud.fetch(cloudRestPath("/api/ecommerce/affiliate/read-message-attachment"), {
         method: "POST", headers: { "Content-Type": "application/json", "X-Creator-Relationship-Id": creatorRelationshipId, "X-Affiliate-Read-Mode": "DOWNLOAD" },
         body: JSON.stringify({ attachmentRef }),
       });

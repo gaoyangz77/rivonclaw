@@ -26,11 +26,11 @@ vi.mock("../../../store/EntityStoreProvider.js", () => ({
   }),
 }));
 vi.mock("../../../api/client.js", () => ({
-  fetchJson: (...args: unknown[]) =>
-    String(args[0]).includes("messaging/translate")
-      ? state.translate(...args)
-      : state.sendImage(...args),
+  fetchJson: (...args: unknown[]) => state.translate(...args),
   fetchVoid: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("../../../api/cloud-client.js", () => ({
+  cloudFetchJson: (...args: unknown[]) => state.sendImage(...args),
 }));
 let urls: ReturnType<typeof mockObjectUrls>;
 beforeEach(async () => {
@@ -92,7 +92,7 @@ describe("customer service pasted image reply", () => {
     send();
     await waitFor(() => expect(state.sendImage).toHaveBeenCalledOnce());
     expect(state.sendImage.mock.calls[0]).toEqual([
-      "/cloud/ecommerce/customer-service/manual-image-reply",
+      "/api/cloud/ecommerce/customer-service/manual-image-reply",
       expect.objectContaining({
         method: "POST",
         body: retained,

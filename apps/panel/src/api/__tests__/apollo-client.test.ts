@@ -7,6 +7,9 @@ let mod: typeof import("../apollo-client.js");
 
 beforeEach(async () => {
   vi.resetModules();
+  const host = await import("../../host/index.js");
+  const { createDesktopHost } = await import("../../host/desktop/desktop-host.js");
+  host.installHost(createDesktopHost());
   mod = await import("../apollo-client.js");
 });
 

@@ -1,7 +1,7 @@
 import { SSE, SSE_SNAPSHOT_EVENTS } from "@rivonclaw/core/api-contract";
 
 /**
- * Panel event bus — singleton wrapper around a single EventSource
+ * Desktop host event stream — wrapper around a single EventSource
  * connected to Desktop's unified `/api/events` stream.
  *
  * Every Panel session opens EXACTLY ONE EventSource, regardless of how
@@ -10,14 +10,14 @@ import { SSE, SSE_SNAPSHOT_EVENTS } from "@rivonclaw/core/api-contract";
  * ephemeral stream), safely under Chrome's 6-connection HTTP/1.1 limit.
  *
  * Usage:
- *   const unsubscribe = panelEventBus.subscribe("oauth-complete", (data) => { ... });
+ *   const unsubscribe = getHost().events.subscribe("oauth-complete", (data) => { ... });
  *   // later:
  *   unsubscribe();
  *
  * Payloads arrive as already-JSON.parsed `unknown`. Callers should narrow
  * via their own type guards or a documented shared type.
  */
-export interface PanelEventBus {
+export interface DesktopEventStream {
   /** Subscribe to an event. Returns an unsubscribe function. */
   subscribe(event: string, handler: (data: unknown) => void): () => void;
   /** Close the underlying EventSource and drop all handlers. Mostly for tests. */
@@ -27,12 +27,12 @@ export interface PanelEventBus {
 type Handler = (data: unknown) => void;
 
 /**
- * Factory, exported for test isolation. Production code should use the
- * module-level `panelEventBus` singleton below.
+ * Factory. The Desktop host creates exactly one per Panel session; tests build
+ * their own with a fake EventSource factory.
  */
-export function createPanelEventBus(
+export function createDesktopEventStream(
   createEventSource: (url: string) => EventSource = (url) => new EventSource(url),
-): PanelEventBus {
+): DesktopEventStream {
   const handlers = new Map<string, Set<Handler>>();
   const attachedEvents = new Set<string>();
   const latestSnapshotPayloads = new Map<string, unknown>();
@@ -134,5 +134,3 @@ export function createPanelEventBus(
   };
 }
 
-/** Singleton — the one bus per Panel session. */
-export const panelEventBus: PanelEventBus = createPanelEventBus();

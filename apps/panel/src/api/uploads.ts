@@ -1,5 +1,6 @@
 import { DEFAULTS } from "@rivonclaw/core";
 import { CLOUD_REST } from "@rivonclaw/core/api-contract";
+import { getHost } from "../host/index.js";
 
 export interface UploadedImageResult {
   assetId: string;
@@ -133,7 +134,7 @@ export async function uploadProductKnowledgeMedia(file: File): Promise<UploadedM
   const body = new FormData();
   body.append("file", file);
 
-  const res = await fetch(CLOUD_REST["uploads.media"].path, {
+  const res = await getHost().cloud.fetch(CLOUD_REST["uploads.media"].path, {
     method: "POST",
     body,
   });
@@ -161,7 +162,7 @@ export async function uploadInventoryGoodImage(file: File): Promise<UploadedImag
   const body = new FormData();
   body.append("image", uploadFile);
 
-  const res = await fetch(CLOUD_REST["uploads.images"].path, {
+  const res = await getHost().cloud.fetch(CLOUD_REST["uploads.images"].path, {
     method: "POST",
     body,
   });

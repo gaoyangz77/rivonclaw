@@ -11,7 +11,7 @@ import {
 import { Select } from "../../../components/inputs/Select.js";
 import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
 import { useToast } from "../../../components/Toast.js";
-import { panelEventBus } from "../../../lib/event-bus.js";
+import { getHost } from "../../../host/index.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 
 type EmailAccount = GQL.EmailAccountBinding;
@@ -98,7 +98,7 @@ export function AffiliateEmailAccountPanel({
   ];
 
   useEffect(() => {
-    return panelEventBus.subscribe("affiliate-outreach-account-connected", (raw) => {
+    return getHost().events.subscribe("affiliate-outreach-account-connected", (raw) => {
       const event = raw as { channel?: unknown };
       if (event.channel !== "EMAIL") return;
       void Promise.all([refetch(), refetchConnectorStatus()])

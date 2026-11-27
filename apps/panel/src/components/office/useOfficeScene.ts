@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { SceneCue, SceneSnapshot } from "@rivonclaw/scene-contract";
-import { panelEventBus } from "../../lib/event-bus.js";
+import { getHost } from "../../host/index.js";
 
 type SceneFrame = { snapshot: SceneSnapshot; cues: SceneCue[] };
 
@@ -29,7 +29,7 @@ export function useOfficeScene(enabled: boolean): SceneFrame | null {
 
   useEffect(() => {
     if (!enabled) return;
-    return panelEventBus.subscribe("scene-snapshot", (payload) => {
+    return getHost().events.subscribe("scene-snapshot", (payload) => {
       if (!isSceneFrame(payload)) return;
       if (payload.snapshot.revision < revisionRef.current) return;
       revisionRef.current = payload.snapshot.revision;

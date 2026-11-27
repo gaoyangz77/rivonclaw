@@ -1,7 +1,7 @@
 import { applySnapshot, flow, getEnv, types, type Instance } from "mobx-state-tree";
 import { GQL } from "@rivonclaw/core";
-import { CLOUD_REST, clientPath } from "@rivonclaw/core/api-contract";
-import { fetchJson } from "../../api/client.js";
+import { CLOUD_REST } from "@rivonclaw/core/api-contract";
+import { cloudFetchJson } from "../../api/cloud-client.js";
 import {
   APPROVE_AFTER_SALE_CANCELLATION_MUTATION,
   APPROVE_AFTER_SALE_REFUND_MUTATION,
@@ -845,7 +845,7 @@ export const EcommerceAfterSaleModel = types
         try {
           const headers = { "Content-Type": "application/json", "x-shop-id": shopId };
           if (decision.route === "cancellation") {
-            yield fetchJson(clientPath(CLOUD_REST["ecommerce.rejectCancellation"]), {
+            yield cloudFetchJson(CLOUD_REST["ecommerce.rejectCancellation"].path, {
               method: "POST",
               headers,
               body: JSON.stringify({
@@ -856,7 +856,7 @@ export const EcommerceAfterSaleModel = types
               }),
             });
           } else {
-            yield fetchJson(clientPath(CLOUD_REST["ecommerce.rejectReturn"]), {
+            yield cloudFetchJson(CLOUD_REST["ecommerce.rejectReturn"].path, {
               method: "POST",
               headers,
               body: JSON.stringify({

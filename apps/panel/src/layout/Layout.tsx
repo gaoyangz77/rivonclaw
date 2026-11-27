@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { BottomActions } from "../components/BottomActions.js";
 import { GlobalBannerStack } from "../components/banners/GlobalBannerStack.js";
 import { MenuIcon, OfficeIcon, UserPlusIcon } from "../components/icons.js";
-import { ROUTES, type RouteEntry } from "../routes.js";
+import { ROUTES, isRouteAvailableOnHost, type RouteEntry } from "../routes.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
@@ -97,7 +97,11 @@ export const Layout = observer(function Layout({
   const navRoutes = selectSidebarRoutes(
     ROUTES,
     (r) =>
-      Boolean(r.navLabelKey) && !r.navHidden && (!r.navAuthOnly || !!user) && canSeeRoute(r, user),
+      Boolean(r.navLabelKey) &&
+      !r.navHidden &&
+      (!r.navAuthOnly || !!user) &&
+      isRouteAvailableOnHost(r) &&
+      canSeeRoute(r, user),
   );
 
   useEffect(() => {

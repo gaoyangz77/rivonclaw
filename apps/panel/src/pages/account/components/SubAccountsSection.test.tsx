@@ -11,7 +11,9 @@ const mocks = vi.hoisted(() => ({
   switchToMember: vi.fn(),
   showToast: vi.fn(),
 }));
-vi.mock("../../../api/account-switch.js", () => ({ switchToMember: mocks.switchToMember }));
+vi.mock("../../../host/index.js", () => ({
+  getHost: () => ({ auth: { switchToMember: mocks.switchToMember } }),
+}));
 vi.mock("../../../components/Toast.js", () => ({
   useToast: () => ({ showToast: mocks.showToast }),
 }));

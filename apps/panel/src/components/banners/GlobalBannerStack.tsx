@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
-import { panelEventBus } from "../../lib/event-bus.js";
+import { getHost } from "../../host/index.js";
 import { shopDisplayLabel } from "../../lib/shop-display.js";
 import { useToast } from "../Toast.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
@@ -36,7 +36,7 @@ export const GlobalBannerStack = observer(function GlobalBannerStack({
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
 
   useEffect(() => {
-    const unsubscribeShop = panelEventBus.subscribe("shop-updated", (raw) => {
+    const unsubscribeShop = getHost().events.subscribe("shop-updated", (raw) => {
       const { shopName } = raw as { shopId: string; shopName: string };
       showToast(t("ecommerce.shopUpdatedToast", { shopName }), "success");
     });

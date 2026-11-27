@@ -52,8 +52,8 @@ vi.mock("../../../components/Toast.js", () => ({
   useToast: () => toastMock,
 }));
 
-vi.mock("../../../lib/event-bus.js", () => ({
-  panelEventBus: eventBusMock,
+vi.mock("../../../host/index.js", () => ({
+  getHost: () => ({ events: eventBusMock }),
 }));
 
 vi.mock("@apollo/client/react", async () => {

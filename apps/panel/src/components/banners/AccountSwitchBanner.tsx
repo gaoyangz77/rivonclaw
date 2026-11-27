@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
-import { API, clientPath } from "@rivonclaw/core/api-contract";
-import { fetchJson } from "../../api/client.js";
-import { returnToOwner } from "../../api/account-switch.js";
+import { getHost } from "../../host/index.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { TkAlert, TkButton } from "../design-system/index.js";
 
@@ -22,7 +20,7 @@ export const AccountSwitchBanner = observer(function AccountSwitchBanner() {
   useEffect(() => {
     let active = true;
     setState(null);
-    void fetchJson<{ accountSwitch?: SwitchState | null }>(clientPath(API["auth.session"]))
+    void getHost().auth.getSession()
       .then((session) => {
         if (active) {
           setState(session.accountSwitch ?? null);
@@ -40,7 +38,7 @@ export const AccountSwitchBanner = observer(function AccountSwitchBanner() {
   async function restoreOwner() {
     setReturning(true);
     try {
-      await returnToOwner();
+      await getHost().auth.returnToOwner();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : String(failure));
     } finally {

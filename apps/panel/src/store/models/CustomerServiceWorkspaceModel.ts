@@ -3,6 +3,7 @@ import { flow, getEnv, getRoot, types } from "mobx-state-tree";
 import { GQL } from "@rivonclaw/core";
 import { API, CLOUD_REST, clientPath } from "@rivonclaw/core/api-contract";
 import { fetchJson, fetchVoid } from "../../api/client.js";
+import { cloudFetchJson } from "../../api/cloud-client.js";
 import { graphQLErrorCode } from "../../lib/graphql-error-code.js";
 import {
   CS_DISMISS_CONVERSATION_ESCALATIONS_MUTATION,
@@ -1505,8 +1506,8 @@ export const CustomerServiceWorkspaceModel = types
       sendManualImageReply: flow(function* (input: {
         shopId: string; conversationId: string; file: File; idempotencyKey: string;
       }) {
-        return yield fetchJson<{ ok: boolean; messageId?: string }>(
-          clientPath(CLOUD_REST["ecommerce.csManualImageReply"]), {
+        return yield cloudFetchJson<{ ok: boolean; messageId?: string }>(
+          CLOUD_REST["ecommerce.csManualImageReply"].path, {
             method: "POST",
             headers: {
               "Content-Type": input.file.type, "X-Shop-Id": input.shopId,

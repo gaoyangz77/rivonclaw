@@ -5,6 +5,15 @@ export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T>
     headers: { "Content-Type": "application/json" },
     ...init,
   });
+  return readJsonResponse<T>(res);
+}
+
+/**
+ * Turn a Response into parsed JSON or a thrown Error carrying the server's
+ * message/code/detail. A 401 raises the session-expired event first. Shared by
+ * every JSON transport (Desktop REST here, cloud REST in `cloud-client.ts`).
+ */
+export async function readJsonResponse<T>(res: Response): Promise<T> {
   if (res.status === 401) {
     window.dispatchEvent(new CustomEvent("rivonclaw:auth-expired"));
     throw new Error("Authentication required");

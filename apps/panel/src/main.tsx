@@ -21,12 +21,18 @@ import "./theme-tiffany.css";
 import "./theme-gray.css";
 import "./components/design-system/tk-v1.css";
 import "./i18n/index.js";
+import { installHost } from "./host/index.js";
+import { createDesktopHost } from "./host/desktop/desktop-host.js";
 import { App } from "./App.js";
 import { ApolloWrapper } from "./providers/ApolloWrapper.js";
 import { ToastProvider } from "./components/Toast.js";
 import { GraphQLLoadingProvider } from "./providers/GraphQLLoadingContext.js";
 import { EntityStoreProvider } from "./store/EntityStoreProvider.js";
 import { RuntimeStatusProvider } from "./store/RuntimeStatusProvider.js";
+
+// The only place that decides which host this build runs on. Everything else
+// reaches transport, events and auth through `getHost()`.
+installHost(createDesktopHost());
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

@@ -71,12 +71,10 @@ import {
   REFRESH_PAYMENT_MUTATION,
   START_BILLING_SUBSCRIPTION_MUTATION,
 } from "../api/billing-queries.js";
-import { fetchJson } from "../api/client.js";
 import { syncOfficialPresetSkills } from "../api/official-preset-skills.js";
 import { trackEvent } from "../api/settings.js";
-import { API, clientPath } from "@rivonclaw/core/api-contract";
 import { parseChannelSessionRecipient } from "../lib/chat-session-keys.js";
-import { panelEventBus } from "../lib/event-bus.js";
+import { getHost, type HostAuthSession } from "../host/index.js";
 import { gql } from "@apollo/client/core";
 import type { PanelStoreEnv } from "./types.js";
 
@@ -372,12 +370,10 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
       }),
       // ── Auth actions ──
 
-      /** Initialize the session: check Desktop auth state, validate via ME query if needed, trigger entity sync. */
+      /** Initialize the session: check the host session, validate via ME query if needed, trigger entity sync. */
       initSession: flow(function* () {
         try {
-          const session: { authenticated: boolean; tokenPresent?: boolean } = yield fetchJson(
-            clientPath(API["auth.session"]),
-          );
+          const session: HostAuthSession = yield getHost().auth.getSession();
           if (session.authenticated || session.tokenPresent) {
             yield Promise.all([
               client().query({ query: BILLING_OVERVIEW_QUERY, fetchPolicy: "network-only" }),
@@ -422,10 +418,7 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
         captchaToken?: string;
         captchaAnswer?: string;
       }) {
-        yield fetchJson(clientPath(API["auth.login"]), {
-          method: "POST",
-          body: JSON.stringify(input),
-        });
+        yield getHost().auth.login(input);
         yield syncOfficialPresetSkills("safe").catch(() => {});
         trackEvent("auth.login");
       }),
@@ -438,17 +431,14 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
         captchaAnswer?: string;
         inviteCode?: string | null;
       }) {
-        yield fetchJson(clientPath(API["auth.register"]), {
-          method: "POST",
-          body: JSON.stringify(input),
-        });
+        yield getHost().auth.register(input);
         yield syncOfficialPresetSkills("safe").catch(() => {});
         trackEvent("auth.register");
       }),
 
       logout: flow(function* () {
         self.messageTranslation.setIdentity("");
-        yield fetch(API["auth.logout"].path, { method: "POST" }).catch(() => {});
+        yield getHost().auth.logout().catch(() => {});
         trackEvent("auth.logout");
         // Desktop clears user in MST -> SSE -> Panel auto-updates
       }),
@@ -968,11 +958,11 @@ let unsubscribePatch: (() => void) | null = null;
 export function connectEntityStore(): void {
   disconnectEntityStore();
 
-  unsubscribeSnapshot = panelEventBus.subscribe("entity-snapshot", (data) => {
+  unsubscribeSnapshot = getHost().events.subscribe("entity-snapshot", (data) => {
     applySnapshot(entityStore, data as Parameters<typeof applySnapshot>[1]);
   });
 
-  unsubscribePatch = panelEventBus.subscribe("entity-patch", (data) => {
+  unsubscribePatch = getHost().events.subscribe("entity-patch", (data) => {
     applyPatch(entityStore, data as IJsonPatch[]);
   });
 }

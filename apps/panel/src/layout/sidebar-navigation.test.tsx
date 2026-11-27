@@ -10,6 +10,7 @@ const Page = (() => null) as ComponentType;
 function route(overrides: Partial<RouteEntry> & Pick<RouteEntry, "path" | "pageKey">): RouteEntry {
   return {
     component: Page,
+    requires: [],
     navLabelKey: `label.${overrides.pageKey}`,
     ...overrides,
   };

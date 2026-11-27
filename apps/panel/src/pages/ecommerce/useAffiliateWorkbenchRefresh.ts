@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { panelEventBus } from "../../lib/event-bus.js";
+import { getHost } from "../../host/index.js";
 
 /** UI-only fact changes must never enter the Desktop Agent dispatcher. */
 export function useAffiliateWorkbenchRefresh(
@@ -40,14 +40,14 @@ export function useAffiliateWorkbenchRefresh(
       if (relationshipId && changedRelationshipId !== relationshipId) return;
       schedule();
     };
-    const unsubscribe = panelEventBus.subscribe("affiliate-workbench-changed", onChange);
-    const unsubscribeProposal = panelEventBus.subscribe(
+    const unsubscribe = getHost().events.subscribe("affiliate-workbench-changed", onChange);
+    const unsubscribeProposal = getHost().events.subscribe(
       "affiliate-action-proposal-changed",
       onChange,
     );
     // Desktop emits a snapshot on every SSE connection, including reconnects.
     // Proposal events missed while disconnected must not leave a stale modal.
-    const unsubscribeSnapshot = panelEventBus.subscribe("entity-snapshot", schedule);
+    const unsubscribeSnapshot = getHost().events.subscribe("entity-snapshot", schedule);
     return () => {
       unsubscribe();
       unsubscribeProposal();

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { panelEventBus } from "../../../lib/event-bus.js";
+import { getHost } from "../../../host/index.js";
 import { useToast } from "../../../components/Toast.js";
 import { useTranslation } from "react-i18next";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
@@ -41,7 +41,7 @@ export function useOAuthFlow() {
   }, []);
 
   function startOAuthSSEListener(onOAuthComplete: () => void | Promise<void>) {
-    unsubscribeOAuthRef.current = panelEventBus.subscribe("oauth-complete", (raw) => {
+    unsubscribeOAuthRef.current = getHost().events.subscribe("oauth-complete", (raw) => {
       const data = raw as { shops?: unknown[] };
       if (!Array.isArray(data.shops) || data.shops.length === 0) {
         cleanupOAuthWait();

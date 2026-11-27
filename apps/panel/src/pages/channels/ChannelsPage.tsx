@@ -16,7 +16,7 @@ import { getVisibleChannels, buildAccountsList } from "./channel-defs.jsx";
 import { useChannelsData } from "./use-channels-data.js";
 import { ChannelAccountsTable } from "./ChannelAccountsTable.js";
 import { QrLoginModal } from "../../components/modals/QrLoginModal.js";
-import { panelEventBus } from "../../lib/event-bus.js";
+import { getHost } from "../../host/index.js";
 import { FeishuSetupModal } from "../../components/modals/FeishuSetupModal.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
 import {
@@ -72,7 +72,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
   const allAccounts = buildAccountsList(entityStore.channelAccounts, snapshot, t);
 
   useEffect(() => {
-    return panelEventBus.subscribe("recipient-added", () => {
+    return getHost().events.subscribe("recipient-added", () => {
       loadChannelStatus(false, { probe: false });
     });
   }, [loadChannelStatus]);

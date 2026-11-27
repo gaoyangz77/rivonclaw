@@ -1,6 +1,6 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import { panelEventBus } from "../../lib/event-bus.js";
+import { getHost } from "../../host/index.js";
 import { useAffiliateWorkbenchRefresh } from "./useAffiliateWorkbenchRefresh.js";
 
 afterEach(() => {
@@ -13,7 +13,7 @@ it("coalesces UI refreshes, filters the modal relationship, and cancels on unmou
   vi.useFakeTimers();
   let receive: (payload: unknown) => void = () => {};
   const unsubscribe = vi.fn();
-  vi.spyOn(panelEventBus, "subscribe").mockImplementation((event, handler) => {
+  vi.spyOn(getHost().events, "subscribe").mockImplementation((event, handler) => {
     if (event === "affiliate-workbench-changed") {
       receive = handler;
       return unsubscribe;
@@ -43,7 +43,7 @@ it("coalesces UI refreshes, filters the modal relationship, and cancels on unmou
 it("refreshes the workbench for any relationship without a modal scope", () => {
   vi.useFakeTimers();
   let receive: (payload: unknown) => void = () => {};
-  vi.spyOn(panelEventBus, "subscribe").mockImplementation((_event, handler) => {
+  vi.spyOn(getHost().events, "subscribe").mockImplementation((_event, handler) => {
     receive = handler;
     return vi.fn();
   });
@@ -60,7 +60,7 @@ it("defers hidden-window refresh until the page is visible again", () => {
   vi.useFakeTimers();
   const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
   let receive: (payload: unknown) => void = () => {};
-  vi.spyOn(panelEventBus, "subscribe").mockImplementation((_event, handler) => {
+  vi.spyOn(getHost().events, "subscribe").mockImplementation((_event, handler) => {
     receive = handler;
     return vi.fn();
   });
@@ -82,7 +82,7 @@ it("defers hidden-window refresh until the page is visible again", () => {
 it("reconciles on visibility, focus and SSE reconnect even if a proposal event was missed", () => {
   vi.useFakeTimers();
   const handlers = new Map<string, (payload: unknown) => void>();
-  vi.spyOn(panelEventBus, "subscribe").mockImplementation((event, handler) => {
+  vi.spyOn(getHost().events, "subscribe").mockImplementation((event, handler) => {
     handlers.set(event, handler);
     return vi.fn();
   });
@@ -105,7 +105,7 @@ it("reconciles on visibility, focus and SSE reconnect even if a proposal event w
 it("uses the latest tab callback without resubscribing and replaying the cached snapshot", () => {
   vi.useFakeTimers();
   let receiveSnapshot: (payload: unknown) => void = () => {};
-  const subscribe = vi.spyOn(panelEventBus, "subscribe").mockImplementation((event, handler) => {
+  const subscribe = vi.spyOn(getHost().events, "subscribe").mockImplementation((event, handler) => {
     if (event === "entity-snapshot") {
       receiveSnapshot = handler;
       handler({}); // The actual event bus replays its latest snapshot to new subscribers.
