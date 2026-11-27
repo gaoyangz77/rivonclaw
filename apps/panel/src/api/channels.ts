@@ -66,6 +66,8 @@ export async function fetchAllowlist(
   channelId: string,
   accountId?: string,
 ): Promise<AllowlistResult> {
+  // Pairing allowlists belong to local channels; without them there is nothing to list.
+  if (!hostSupports("channels")) return { allowlist: [], labels: {}, owners: {} };
   const qs = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
   return fetchJson<AllowlistResult>(clientPath(API["pairing.allowlist.get"], { channelId }) + qs);
 }

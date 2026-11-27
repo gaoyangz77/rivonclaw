@@ -5,7 +5,7 @@ import { BottomActions } from "../components/BottomActions.js";
 import { GlobalBannerStack } from "../components/banners/GlobalBannerStack.js";
 import { MenuIcon, OfficeIcon, UserPlusIcon } from "../components/icons.js";
 import { ROUTES, isRouteAvailableOnHost, type RouteEntry } from "../routes.js";
-import { hostSupports } from "../host/index.js";
+import { getHost, hostSupports } from "../host/index.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
@@ -139,6 +139,11 @@ export const Layout = observer(function Layout({
     if (!route) return;
     if (route.authRequired && authChecking) return;
     if (route.authRequired && !user) {
+      // The in-app sign-in modal runs through Desktop; a browser signs in on the account page.
+      if (!hostSupports("desktopAuthFlows")) {
+        getHost().auth.startSignIn(route.path);
+        return;
+      }
       setPendingAuthPath(route.path);
       setAuthModalOpen(true);
       return;

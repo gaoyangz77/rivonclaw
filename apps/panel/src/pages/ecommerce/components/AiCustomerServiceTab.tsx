@@ -1,3 +1,4 @@
+import { hostSupports } from "../../../host/index.js";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { GQL } from "@rivonclaw/core";
@@ -148,6 +149,8 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
         />
       </section>
 
+      {/* Which device runs the AI is a Desktop concept; a browser has none. */}
+      {hostSupports("csBridge") && (
       <section id="shop-workspace-aiCustomerService-device" className="shop-workspace-section">
         <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.csBindDevice")}</div>
         <div className="shop-toggle-card">
@@ -182,6 +185,7 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
           />
         </div>
       </section>
+      )}
 
       <section id="shop-workspace-aiCustomerService-run-profile" className="shop-workspace-section">
         <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.runProfile")}</div>
