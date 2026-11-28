@@ -230,3 +230,42 @@ Wipes all RivonClaw + OpenClaw user data to simulate fresh onboarding. Cleans SQ
 ./scripts/reset-user-data.sh           # interactive (asks for confirmation)
 ./scripts/reset-user-data.sh --force   # skip confirmation
 ```
+
+### dev-web.mjs (`pnpm dev:web`)
+
+Runs the browser app (app.tkcopilot.com) on localhost with hot reload, without deploying. It is the browser counterpart of `pnpm dev`, which runs the Desktop app and is unchanged.
+
+```bash
+pnpm dev:web                          # backend: mock-cloud (default)
+pnpm dev:web -- --backend local       # backend: http://localhost:4100
+pnpm dev:web -- --backend staging     # backend: https://api-stg.rivonclaw.com
+```
+
+Open **http://app.localhost:5190/** (printed in the banner). One command starts:
+
+| Process | What | Internal port |
+| --- | --- | --- |
+| Panel | `vite --mode web` in `apps/panel`: the Panel web host (`VITE_PANEL_HOST=web`), served under `/__panel/` | 5192 (`PANEL_WEB_DEV_PORT`) |
+| server/web | `npm run dev` in `server/web`: the real login, OAuth, Expert and manual pages | 5191 (`WEB_DEV_PORT`) |
+| Backend | `mock` starts `mock-cloud` unless one already answers on its port and reuses it; `local` and `staging` only check that GraphQL answers | 4300 (`MOCK_CLOUD_PORT`) |
+| Origin | A small proxy in `dev-web.mjs`: the one origin the browser sees | 5190 (`DEV_WEB_PORT`) |
+
+Ports 5180/5181/3210 are left to `pnpm dev`, whose `predev` kills them.
+
+**Why one origin.** The browser session is an access token in memory plus an HttpOnly refresh cookie (ADR-054), which is host-only. The Panel, the server/web login page and `/api/graphql` must therefore share a host and port, as they do on app.tkcopilot.com. The host is `app.localhost` rather than `localhost` because server/web only treats the Panel's root as a Panel page on a host named `app.*` (`isPanelReturnPath`); browsers resolve `*.localhost` to loopback.
+
+**Routing** reproduces the app-host block of `server/nginx/templates/default.conf.template` (table and tests: `dev-web-routes.mjs`, `dev-web-routes.test.mjs`):
+
+- server/web pages (`/expert`, `/manual`, `/account/{login,register,desktop-login,session-transfer}`, `/oauth/tiktok/*`, `/oauth/mcp/authorize`, `/shops/claim`, `/payment/success`, `/api/tiktok/oauth/callback`), `/web-assets/*`, `/assets/*` and the brand icons go to server/web.
+- `/api/graphql` (HTTP and WebSocket) goes to the backend's `/graphql`; `/api/uploads/{images,media}`, `/api/ecommerce/*` and `/api/tiktok/ads/oauth/callback` go to the backend as they are; any other `/api/*` is a JSON 404.
+- Marketing paths (`/zh…`, `/terms`, `/privacy`, `/tutorials`, `/demo`, `/tools`) redirect to https://www.tkcopilot.com.
+- Every other page navigation is the Panel's entry page, which resolves its own route. Both dev servers also serve module URLs at the root (`/@vite/client`, `/node_modules/…`, `/src/…`), so the Panel's dev server lives under the `/__panel/` base (`apps/panel/vite.config.ts`, web dev only) and the proxy tells the two apart by prefix and by `Accept: text/html`. Hot-reload WebSockets are routed the same way.
+- When a backend sets a `Secure` or `Domain` cookie, the proxy drops those attributes so the cookie works on `http://localhost` and stays host-only.
+
+**Backends**
+
+- `mock`: sign in through the real login page with `demo@brightloom.test`, any password and any captcha text (the image reads `MOCK`). mock-cloud needs `pnpm install` in its own directory and the `server/` checkout; scenario, viewer and clock variables (`MOCK_CLOUD_*`) pass through. The mock has no REST endpoints, so the Panel's `/api/ecommerce/*` REST calls (for example the product category dictionary) fail with a console warning.
+- `local`: needs the backend from `server/backend` on port 4100 (and its dependencies).
+- `staging`: real staging data, so sign in with a real staging account yourself. Writes hit staging.
+
+**Operation.** Ctrl-C (or SIGTERM) stops every child and frees every port. A busy port, a missing checkout or `node_modules`, or an unreachable backend stops startup with a message naming the fix; a child that dies later stops the rest. The first request to each dev server after an install can be blank while Vite re-optimizes dependencies; reload once. Tests for the routing table: `node --test scripts/dev-web-routes.test.mjs`.

@@ -9,6 +9,7 @@
     "test": "turbo run test",
     "predev": "node scripts/kill-dev-ports.mjs",
     "dev": "turbo run dev",
+    "dev:web": "node scripts/dev-web.mjs",
     "format": "oxfmt --check",
     "format:fix": "oxfmt --write",
     "postinstall": "node scripts/provision-electron.cjs && node scripts/rebuild-native.cjs",
