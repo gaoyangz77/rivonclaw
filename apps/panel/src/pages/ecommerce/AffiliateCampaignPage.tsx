@@ -197,7 +197,7 @@ export const emptyForm: CampaignForm = {
   products: [{ productId: "", commissionRate: "10", shopAdsCommissionRate: "5" }],
   name: "",
   dailyTarget: "100",
-  endDays: "30",
+  endDays: "365",
   isSampleApprovalExempt: false,
   sellerContactEmail: "",
   minimumFollowers: "1000",
@@ -509,7 +509,7 @@ export function campaignTargetStepIssues(
   if (!isWholeNumberInRange(form.dailyTarget, 1, Number.MAX_SAFE_INTEGER)) {
     issues.push({ field: "dailyTarget", code: "dailyTargetInvalid" });
   }
-  if (!isWholeNumberInRange(form.endDays, 1, 365)) {
+  if (!isWholeNumberInRange(form.endDays, 1, 730)) {
     issues.push({ field: "endDays", code: "endDaysInvalid" });
   }
   const email = form.sellerContactEmail.trim();
@@ -1114,7 +1114,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       })),
       name: campaign.name,
       dailyTarget: String(campaign.dailyOutreachTarget),
-      endDays: String(campaign.endDays ?? 30),
+      endDays: String(campaign.endDays ?? 365),
       isSampleApprovalExempt: Boolean(campaign.isSampleApprovalExempt),
       sellerContactEmail: campaign.sellerContactEmail ?? "",
       minimumFollowers: "",

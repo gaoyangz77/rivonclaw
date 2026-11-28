@@ -46,6 +46,19 @@ const ASSIGNMENT_TRIGGERS = [
 // ADR-120: the Backend accepts at most 200 characters.
 const CAMPAIGN_NAME_TEMPLATE_MAX_LENGTH = 200;
 
+// ADR-124: the Backend accepts 1..10000 for a daily outreach limit; empty means unlimited.
+const OUTREACH_LIMIT_MIN = 1;
+const OUTREACH_LIMIT_MAX = 10000;
+
+// An empty field is "unlimited" (null); anything else must be a whole number in range.
+function parseOutreachLimit(text: string): { valid: boolean; value: number | null } {
+  if (text.trim() === "") return { valid: true, value: null };
+  const value = Number(text);
+  const valid =
+    Number.isInteger(value) && value >= OUTREACH_LIMIT_MIN && value <= OUTREACH_LIMIT_MAX;
+  return { valid, value: valid ? value : null };
+}
+
 // The variable chips: one per date format, the other variables by their name.
 const CAMPAIGN_NAME_CHIPS = CAMPAIGN_NAME_TEMPLATE_VARIABLES.map((token) => ({
   token,
@@ -123,14 +136,41 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
     const nameTemplateDirty =
       nameTemplateDraft != null && nameTemplateDraft !== persistedNameTemplate;
     const nameTemplateInput = useRef<HTMLInputElement | null>(null);
-    const dirty = rulesDirty || triggersDirty || bdCampaignDaysDirty || nameTemplateDirty;
+    // ADR-124: daily outreach limits on BD-created Campaigns; null means unlimited.
+    const persistedBdLimit = settings?.bdDailyOutreachLimit ?? null;
+    const persistedListLimit = settings?.creatorListDailyOutreachLimit ?? null;
+    const [bdLimitDraft, setBdLimitDraft] = useState<string | null>(null);
+    const [listLimitDraft, setListLimitDraft] = useState<string | null>(null);
+    const bdLimitText = bdLimitDraft ?? String(persistedBdLimit ?? "");
+    const listLimitText = listLimitDraft ?? String(persistedListLimit ?? "");
+    const bdLimit = parseOutreachLimit(bdLimitText);
+    const listLimit = parseOutreachLimit(listLimitText);
+    const bdLimitDirty = bdLimitDraft != null && bdLimit.valid && bdLimit.value !== persistedBdLimit;
+    const listLimitDirty =
+      listLimitDraft != null && listLimit.valid && listLimit.value !== persistedListLimit;
+    const limitsInvalid = !bdLimit.valid || !listLimit.valid;
+    const dirty =
+      rulesDirty ||
+      triggersDirty ||
+      bdCampaignDaysDirty ||
+      nameTemplateDirty ||
+      bdLimitDirty ||
+      listLimitDirty;
     const [saveSettings, { loading: saving }] = useMutation<
       { setAffiliateCreatorBusinessSettings: GQL.AffiliateOperationalSettings },
       { input: GQL.SetAffiliateCreatorBusinessSettingsInput }
     >(SET_AFFILIATE_CREATOR_BUSINESS_SETTINGS_MUTATION);
 
     async function save() {
-      if (!loaded || !dirty || hoursInvalid || bdCampaignDaysInvalid || nameTemplateIssue || saving)
+      if (
+        !loaded ||
+        !dirty ||
+        hoursInvalid ||
+        bdCampaignDaysInvalid ||
+        nameTemplateIssue ||
+        limitsInvalid ||
+        saving
+      )
         return;
       try {
         const result = await saveSettings({
@@ -149,6 +189,9 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
                 : {}),
               // Absent leaves the stored template unchanged; "" turns it off.
               ...(nameTemplateDirty ? { campaignNameTemplate: nameTemplate } : {}),
+              // Absent leaves a stored limit unchanged; null clears it to unlimited.
+              ...(bdLimitDirty ? { bdDailyOutreachLimit: bdLimit.value } : {}),
+              ...(listLimitDirty ? { creatorListDailyOutreachLimit: listLimit.value } : {}),
             },
           },
         });
@@ -164,6 +207,8 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
         setTriggersDraft(null);
         setBdCampaignDaysDraft(null);
         setNameTemplateDraft(null);
+        setBdLimitDraft(null);
+        setListLimitDraft(null);
         showToast(t("ecommerce.affiliateTeam.creatorBusiness.saved"), "success");
       } catch {
         showToast(t("ecommerce.affiliateTeam.creatorBusiness.saveFailed"), "error");
@@ -254,7 +299,8 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
                 !dirty ||
                 hoursInvalid ||
                 bdCampaignDaysInvalid ||
-                nameTemplateIssue != null
+                nameTemplateIssue != null ||
+                limitsInvalid
               }
               onClick={() => void save()}
             >
@@ -381,6 +427,52 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
               )}
               <small>{t("ecommerce.affiliateTeam.creatorBusiness.campaignName.previewNote")}</small>
             </div>
+          </TkFormGroup>
+          <TkFormGroup
+            className="affiliate-creator-business-limits"
+            title={t("ecommerce.affiliateTeam.creatorBusiness.outreachLimits.title")}
+            description={t("ecommerce.affiliateTeam.creatorBusiness.outreachLimits.description")}
+          >
+            <TkField
+              className="affiliate-creator-business-limit-input"
+              type="number"
+              inputMode="numeric"
+              min={OUTREACH_LIMIT_MIN}
+              max={OUTREACH_LIMIT_MAX}
+              step={1}
+              label={t("ecommerce.affiliateTeam.creatorBusiness.outreachLimits.bdDaily")}
+              hint={t("ecommerce.affiliateTeam.creatorBusiness.outreachLimits.bdDailyHint")}
+              placeholder={t("ecommerce.affiliateTeam.creatorBusiness.outreachLimits.unlimited")}
+              error={
+                loaded && !bdLimit.valid
+                  ? t("ecommerce.affiliateTeam.creatorBusiness.outreachLimits.invalid")
+                  : undefined
+              }
+              value={bdLimitText}
+              disabled={!loaded || saving}
+              onChange={(event) => setBdLimitDraft(event.target.value)}
+            />
+            <TkField
+              className="affiliate-creator-business-limit-input"
+              type="number"
+              inputMode="numeric"
+              min={OUTREACH_LIMIT_MIN}
+              max={OUTREACH_LIMIT_MAX}
+              step={1}
+              label={t("ecommerce.affiliateTeam.creatorBusiness.outreachLimits.creatorListDaily")}
+              hint={t(
+                "ecommerce.affiliateTeam.creatorBusiness.outreachLimits.creatorListDailyHint",
+              )}
+              placeholder={t("ecommerce.affiliateTeam.creatorBusiness.outreachLimits.unlimited")}
+              error={
+                loaded && !listLimit.valid
+                  ? t("ecommerce.affiliateTeam.creatorBusiness.outreachLimits.invalid")
+                  : undefined
+              }
+              value={listLimitText}
+              disabled={!loaded || saving}
+              onChange={(event) => setListLimitDraft(event.target.value)}
+            />
           </TkFormGroup>
           <TkFormGroup
             className="affiliate-creator-business-triggers"

@@ -73,3 +73,12 @@
 .affiliate-creator-business-name-preview small {
   font-size: 11px;
 }
+
+/* ADR-124 outreach limits: two number fields; their hints explain the rule, so they get width. */
+.affiliate-creator-business-limits {
+  margin-top: var(--tk-v1-space-4);
+}
+
+.affiliate-creator-business-limit-input {
+  max-width: 560px;
+}

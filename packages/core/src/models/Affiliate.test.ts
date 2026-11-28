@@ -237,6 +237,22 @@ describe("AffiliateWorkspaceModel", () => {
     expect(workspace.operationalSettings?.releaseBeforeSampleExpiryHours).toBeNull();
   });
 
+  it("stores the ADR-124 daily outreach limits, null meaning unlimited", () => {
+    const workspace = AffiliateWorkspaceModel.create({});
+    workspace.setAffiliateOperationalSettings({ id: "settings-1", userId: "user-1" } as any);
+    expect(workspace.operationalSettings?.bdDailyOutreachLimit).toBeNull();
+    expect(workspace.operationalSettings?.creatorListDailyOutreachLimit).toBeNull();
+
+    workspace.setAffiliateOperationalSettings({
+      id: "settings-1",
+      userId: "user-1",
+      bdDailyOutreachLimit: 50,
+      creatorListDailyOutreachLimit: 200,
+    } as any);
+    expect(workspace.operationalSettings?.bdDailyOutreachLimit).toBe(50);
+    expect(workspace.operationalSettings?.creatorListDailyOutreachLimit).toBe(200);
+  });
+
   it("stores the effective Creator assignment scenarios and whether they are customized", () => {
     const workspace = AffiliateWorkspaceModel.create({});
     workspace.setAffiliateOperationalSettings({ id: "settings-1", userId: "user-1" } as any);

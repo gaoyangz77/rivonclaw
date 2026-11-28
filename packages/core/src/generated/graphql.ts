@@ -4337,10 +4337,14 @@ export interface AffiliateOperationalSettings {
   autoReleaseOnSampleRejection: Scalars["Boolean"]["output"];
   /** The seller's own window, in days (0–30), in which a new Sample Application from a Business Developer's own Campaign assigns the Creator to that Business Developer. Null while the default applies; 0 means off. */
   bdCampaignSampleAssignmentDays?: Maybe<Scalars["Int"]["output"]>;
+  /** ADR-124: the most Creators one Business Developer may reach per shop-local day, over every Campaign that Business Developer created (1–10000). Null means unlimited. Campaigns created by the seller account or an admin are never limited. */
+  bdDailyOutreachLimit?: Maybe<Scalars["Int"]["output"]>;
   /** ADR-120: the seller-wide default name template of a new or copied Campaign, over {{bd_name}}, {{bd_english_name}}, {{product_id}}, {{date:…}} and {{sequence}}. An empty string means off. */
   campaignNameTemplate: Scalars["String"]["output"];
   /** True when the seller chose their own selection of assignment scenarios; false while the defaults apply. */
   creatorAssignmentTriggersCustomized: Scalars["Boolean"]["output"];
+  /** ADR-124: the most Creators one Creator-list Campaign created by a Business Developer may reach per shop-local day (1–10000), on top of that Campaign's own daily target. Null means unlimited. Search Campaigns are never limited by it. */
+  creatorListDailyOutreachLimit?: Maybe<Scalars["Int"]["output"]>;
   /** The window in force: the stored value, or the default of 7 days while there is none. 0 means the rule is off. */
   effectiveBdCampaignSampleAssignmentDays: Scalars["Int"]["output"];
   /** Scenarios in force in which a new business fact about an unassigned, unprotected Creator triggers random Business Developer assignment. The seller's own selection, or the defaults (Creator inbound message, Sample Application) while they have none. Retired scenarios (partner-managed and refundable Sample Applications, which never assign a Business Developer) are never returned. Empty means never assign automatically. */
@@ -13079,6 +13083,8 @@ export interface Mutation {
   deleteShop: Scalars["Boolean"]["output"];
   /** Delete a surface */
   deleteSurface: Scalars["Boolean"]["output"];
+  /** Delete one workspace file; false when it did not exist. */
+  deleteWorkspaceFile: Scalars["Boolean"]["output"];
   /** Disconnect one advertising account for the authenticated user. */
   disconnectAdsAdvertiser: Scalars["Boolean"]["output"];
   dispatchExpertMessage: ExpertDispatchResult;
@@ -13739,6 +13745,10 @@ export interface MutationDeleteShopArgs {
 
 export interface MutationDeleteSurfaceArgs {
   id: Scalars["ID"]["input"];
+}
+
+export interface MutationDeleteWorkspaceFileArgs {
+  path: Scalars["String"]["input"];
 }
 
 export interface MutationDisconnectAdsAdvertiserArgs {
@@ -15691,6 +15701,12 @@ export interface Query {
   whatsAppConnectorStatus: WhatsAppConnectorStatus;
   /** List WhatsApp egress proxies visible to the authenticated seller. Includes user-owned proxies and global proxies. */
   whatsAppProxies: Array<WhatsAppProxy>;
+  /** A short-lived signed URL that downloads one file of the account's workspace. */
+  workspaceFileDownloadUrl: WorkspaceFileDownload;
+  /** Preview metadata (type, size, preview kind) and a short-lived inline signed URL for one file. */
+  workspaceFilePreview: WorkspaceFilePreview;
+  /** Files of the account's workspace under a directory (recursive), ordered by path, with quota usage. */
+  workspaceFiles: WorkspaceFilePage;
 }
 
 export interface QueryActionProposalsArgs {
@@ -16775,6 +16791,20 @@ export interface QueryWhatsAppProxiesArgs {
   status?: InputMaybe<ProxyStatus>;
 }
 
+export interface QueryWorkspaceFileDownloadUrlArgs {
+  path: Scalars["String"]["input"];
+}
+
+export interface QueryWorkspaceFilePreviewArgs {
+  path: Scalars["String"]["input"];
+}
+
+export interface QueryWorkspaceFilesArgs {
+  after?: InputMaybe<Scalars["String"]["input"]>;
+  directory?: InputMaybe<Scalars["String"]["input"]>;
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+}
+
 export interface ReadActionProposalsInput {
   affiliateCollaborationId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Filter work by the Business Developer assignment frozen on the proposal. */
@@ -17507,10 +17537,14 @@ export interface SetAffiliateCreatorBusinessSettingsInput {
   autoReleaseOnSampleRejection: Scalars["Boolean"]["input"];
   /** Absent leaves the stored window unchanged; null restores the default of 7 days; an integer from 0 to 30 sets it (0 turns the rule off). */
   bdCampaignSampleAssignmentDays?: InputMaybe<Scalars["Int"]["input"]>;
+  /** ADR-124. Absent leaves the stored limit unchanged; null removes it (unlimited); an integer from 1 to 10000 sets it. */
+  bdDailyOutreachLimit?: InputMaybe<Scalars["Int"]["input"]>;
   /** Absent or null leaves the stored template unchanged; an empty string turns it off; otherwise a template of at most 200 characters over the known {{variables}} (ADR-120). */
   campaignNameTemplate?: InputMaybe<Scalars["String"]["input"]>;
   /** Absent leaves the stored selection unchanged; null restores the defaults; a list sets exactly those scenarios (an empty list means never assign automatically). */
   creatorAssignmentTriggers?: InputMaybe<Array<AffiliateCreatorAssignmentTrigger>>;
+  /** ADR-124. Absent leaves the stored limit unchanged; null removes it (unlimited); an integer from 1 to 10000 sets it. */
+  creatorListDailyOutreachLimit?: InputMaybe<Scalars["Int"]["input"]>;
   /** Absent leaves the stored value unchanged; null turns the safeguard off; an integer from 1 to 142 sets it. */
   releaseBeforeSampleExpiryHours?: InputMaybe<Scalars["Int"]["input"]>;
 }
@@ -19464,6 +19498,58 @@ export interface WmsWarehouseSyncPayload {
   warehousesSynced: Scalars["Int"]["output"];
   /** WMS account ID that was synced. */
   wmsAccountId: Scalars["ID"]["output"];
+}
+
+export interface WorkspaceFileDownload {
+  expiresAt: Scalars["DateTimeISO"]["output"];
+  file: WorkspaceFileEntry;
+  /** Short-lived signed URL; forces a download. */
+  url: Scalars["String"]["output"];
+}
+
+export interface WorkspaceFileEntry {
+  contentType: Scalars["String"]["output"];
+  createdAt: Scalars["DateTimeISO"]["output"];
+  name: Scalars["String"]["output"];
+  path: Scalars["String"]["output"];
+  previewKind: WorkspacePreviewKind;
+  sha256: Scalars["String"]["output"];
+  sizeBytes: Scalars["Float"]["output"];
+  updatedAt: Scalars["DateTimeISO"]["output"];
+}
+
+export interface WorkspaceFilePage {
+  files: Array<WorkspaceFileEntry>;
+  /** Pass as `after` to get the next page. */
+  nextCursor?: Maybe<Scalars["String"]["output"]>;
+  usage: WorkspaceUsageInfo;
+}
+
+export interface WorkspaceFilePreview {
+  file: WorkspaceFileEntry;
+  /** Short-lived signed URL the client renders from; the backend converts nothing. */
+  url: Scalars["String"]["output"];
+  urlExpiresAt: Scalars["DateTimeISO"]["output"];
+}
+
+/** How the client previews a workspace file */
+export const WorkspacePreviewKind = {
+  Csv: "CSV",
+  Docx: "DOCX",
+  Image: "IMAGE",
+  Json: "JSON",
+  Markdown: "MARKDOWN",
+  Pdf: "PDF",
+  Text: "TEXT",
+  Unsupported: "UNSUPPORTED",
+  Xlsx: "XLSX",
+} as const;
+
+export type WorkspacePreviewKind = (typeof WorkspacePreviewKind)[keyof typeof WorkspacePreviewKind];
+export interface WorkspaceUsageInfo {
+  fileCount: Scalars["Int"]["output"];
+  quotaBytes: Scalars["Float"]["output"];
+  usedBytes: Scalars["Float"]["output"];
 }
 
 /** Create a role when roleId is absent, otherwise update it. */

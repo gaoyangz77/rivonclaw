@@ -44,6 +44,8 @@ function settings(overrides: Record<string, unknown> = {}) {
     bdCampaignSampleAssignmentDays: null,
     effectiveBdCampaignSampleAssignmentDays: 7,
     campaignNameTemplate: "",
+    bdDailyOutreachLimit: null,
+    creatorListDailyOutreachLimit: null,
     ...overrides,
   };
 }
@@ -653,4 +655,94 @@ it("leaves the template out of a save that did not change it", async () => {
   fireEvent.click(checkbox(DEADLINE_RELEASE));
   fireEvent.click(saveButton());
   await waitFor(() => expect(onResult).toHaveBeenCalledOnce());
+});
+
+// ADR-124: the two daily outreach limits.
+const bdLimitInput = () =>
+  screen.getByRole("spinbutton", { name: "每个 BD 每天可发出的定邀达人数量上限" }) as HTMLInputElement;
+const listLimitInput = () =>
+  screen.getByRole("spinbutton", {
+    name: "BD 用 Excel 上传名单的推广计划：每个推广计划每天最多触达的达人数",
+  }) as HTMLInputElement;
+const INVALID_LIMIT = "留空表示不限制，或填写 1–10000 之间的整数";
+
+function limitsMock(
+  limits: Record<string, number | null>,
+  onResult = vi.fn(),
+  stored: Record<string, number | null> = limits,
+) {
+  return {
+    request: {
+      query: SET_AFFILIATE_CREATOR_BUSINESS_SETTINGS_MUTATION,
+      variables: {
+        input: {
+          autoClaimOnSampleApproval: false,
+          autoReleaseOnSampleRejection: false,
+          releaseBeforeSampleExpiryHours: null,
+          ...limits,
+        },
+      },
+    },
+    result: () => {
+      onResult();
+      return { data: { setAffiliateCreatorBusinessSettings: settings(stored) } };
+    },
+  };
+}
+
+it("shows both limits empty by default and keeps save off", () => {
+  renderPanel();
+  expect(bdLimitInput().value).toBe("");
+  expect(listLimitInput().value).toBe("");
+  expect(saveButton().disabled).toBe(true);
+});
+
+it("saves a limit and leaves the untouched one out of the input", async () => {
+  const onResult = vi.fn();
+  renderPanel([limitsMock({ bdDailyOutreachLimit: 50 }, onResult)]);
+  fireEvent.change(bdLimitInput(), { target: { value: "50" } });
+  expect(saveButton().disabled).toBe(false);
+  fireEvent.click(saveButton());
+  await waitFor(() => expect(workspace.operationalSettings?.bdDailyOutreachLimit).toBe(50));
+  expect(onResult).toHaveBeenCalledOnce();
+  expect(workspace.operationalSettings?.creatorListDailyOutreachLimit).toBeNull();
+  expect(bdLimitInput().value).toBe("50");
+  expect(saveButton().disabled).toBe(true);
+});
+
+it("sends null for a cleared limit so it becomes unlimited again", async () => {
+  workspace = AffiliateWorkspaceModel.create({
+    operationalSettings: settings({ creatorListDailyOutreachLimit: 200, bdDailyOutreachLimit: 50 }),
+  });
+  state.store = { affiliateWorkspace: workspace };
+  const onResult = vi.fn();
+  renderPanel([
+    limitsMock({ creatorListDailyOutreachLimit: null }, onResult, {
+      bdDailyOutreachLimit: 50,
+      creatorListDailyOutreachLimit: null,
+    }),
+  ]);
+  expect(listLimitInput().value).toBe("200");
+  expect(bdLimitInput().value).toBe("50");
+  fireEvent.change(listLimitInput(), { target: { value: "" } });
+  expect(saveButton().disabled).toBe(false);
+  fireEvent.click(saveButton());
+  await waitFor(() =>
+    expect(workspace.operationalSettings?.creatorListDailyOutreachLimit).toBeNull(),
+  );
+  expect(onResult).toHaveBeenCalledOnce();
+  expect(workspace.operationalSettings?.bdDailyOutreachLimit).toBe(50);
+  expect(listLimitInput().value).toBe("");
+});
+
+it("rejects 0, fractions and values over 10000 without saving", () => {
+  renderPanel();
+  for (const value of ["0", "1.5", "10001", "-3"]) {
+    fireEvent.change(bdLimitInput(), { target: { value } });
+    expect(saveButton().disabled).toBe(true);
+    expect(screen.getByText(INVALID_LIMIT)).toBeTruthy();
+  }
+  fireEvent.change(bdLimitInput(), { target: { value: "10000" } });
+  expect(saveButton().disabled).toBe(false);
+  expect(screen.queryByText(INVALID_LIMIT)).toBeNull();
 });

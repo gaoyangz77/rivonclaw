@@ -885,12 +885,13 @@ describe("Affiliate Campaign targets step validation", () => {
   });
 
   it("requires a whole collaboration length from 1 to 365 days", () => {
-    for (const endDays of ["", "0", "366", "7.5", "x"]) {
+    expect(emptyForm.endDays).toBe("365");
+    for (const endDays of ["", "0", "731", "7.5", "x"]) {
       expect(
         campaignTargetStepIssues({ ...emptyForm, sellerContactEmail: "a@b.co", endDays }),
       ).toEqual([{ field: "endDays", code: "endDaysInvalid" }]);
     }
-    for (const endDays of ["1", "365"]) {
+    for (const endDays of ["1", "365", "730"]) {
       expect(
         campaignTargetStepIssues({ ...emptyForm, sellerContactEmail: "a@b.co", endDays }),
       ).toEqual([]);

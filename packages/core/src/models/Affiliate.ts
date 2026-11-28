@@ -172,6 +172,11 @@ export const AffiliateOperationalSettingsModel = types.model("AffiliateOperation
   effectiveBdCampaignSampleAssignmentDays: types.optional(types.integer, 7),
   // ADR-120: seller-wide default Campaign name template; "" means off.
   campaignNameTemplate: types.optional(types.string, ""),
+  // ADR-124: daily outreach limits on BD-created Campaigns; null means unlimited.
+  // Seller-wide per-BD cap on invitations sent per shop-local day.
+  bdDailyOutreachLimit: types.maybeNull(types.integer),
+  // Per BD-created Creator-list Campaign cap on Creators reached per day.
+  creatorListDailyOutreachLimit: types.maybeNull(types.integer),
   id: types.identifier,
   userId: types.string,
   onboardingCompletedAt: types.maybeNull(types.string),
