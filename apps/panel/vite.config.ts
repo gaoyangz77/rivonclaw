@@ -4,13 +4,28 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { DEFAULT_PANEL_DEV_PORT, DEFAULTS } from "@rivonclaw/core";
 
-// The browser build ships only the icons the page references, not Desktop's
+// The browser build ships only the files the page references, not Desktop's
 // installer artwork and office assets that share `../desktop/build`.
-const WEB_PUBLIC_FILES = ["icon.ico", "icon.png", "brand-mark.svg"];
+const WEB_PUBLIC_FILES = ["brand-mark.svg"];
+
+// On app.tkcopilot.com the page uses the website's brand favicons, which nginx
+// serves from the server/web build at these root paths (same files as www).
+const DESKTOP_ICON_LINK = '<link rel="icon" href="/icon.ico" />';
+const WEB_ICON_LINKS = [
+  '<link rel="icon" href="/favicon.ico" sizes="32x32" />',
+  '<link rel="icon" href="/favicon.svg" type="image/svg+xml" />',
+  '<link rel="apple-touch-icon" href="/apple-touch-icon.png" />',
+].join("\n    ");
 
 function webPublicFiles() {
   return {
     name: "web-public-files",
+    transformIndexHtml(html: string) {
+      if (!html.includes(DESKTOP_ICON_LINK)) {
+        throw new Error("index.html no longer has the Desktop icon link the web build replaces");
+      }
+      return html.replace(DESKTOP_ICON_LINK, WEB_ICON_LINKS);
+    },
     generateBundle(this: { emitFile(file: object): void }) {
       for (const name of WEB_PUBLIC_FILES) {
         this.emitFile({
