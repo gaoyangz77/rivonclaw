@@ -154,7 +154,7 @@ describe("workbench Sample order number copy", () => {
             query: AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY,
             variables: { input: {
               shopId: null, businessDeveloperId: null, protected: null,
-              statusFilter: "PENDING_REVIEW", sortOrder: "ASC", limit: 25, cursor: null,
+              statusFilter: "PENDING_REVIEW", sortBy: "REVIEW_DEADLINE", sortOrder: "ASC", limit: 25, cursor: null,
             } },
           },
           result: { data: { affiliateWorkbenchSamplePage: {

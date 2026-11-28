@@ -180,6 +180,27 @@ export function AffiliateWorkbenchEntityTabs({
   );
 }
 
+type SampleSortChoice = "SOONEST_DEADLINE" | "OLDEST_APPLICATION" | "NEWEST_APPLICATION";
+
+/** What each sort choice asks the backend for. Soonest deadline is ascending by definition. */
+const SAMPLE_SORT_INPUT: Record<
+  SampleSortChoice,
+  { sortBy: GQL.AffiliateWorkbenchSampleSortKey; sortOrder: GQL.EcomSortOrder }
+> = {
+  SOONEST_DEADLINE: {
+    sortBy: GQL.AffiliateWorkbenchSampleSortKey.ReviewDeadline,
+    sortOrder: GQL.EcomSortOrder.Asc,
+  },
+  OLDEST_APPLICATION: {
+    sortBy: GQL.AffiliateWorkbenchSampleSortKey.ApplicationTime,
+    sortOrder: GQL.EcomSortOrder.Asc,
+  },
+  NEWEST_APPLICATION: {
+    sortBy: GQL.AffiliateWorkbenchSampleSortKey.ApplicationTime,
+    sortOrder: GQL.EcomSortOrder.Desc,
+  },
+};
+
 function AffiliateWorkbenchSampleList({
   selectedShopIds,
   shops,
@@ -200,12 +221,19 @@ function AffiliateWorkbenchSampleList({
   );
   const [protection, setProtection] = useState("ALL");
   const [creatorSearch, setCreatorSearch] = useState("");
+  const pendingReviewView = statusFilter === GQL.AffiliateWorkbenchSampleStatusFilter.PendingReview;
   /**
-   * Application-time order. A backend cursor is bound to the order that minted
-   * it, so this belongs in `filterKey` — changing it must start a fresh page 1,
-   * never replay the in-flight cursor.
+   * The seller's sort choice. Soonest deadline is the default, but the backend
+   * supports it only for the pending-review view, so the other views derive
+   * "oldest application first" from it during render and the choice comes back
+   * when the seller returns to pending review. A backend cursor is bound to the
+   * sort that minted it, so the effective sort belongs in `filterKey` — changing
+   * it must start a fresh page 1, never replay the in-flight cursor.
    */
-  const [sortOrder, setSortOrder] = useState<GQL.EcomSortOrder>(GQL.EcomSortOrder.Asc);
+  const [sortChoice, setSortChoice] = useState<SampleSortChoice>("SOONEST_DEADLINE");
+  const effectiveSortChoice: SampleSortChoice =
+    sortChoice === "SOONEST_DEADLINE" && !pendingReviewView ? "OLDEST_APPLICATION" : sortChoice;
+  const { sortBy, sortOrder } = SAMPLE_SORT_INPUT[effectiveSortChoice];
   /** Application time, so this queue filters `firstObservedAt`. */
   const [timeFilter, setTimeFilter] =
     useState<AffiliateWorkbenchTimeFilterValue>(ALL_TIME_WORKBENCH_FILTER);
@@ -236,6 +264,7 @@ function AffiliateWorkbenchSampleList({
     productKnowledgeId,
     protection,
     statusFilter,
+    sortBy,
     sortOrder,
     affiliateWorkbenchTimeFilterKey(timeSelection),
     shopScope,
@@ -247,6 +276,7 @@ function AffiliateWorkbenchSampleList({
     ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
     protected: workbenchProtectionValue(protection),
     statusFilter,
+    sortBy,
     sortOrder,
     ...(creatorSearch ? { creatorSearch } : {}),
     ...(productKnowledgeId ? { productKnowledgeId } : {}),
@@ -296,7 +326,6 @@ function AffiliateWorkbenchSampleList({
   const { items, firstPage: page, hasMore, loadMore, refresh: refetch } = pagination;
   const loading = queryLoading || pagination.loading;
   const ignoredView = statusFilter === GQL.AffiliateWorkbenchSampleStatusFilter.Ignored;
-  const pendingReviewView = statusFilter === GQL.AffiliateWorkbenchSampleStatusFilter.PendingReview;
   const productRefs = useMemo(
     () => [
       ...new Map(
@@ -511,15 +540,23 @@ function AffiliateWorkbenchSampleList({
           <div className="affiliate-workbench-filter-order">
             <TkChoiceSelect
               label={t("ecommerce.affiliateWorkspace.workbench.sampleSortLabel")}
-              value={sortOrder}
-              onChange={(value) => setSortOrder(value as GQL.EcomSortOrder)}
+              value={effectiveSortChoice}
+              onChange={(value) => setSortChoice(value as SampleSortChoice)}
               options={[
+                ...(pendingReviewView
+                  ? [
+                      {
+                        value: "SOONEST_DEADLINE",
+                        label: t("ecommerce.affiliateWorkspace.workbench.sampleSortSoonestDeadlineFirst"),
+                      },
+                    ]
+                  : []),
                 {
-                  value: GQL.EcomSortOrder.Asc,
+                  value: "OLDEST_APPLICATION",
                   label: t("ecommerce.affiliateWorkspace.workbench.sampleSortOldestFirst"),
                 },
                 {
-                  value: GQL.EcomSortOrder.Desc,
+                  value: "NEWEST_APPLICATION",
                   label: t("ecommerce.affiliateWorkspace.workbench.sampleSortNewestFirst"),
                 },
               ]}

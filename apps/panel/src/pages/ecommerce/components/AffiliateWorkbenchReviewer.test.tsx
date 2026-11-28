@@ -121,6 +121,7 @@ function pageMock(statusFilter: string, items: unknown[]) {
           businessDeveloperId: null,
           protected: null,
           statusFilter,
+          sortBy: statusFilter === "PENDING_REVIEW" ? "REVIEW_DEADLINE" : "APPLICATION_TIME",
           sortOrder: "ASC",
           limit: 25,
           cursor: null,

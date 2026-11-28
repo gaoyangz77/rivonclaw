@@ -135,7 +135,7 @@ describe("Affiliate workbench Sample status filter", () => {
             request: {
               query: AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY,
               variables: {
-                input: { ...baseInput, statusFilter: "PENDING_REVIEW" },
+                input: { ...baseInput, statusFilter: "PENDING_REVIEW", sortBy: "REVIEW_DEADLINE" },
               },
             },
             result: pendingResult,
@@ -143,7 +143,9 @@ describe("Affiliate workbench Sample status filter", () => {
           {
             request: {
               query: AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY,
-              variables: { input: { ...baseInput, statusFilter: "ALL" } },
+              variables: {
+                input: { ...baseInput, statusFilter: "ALL", sortBy: "APPLICATION_TIME" },
+              },
             },
             result: allResult,
           },

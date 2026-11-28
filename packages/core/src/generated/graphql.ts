@@ -5960,6 +5960,8 @@ export interface AffiliateWorkbenchSamplePageInput {
   shopId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Match any selected owned shop. Omit or pass null for all shops; an empty list selects no shops. Mutually exclusive with shopId. */
   shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  /** What to order the page by; sortOrder gives the direction. Defaults to APPLICATION_TIME. REVIEW_DEADLINE (ASC = soonest deadline first, applications with no deadline last) is accepted only with statusFilter PENDING_REVIEW, otherwise the query fails with SAMPLE_SORT_UNSUPPORTED. A cursor is bound to the sort key that minted it. */
+  sortBy?: InputMaybe<AffiliateWorkbenchSampleSortKey>;
   /** Order the page by Sample application time. ASC, the default, returns the oldest application first; DESC returns the newest first. A cursor is bound to the order that minted it. */
   sortOrder?: InputMaybe<EcomSortOrder>;
   /** Filter by the manual-workbench Sample view. Omit for the legacy pending-review view. */
@@ -5998,6 +6000,14 @@ export interface AffiliateWorkbenchSampleRow {
   viewerCanPerformDailyOperations: Scalars["Boolean"]["output"];
 }
 
+/** What the Affiliate manual workbench Sample page orders by. REVIEW_DEADLINE is accepted only with the PENDING_REVIEW status filter. */
+export const AffiliateWorkbenchSampleSortKey = {
+  ApplicationTime: "APPLICATION_TIME",
+  ReviewDeadline: "REVIEW_DEADLINE",
+} as const;
+
+export type AffiliateWorkbenchSampleSortKey =
+  (typeof AffiliateWorkbenchSampleSortKey)[keyof typeof AffiliateWorkbenchSampleSortKey];
 /** User-facing Sample Application status view for the Affiliate manual workbench. */
 export const AffiliateWorkbenchSampleStatusFilter = {
   All: "ALL",

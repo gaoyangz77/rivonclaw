@@ -130,7 +130,7 @@ function renderTab(tab: "SAMPLES" | "MESSAGES") {
     sortOrder: "ASC",
     limit: 25,
     cursor: null,
-    ...(samples ? { statusFilter: "PENDING_REVIEW" } : { channel: null }),
+    ...(samples ? { statusFilter: "PENDING_REVIEW", sortBy: "REVIEW_DEADLINE" } : { channel: null }),
   };
   const counts = samples
     ? { openCount: 3, expiringSoonCount: 0 }

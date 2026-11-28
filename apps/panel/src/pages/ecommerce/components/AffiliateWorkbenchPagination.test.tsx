@@ -118,7 +118,7 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
       protected: null,
       sortOrder: "ASC",
       limit: 25,
-      ...(samples ? { statusFilter: "PENDING_REVIEW" } : { channel: null }),
+      ...(samples ? { statusFilter: "PENDING_REVIEW", sortBy: "REVIEW_DEADLINE" } : { channel: null }),
     };
     const mock = (cursor: string | null, ids: number[], nextCursor: string | null, delay = 0) => ({
       request: { query, variables: { input: { ...input, cursor } } },
