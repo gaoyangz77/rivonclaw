@@ -219,18 +219,18 @@ const en = {
   viewFirstMessage: "View direct first message",
   hideFirstMessage: "Hide direct first message",
   copyFirstMessage: "Copy message",
-  noDirectMessage: "Don't send a direct message, only the invitation",
+  noDirectMessage: "Don't send a direct message, only the invitation card",
   noDirectMessageHint:
-    "Creators still get the TikTok target-collaboration invitation with the intro above; only the direct message is skipped. Your first message is kept for later.",
+    "Only the TikTok target-collaboration card, with the intro above, is sent in chat; the direct message is skipped. Your first message is kept for later.",
   generateInvitationWithAi: "Draft the invitation intro with AI",
   generateInvitationAlternative: "Draft another invitation intro",
-  invitationBlockEyebrow: "Creators see this first",
+  invitationBlockEyebrow: "Inside the invitation card",
   invitationBlockDescription:
     "Attached to the TikTok target-collaboration invitation. Every invited creator sees the same text.",
   invitationBlockBadge: "No variables",
   invitationPreviewLabel: "What creators see in the invitation",
   invitationPreviewEmpty: "Your intro will appear here inside the invitation.",
-  dmBlockEyebrow: "Then (optional)",
+  dmBlockEyebrow: "Before the card (optional)",
   dmBlockTitle: "Direct first message",
   dmBlockDescription: "A separate direct message sent to each creator, one by one.",
   dmBlockBadge: "Variables supported",
@@ -244,7 +244,7 @@ const en = {
   invitationTextTooltip:
     "The intro text shown inside the TikTok target-collaboration invitation card. Every invited creator sees the same text.",
   firstMessageTooltip:
-    "One separate private message sent after the invitation card. It is not part of the card, and a Campaign set to skip direct messages sends none.",
+    "One separate private message, sent just before the invitation card. It is not part of the card, and a Campaign set to send only the card sends none.",
   reachProtectedCreators: "Reach protected Creators",
   reachProtectedCreatorsHint:
     "Protected Creators normally receive no Campaign outreach. When ticked, this Campaign sends them its collaboration invitation (and direct message). Their protection is otherwise unchanged: the AI still does not take over their conversations afterwards.",
@@ -909,16 +909,16 @@ const zh = {
   viewFirstMessage: "查看私信首信",
   hideFirstMessage: "收起私信首信",
   copyFirstMessage: "复制首信",
-  noDirectMessage: "不发私信，只发合作邀请",
-  noDirectMessageHint: "达人仍会收到 TikTok 定向合作邀请和上面的合作邀约介绍，只是不再私信。私信首信会保留，之后可以再启用。",
+  noDirectMessage: "不发私信，只发合作卡片",
+  noDirectMessageHint: "聊天里只发 TikTok 定向合作卡片（卡片里带上面的合作邀约介绍），不发私信文字。私信首信会保留，之后可以再启用。",
   generateInvitationWithAi: "用 AI 生成合作邀约介绍",
   generateInvitationAlternative: "换一版合作邀约介绍",
-  invitationBlockEyebrow: "达人先看到",
+  invitationBlockEyebrow: "在合作卡片里",
   invitationBlockDescription: "附在 TikTok 定向合作邀请里，所有被邀请的达人看到同一段文字。",
   invitationBlockBadge: "不支持变量",
   invitationPreviewLabel: "达人在合作邀请里看到的",
   invitationPreviewEmpty: "填写后，这段介绍会显示在合作邀请里。",
-  dmBlockEyebrow: "随后（可选）",
+  dmBlockEyebrow: "卡片之前（可选）",
   dmBlockTitle: "私信首信",
   dmBlockDescription: "逐个私信给每位达人的第一条消息。",
   dmBlockBadge: "支持变量",
@@ -931,7 +931,7 @@ const zh = {
   invitationTextTooltip:
     "显示在 TikTok 定向合作（定邀）卡片里的介绍文字，达人打开邀请时看到。",
   firstMessageTooltip:
-    "在定向合作卡片之后，另外单独发给达人的一条私信，不是卡片的一部分；选择只发合作邀请的推广计划不会发送私信。",
+    "单独发给达人的一条私信，在定向合作卡片之前发出，不是卡片的一部分；勾选只发合作卡片的推广计划不会发送私信。",
   reachProtectedCreators: "触达保护达人",
   reachProtectedCreatorsHint:
     "保护名单里的达人通常不会收到任何推广计划的触达。勾选后，本计划会向名单中的保护达人发送合作邀约（以及私信首信）。他们的保护状态不变：邀约之后 AI 仍不会接手跟进。",
@@ -1393,9 +1393,9 @@ const operationalCopy = {
     viewFirstMessage: "Erste Direktnachricht ansehen",
     hideFirstMessage: "Erste Direktnachricht ausblenden",
     copyFirstMessage: "Nachricht kopieren",
-    noDirectMessage: "Keine Direktnachricht, nur die Einladung senden",
+    noDirectMessage: "Keine Direktnachricht, nur die Einladungskarte senden",
     noDirectMessageHint:
-      "Creator erhalten weiterhin die TikTok-Zielkooperationseinladung mit der Vorstellung oben; nur die Direktnachricht entfällt. Deine erste Nachricht bleibt für später erhalten.",
+      "Im Chat wird nur die TikTok-Zielkooperationskarte mit der Vorstellung oben gesendet; die Direktnachricht entfällt. Deine erste Nachricht bleibt für später erhalten.",
     stepMessageTitle: "Festlegen, was Creator zuerst erhalten",
     stepMessageDescription:
       "Creator erhalten zuerst die TikTok-Zielkooperationseinladung mit deiner Vorstellung und danach optional eine Direktnachricht. Die KI kann beide Entwürfe auf einmal erstellen; prüfe sie vor der Veröffentlichung.",
@@ -1403,13 +1403,13 @@ const operationalCopy = {
     generateAlternative: "Für beide eine neue Version erstellen",
     generateInvitationWithAi: "Einladungsvorstellung mit KI erstellen",
     generateInvitationAlternative: "Neue Version der Einladungsvorstellung",
-    invitationBlockEyebrow: "Sehen Creator zuerst",
+    invitationBlockEyebrow: "In der Einladungskarte",
     invitationBlockDescription:
       "Wird der TikTok-Zielkooperationseinladung beigefügt. Alle eingeladenen Creator sehen denselben Text.",
     invitationBlockBadge: "Keine Variablen",
     invitationPreviewLabel: "Das sehen Creator in der Einladung",
     invitationPreviewEmpty: "Deine Vorstellung erscheint hier in der Einladung.",
-    dmBlockEyebrow: "Danach (optional)",
+    dmBlockEyebrow: "Vor der Karte (optional)",
     dmBlockTitle: "Erste Direktnachricht",
     dmBlockDescription:
       "Eine separate Direktnachricht, die einzeln an jeden Creator gesendet wird.",
@@ -1427,7 +1427,7 @@ const operationalCopy = {
     invitationTextTooltip:
       "Der Vorstellungstext in der TikTok-Karte für die gezielte Zusammenarbeit (Einladung). Alle eingeladenen Creator sehen denselben Text.",
     firstMessageTooltip:
-      "Eine eigene private Nachricht, die nach der Einladungskarte gesendet wird. Sie ist nicht Teil der Karte; bei Kampagnen ohne Direktnachricht entfällt sie.",
+      "Eine eigene private Nachricht, die kurz vor der Einladungskarte gesendet wird. Sie ist nicht Teil der Karte; Kampagnen, die nur die Karte senden, verschicken sie nicht.",
     reachProtectedCreators: "Geschützte Creator erreichen",
     reachProtectedCreatorsHint:
       "Geschützte Creator erhalten normalerweise keine Kampagnenansprache. Mit dem Häkchen sendet diese Kampagne ihnen die Einladung zur Zusammenarbeit (und die Direktnachricht). Ihr Schutz bleibt sonst unverändert: Die KI übernimmt danach weiterhin keine Gespräche.",
@@ -1685,9 +1685,9 @@ const operationalCopy = {
     viewFirstMessage: "Ver primer mensaje directo",
     hideFirstMessage: "Ocultar primer mensaje directo",
     copyFirstMessage: "Copiar mensaje",
-    noDirectMessage: "No enviar mensaje directo, solo la invitación",
+    noDirectMessage: "No enviar mensaje directo, solo la tarjeta de invitación",
     noDirectMessageHint:
-      "Los creadores siguen recibiendo la invitación de colaboración dirigida de TikTok con la presentación de arriba; solo se omite el mensaje directo. Tu primer mensaje se conserva para más adelante.",
+      "En el chat solo se envía la tarjeta de colaboración dirigida de TikTok, con la presentación de arriba; se omite el mensaje directo. Tu primer mensaje se conserva para más adelante.",
     stepMessageTitle: "Define lo que los creadores reciben primero",
     stepMessageDescription:
       "Los creadores reciben primero la invitación de colaboración dirigida de TikTok con tu presentación y, opcionalmente, un mensaje directo después. La IA puede redactar ambos a la vez; revísalos antes de publicar.",
@@ -1695,13 +1695,13 @@ const operationalCopy = {
     generateAlternative: "Otra versión de ambos",
     generateInvitationWithAi: "Redactar la presentación con IA",
     generateInvitationAlternative: "Otra versión de la presentación",
-    invitationBlockEyebrow: "Lo primero que ven",
+    invitationBlockEyebrow: "Dentro de la tarjeta de invitación",
     invitationBlockDescription:
       "Se adjunta a la invitación de colaboración dirigida de TikTok. Todos los creadores invitados ven el mismo texto.",
     invitationBlockBadge: "Sin variables",
     invitationPreviewLabel: "Lo que ven los creadores en la invitación",
     invitationPreviewEmpty: "Tu presentación aparecerá aquí, dentro de la invitación.",
-    dmBlockEyebrow: "Después (opcional)",
+    dmBlockEyebrow: "Antes de la tarjeta (opcional)",
     dmBlockTitle: "Primer mensaje directo",
     dmBlockDescription: "Un mensaje directo aparte, enviado a cada creador uno por uno.",
     dmBlockBadge: "Admite variables",
@@ -1718,7 +1718,7 @@ const operationalCopy = {
     invitationTextTooltip:
       "El texto de presentación que aparece dentro de la tarjeta de invitación de colaboración dirigida de TikTok. Todos los creadores invitados ven el mismo texto.",
     firstMessageTooltip:
-      "Un mensaje privado aparte que se envía después de la tarjeta de invitación. No forma parte de la tarjeta; si la campaña omite los mensajes directos, no se envía.",
+      "Un mensaje privado aparte que se envía justo antes de la tarjeta de invitación. No forma parte de la tarjeta; una campaña que solo envía la tarjeta no lo envía.",
     reachProtectedCreators: "Contactar creadores protegidos",
     reachProtectedCreatorsHint:
       "Los creadores protegidos normalmente no reciben ninguna acción de campaña. Al marcarlo, esta campaña les envía su invitación de colaboración (y el mensaje directo). Su protección no cambia: después, la IA sigue sin encargarse de sus conversaciones.",
@@ -1976,9 +1976,9 @@ const operationalCopy = {
     viewFirstMessage: "Voir le premier message direct",
     hideFirstMessage: "Masquer le premier message direct",
     copyFirstMessage: "Copier le message",
-    noDirectMessage: "Ne pas envoyer de message direct, seulement l'invitation",
+    noDirectMessage: "Ne pas envoyer de message direct, seulement la carte d'invitation",
     noDirectMessageHint:
-      "Les créateurs reçoivent toujours l'invitation de collaboration ciblée TikTok avec la présentation ci-dessus ; seul le message direct est ignoré. Votre premier message est conservé pour plus tard.",
+      "Seule la carte de collaboration ciblée TikTok, avec la présentation ci-dessus, est envoyée dans le chat ; le message direct est ignoré. Votre premier message est conservé pour plus tard.",
     stepMessageTitle: "Définir ce que les créateurs reçoivent en premier",
     stepMessageDescription:
       "Les créateurs reçoivent d'abord l'invitation de collaboration ciblée TikTok avec votre présentation, puis éventuellement un message direct. L'IA peut rédiger les deux d'un coup ; relisez-les avant de publier.",
@@ -1986,13 +1986,13 @@ const operationalCopy = {
     generateAlternative: "Une autre version des deux",
     generateInvitationWithAi: "Rédiger la présentation avec l'IA",
     generateInvitationAlternative: "Une autre version de la présentation",
-    invitationBlockEyebrow: "Vu en premier",
+    invitationBlockEyebrow: "Dans la carte d'invitation",
     invitationBlockDescription:
       "Jointe à l'invitation de collaboration ciblée TikTok. Tous les créateurs invités voient le même texte.",
     invitationBlockBadge: "Pas de variables",
     invitationPreviewLabel: "Ce que les créateurs voient dans l'invitation",
     invitationPreviewEmpty: "Votre présentation apparaîtra ici, dans l'invitation.",
-    dmBlockEyebrow: "Ensuite (facultatif)",
+    dmBlockEyebrow: "Avant la carte (facultatif)",
     dmBlockTitle: "Premier message direct",
     dmBlockDescription: "Un message direct distinct, envoyé à chaque créateur un par un.",
     dmBlockBadge: "Variables acceptées",
@@ -2009,7 +2009,7 @@ const operationalCopy = {
     invitationTextTooltip:
       "Le texte de présentation affiché dans la carte d'invitation de collaboration ciblée de TikTok. Tous les créateurs invités voient le même texte.",
     firstMessageTooltip:
-      "Un message privé distinct, envoyé après la carte d'invitation. Il ne fait pas partie de la carte ; une campagne sans message direct n'en envoie pas.",
+      "Un message privé distinct, envoyé juste avant la carte d'invitation. Il ne fait pas partie de la carte ; une campagne qui n'envoie que la carte n'en envoie pas.",
     reachProtectedCreators: "Contacter les créateurs protégés",
     reachProtectedCreatorsHint:
       "Les créateurs protégés ne reçoivent normalement aucune prise de contact de campagne. Si vous cochez cette option, cette campagne leur envoie son invitation de collaboration (et son message direct). Leur protection reste inchangée : l'IA ne reprend toujours pas leurs conversations ensuite.",
@@ -2270,9 +2270,9 @@ const operationalCopy = {
     viewFirstMessage: "Lihat pesan langsung pertama",
     hideFirstMessage: "Sembunyikan pesan langsung pertama",
     copyFirstMessage: "Salin pesan",
-    noDirectMessage: "Jangan kirim pesan langsung, hanya undangan",
+    noDirectMessage: "Jangan kirim pesan langsung, hanya kartu undangan",
     noDirectMessageHint:
-      "Kreator tetap menerima undangan kolaborasi bertarget TikTok beserta perkenalan di atas; hanya pesan langsung yang dilewati. Pesan pertama Anda tetap disimpan untuk nanti.",
+      "Di chat hanya kartu kolaborasi bertarget TikTok, beserta perkenalan di atas, yang dikirim; pesan langsung dilewati. Pesan pertama Anda tetap disimpan untuk nanti.",
     stepMessageTitle: "Atur apa yang pertama diterima kreator",
     stepMessageDescription:
       "Kreator lebih dulu menerima undangan kolaborasi bertarget TikTok berisi perkenalan Anda, lalu opsional satu pesan langsung. AI bisa membuat kedua draf sekaligus; periksa sebelum diterbitkan.",
@@ -2280,13 +2280,13 @@ const operationalCopy = {
     generateAlternative: "Versi lain untuk keduanya",
     generateInvitationWithAi: "Buat perkenalan undangan dengan AI",
     generateInvitationAlternative: "Versi lain perkenalan undangan",
-    invitationBlockEyebrow: "Dilihat kreator lebih dulu",
+    invitationBlockEyebrow: "Di dalam kartu undangan",
     invitationBlockDescription:
       "Dilampirkan pada undangan kolaborasi bertarget TikTok. Semua kreator yang diundang melihat teks yang sama.",
     invitationBlockBadge: "Tanpa variabel",
     invitationPreviewLabel: "Yang dilihat kreator di undangan",
     invitationPreviewEmpty: "Perkenalan Anda akan tampil di sini, di dalam undangan.",
-    dmBlockEyebrow: "Lalu (opsional)",
+    dmBlockEyebrow: "Sebelum kartu (opsional)",
     dmBlockTitle: "Pesan langsung pertama",
     dmBlockDescription: "Pesan langsung terpisah yang dikirim ke setiap kreator satu per satu.",
     dmBlockBadge: "Mendukung variabel",
@@ -2303,7 +2303,7 @@ const operationalCopy = {
     invitationTextTooltip:
       "Teks perkenalan yang tampil di dalam kartu undangan kolaborasi terarah TikTok. Semua kreator yang diundang melihat teks yang sama.",
     firstMessageTooltip:
-      "Satu pesan pribadi terpisah yang dikirim setelah kartu undangan. Bukan bagian dari kartu; kampanye yang melewati pesan langsung tidak mengirimnya.",
+      "Satu pesan pribadi terpisah yang dikirim tepat sebelum kartu undangan. Bukan bagian dari kartu; kampanye yang hanya mengirim kartu tidak mengirimnya.",
     reachProtectedCreators: "Jangkau kreator terlindungi",
     reachProtectedCreatorsHint:
       "Kreator terlindungi biasanya tidak menerima jangkauan kampanye apa pun. Jika dicentang, kampanye ini mengirimkan undangan kolaborasi (dan pesan langsungnya) kepada mereka. Perlindungan mereka tetap tidak berubah: AI tetap tidak mengambil alih percakapan mereka setelahnya.",
@@ -2555,9 +2555,9 @@ const operationalCopy = {
     viewFirstMessage: "Vedi il primo messaggio diretto",
     hideFirstMessage: "Nascondi il primo messaggio diretto",
     copyFirstMessage: "Copia messaggio",
-    noDirectMessage: "Non inviare il messaggio diretto, solo l'invito",
+    noDirectMessage: "Non inviare il messaggio diretto, solo la scheda di invito",
     noDirectMessageHint:
-      "I creator ricevono comunque l'invito alla collaborazione mirata di TikTok con la presentazione qui sopra; viene saltato solo il messaggio diretto. Il tuo primo messaggio resta salvato per dopo.",
+      "In chat viene inviata solo la scheda di collaborazione mirata di TikTok, con la presentazione qui sopra; il messaggio diretto viene saltato. Il tuo primo messaggio resta salvato per dopo.",
     stepMessageTitle: "Decidi cosa ricevono prima i creator",
     stepMessageDescription:
       "I creator ricevono prima l'invito alla collaborazione mirata di TikTok con la tua presentazione e poi, facoltativamente, un messaggio diretto. L'IA può scrivere entrambe le bozze insieme; controllale prima di pubblicare.",
@@ -2565,13 +2565,13 @@ const operationalCopy = {
     generateAlternative: "Un'altra versione di entrambe",
     generateInvitationWithAi: "Scrivi la presentazione con l'IA",
     generateInvitationAlternative: "Un'altra versione della presentazione",
-    invitationBlockEyebrow: "Visto per primo",
+    invitationBlockEyebrow: "Nella scheda di invito",
     invitationBlockDescription:
       "Allegata all'invito alla collaborazione mirata di TikTok. Tutti i creator invitati vedono lo stesso testo.",
     invitationBlockBadge: "Nessuna variabile",
     invitationPreviewLabel: "Cosa vedono i creator nell'invito",
     invitationPreviewEmpty: "La tua presentazione apparirà qui, dentro l'invito.",
-    dmBlockEyebrow: "Poi (facoltativo)",
+    dmBlockEyebrow: "Prima della scheda (facoltativo)",
     dmBlockTitle: "Primo messaggio diretto",
     dmBlockDescription: "Un messaggio diretto separato, inviato a ogni creator uno alla volta.",
     dmBlockBadge: "Variabili supportate",
@@ -2588,7 +2588,7 @@ const operationalCopy = {
     invitationTextTooltip:
       "Il testo di presentazione mostrato nella scheda di invito alla collaborazione mirata di TikTok. Tutti i creator invitati vedono lo stesso testo.",
     firstMessageTooltip:
-      "Un messaggio privato separato, inviato dopo la scheda di invito. Non fa parte della scheda; una campagna che salta i messaggi diretti non lo invia.",
+      "Un messaggio privato separato, inviato subito prima della scheda di invito. Non fa parte della scheda; una campagna che invia solo la scheda non lo invia.",
     reachProtectedCreators: "Contatta i creator protetti",
     reachProtectedCreatorsHint:
       "I creator protetti di norma non ricevono alcun contatto di campagna. Se selezionata, questa campagna invia loro l'invito alla collaborazione (e il messaggio diretto). La loro protezione resta invariata: in seguito l'IA continua a non prendere in carico le loro conversazioni.",
@@ -2847,9 +2847,9 @@ const operationalCopy = {
     viewFirstMessage: "ดูข้อความส่วนตัวแรก",
     hideFirstMessage: "ซ่อนข้อความส่วนตัวแรก",
     copyFirstMessage: "คัดลอกข้อความ",
-    noDirectMessage: "ไม่ส่งข้อความส่วนตัว ส่งเฉพาะคำเชิญ",
+    noDirectMessage: "ไม่ส่งข้อความส่วนตัว ส่งเฉพาะการ์ดคำเชิญ",
     noDirectMessageHint:
-      "ครีเอเตอร์ยังได้รับคำเชิญร่วมงานแบบเจาะจงของ TikTok พร้อมคำแนะนำด้านบน เพียงแต่ไม่ส่งข้อความส่วนตัว ข้อความแรกของคุณจะถูกเก็บไว้ใช้ภายหลัง",
+      "ในแชทจะส่งเฉพาะการ์ดร่วมงานแบบเจาะจงของ TikTok พร้อมคำแนะนำด้านบน ไม่ส่งข้อความส่วนตัว ข้อความแรกของคุณจะถูกเก็บไว้ใช้ภายหลัง",
     stepMessageTitle: "กำหนดสิ่งที่ครีเอเตอร์จะได้รับก่อน",
     stepMessageDescription:
       "ครีเอเตอร์จะได้รับคำเชิญร่วมงานแบบเจาะจงของ TikTok พร้อมคำแนะนำร้านของคุณก่อน จากนั้นอาจได้รับข้อความส่วนตัวอีกหนึ่งข้อความ AI ร่างทั้งสองส่วนได้ในครั้งเดียว โปรดตรวจสอบก่อนเผยแพร่",
@@ -2857,13 +2857,13 @@ const operationalCopy = {
     generateAlternative: "ร่างใหม่ทั้งสองส่วน",
     generateInvitationWithAi: "ให้ AI ร่างคำแนะนำในคำเชิญ",
     generateInvitationAlternative: "ร่างคำแนะนำในคำเชิญใหม่",
-    invitationBlockEyebrow: "ครีเอเตอร์เห็นก่อน",
+    invitationBlockEyebrow: "อยู่ในการ์ดคำเชิญ",
     invitationBlockDescription:
       "แนบไปกับคำเชิญร่วมงานแบบเจาะจงของ TikTok ครีเอเตอร์ทุกคนที่ได้รับเชิญจะเห็นข้อความเดียวกัน",
     invitationBlockBadge: "ไม่รองรับตัวแปร",
     invitationPreviewLabel: "สิ่งที่ครีเอเตอร์เห็นในคำเชิญ",
     invitationPreviewEmpty: "คำแนะนำของคุณจะแสดงที่นี่ภายในคำเชิญ",
-    dmBlockEyebrow: "จากนั้น (ไม่บังคับ)",
+    dmBlockEyebrow: "ก่อนการ์ด (ไม่บังคับ)",
     dmBlockTitle: "ข้อความส่วนตัวแรก",
     dmBlockDescription: "ข้อความส่วนตัวที่ส่งแยกถึงครีเอเตอร์ทีละคน",
     dmBlockBadge: "รองรับตัวแปร",
@@ -2880,7 +2880,7 @@ const operationalCopy = {
     invitationTextTooltip:
       "ข้อความแนะนำที่แสดงในการ์ดคำเชิญความร่วมมือแบบเจาะจงของ TikTok ครีเอเตอร์ที่ได้รับเชิญทุกคนเห็นข้อความเดียวกัน",
     firstMessageTooltip:
-      "ข้อความส่วนตัวแยกต่างหากที่ส่งหลังการ์ดคำเชิญ ไม่ได้เป็นส่วนหนึ่งของการ์ด และแคมเปญที่ข้ามข้อความส่วนตัวจะไม่ส่ง",
+      "ข้อความส่วนตัวแยกต่างหากที่ส่งก่อนการ์ดคำเชิญเล็กน้อย ไม่ได้เป็นส่วนหนึ่งของการ์ด และแคมเปญที่ส่งเฉพาะการ์ดจะไม่ส่ง",
     reachProtectedCreators: "ติดต่อครีเอเตอร์ที่ได้รับการป้องกัน",
     reachProtectedCreatorsHint:
       "ครีเอเตอร์ที่ได้รับการป้องกันโดยปกติจะไม่ได้รับการติดต่อจากแคมเปญใดเลย เมื่อเลือกตัวเลือกนี้ แคมเปญนี้จะส่งคำเชิญความร่วมมือ (และข้อความส่วนตัว) ให้พวกเขา การป้องกันของพวกเขายังคงเดิม: หลังจากนั้น AI จะยังไม่เข้าไปดูแลการสนทนาของพวกเขา",

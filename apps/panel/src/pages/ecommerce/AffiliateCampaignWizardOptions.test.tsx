@@ -251,7 +251,7 @@ describe("first-touch tooltips", () => {
     fireEvent.click(screen.getByRole("button", { name: /查看私信首信|查看第一条私信/ }));
     const dm = await screen.findByRole("region", { name: "私信首信" });
     expect(
-      within(dm).getByRole("button", { name: /在定向合作卡片之后，另外单独发给达人的一条私信/ }),
+      within(dm).getByRole("button", { name: /单独发给达人的一条私信，在定向合作卡片之前发出/ }),
     ).toBeTruthy();
   });
 });
