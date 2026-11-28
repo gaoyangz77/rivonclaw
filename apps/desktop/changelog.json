@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.9.64",
+    "date": "2026-11-28",
+    "en": [
+      "Model selection is removed: the Providers page, the chat model picker and the per-shop Customer Service model setting are gone, and everything runs on the cloud default model",
+      "Customer Service conversation summaries, reply translation and the Campaign message template suggestion now run in the cloud",
+      "New per-shop delivery-failure reminder (off by default): after a failed delivery attempt the buyer gets one reminder, sent by the server even when this app is closed",
+      "Set daily outreach limits for BD-created Campaigns in the Creator business settings; collaborations default to 365 days and can last up to 730",
+      "The sample review queue now lists the soonest deadline first, and the Campaign wizard wording matches what is actually sent in chat"
+    ],
+    "zh": [
+      "移除模型选择：不再有模型供应商页面、对话页模型切换和店铺客服模型设置，全部使用云端默认模型",
+      "客服会话总结、回复翻译和推广计划话术建议改为在云端运行",
+      "新增店铺派送失败提醒（默认关闭）：包裹派送失败后给买家发一条提醒，由服务器发送，本应用关闭时也会发送",
+      "达人业务设置中可以限制 BD 自建推广计划的每日触达达人数；合作有效期默认 365 天，最长 730 天",
+      "样品待审列表默认按最快到期排在前面，推广计划向导的文案与实际发送到对话中的内容一致"
+    ]
+  },
+  {
     "version": "1.9.63",
     "date": "2026-11-26",
     "en": [
