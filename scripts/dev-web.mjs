@@ -133,7 +133,8 @@ async function graphqlProblem(url) {
 
 const children = [];
 let shuttingDown = false;
-let originServer = null;
+/** One listener per loopback family; see `startOrigin`. */
+const originServers = [];
 
 function start(name, command, args, { cwd, env = {} }) {
   const child = spawn(command, args, {
@@ -178,8 +179,10 @@ async function shutdown(exitCode) {
   if (shuttingDown) return;
   shuttingDown = true;
   if (children.length > 0) console.log("\nStopping...");
-  originServer?.closeAllConnections();
-  originServer?.close();
+  for (const server of originServers) {
+    server.closeAllConnections();
+    server.close();
+  }
   const running = children.map(({ child }) => child).filter(isAlive);
   for (const child of running) signalGroup(child, "SIGTERM");
   const deadline = Date.now() + 8_000;
@@ -325,8 +328,13 @@ function proxyUpgrade(req, socket, head, destination, path, backendUrl) {
   upstream.end(head);
 }
 
+// Browsers resolve `app.localhost` to 127.0.0.1, ::1 or both, and Node's
+// `listen(port, "localhost")` binds only one of them. Listen on both loopback
+// addresses (never the wildcard, so the dev origin stays off the LAN).
+const LOOPBACK_HOSTS = ["127.0.0.1", "::1"];
+
 function startOrigin(backendUrl) {
-  originServer = http.createServer((req, res) => {
+  const handleRequest = (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
     const wantsHtml = (req.headers.accept ?? "").includes("text/html");
     const decision = route(url.pathname, { wantsHtml });
@@ -349,17 +357,25 @@ function startOrigin(backendUrl) {
       default:
         proxyHttp(req, res, "server-web", url.pathname + url.search, backendUrl);
     }
-  });
-  originServer.on("upgrade", (req, socket, head) => {
+  };
+  const handleUpgrade = (req, socket, head) => {
     const url = new URL(req.url ?? "/", "http://localhost");
     const decision = routeUpgrade(url.pathname);
     const path = decision.to === "backend-graphql" ? "/graphql" + url.search : url.pathname + url.search;
     proxyUpgrade(req, socket, head, decision.to, path, backendUrl);
-  });
-  return new Promise((done, fail) => {
-    originServer.once("error", fail);
-    originServer.listen(ORIGIN_PORT, "localhost", done);
-  });
+  };
+  return Promise.all(
+    LOOPBACK_HOSTS.map(
+      (host) =>
+        new Promise((done, fail) => {
+          const server = http.createServer(handleRequest);
+          server.on("upgrade", handleUpgrade);
+          originServers.push(server);
+          server.once("error", fail);
+          server.listen(ORIGIN_PORT, host, done);
+        }),
+    ),
+  );
 }
 
 // ---------------------------------------------------------------------------
